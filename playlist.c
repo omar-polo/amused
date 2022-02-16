@@ -47,8 +47,10 @@ playlist_enqueue(const char *path)
 const char *
 playlist_current(void)
 {
-	if (playlist.len == 0 || play_off == -1)
+	if (playlist.len == 0 || play_off == -1) {
+		play_state = STATE_STOPPED;
 		return NULL;
+	}
 
 	return playlist.songs[play_off];
 }
@@ -56,8 +58,10 @@ playlist_current(void)
 const char *
 playlist_advance(void)
 {
-	if (playlist.len == 0)
+	if (playlist.len == 0) {
+		play_state = STATE_STOPPED;
 		return NULL;
+	}
 
 	play_off++;
 	if (play_off == playlist.len) {
