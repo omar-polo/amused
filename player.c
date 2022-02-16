@@ -207,8 +207,6 @@ player_playnext(void)
 		player_senderr();
 		return;
 	}
-
-	player_sendeof();
 }
 
 int
@@ -283,6 +281,7 @@ player(int debug, int verbose)
 			assert(player_dispatch() == IMSG_STOP);
 
 		player_playnext();
+		player_sendeof();
 	}
 
 	return 0;
