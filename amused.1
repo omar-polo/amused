@@ -55,19 +55,23 @@ to communicate with the daemon.
 The following commands are available:
 .Bl -tag -width 12m
 .It Cm play
-Start playing the playlist.
+Start or resume playing the playlist.
 .It Cm pause
-Pause the reproduction.
+Pause the playback.
 .It Cm toggle
-Toggle pause state.
+Play/pause the playback.
 .It Cm stop
 Stop the music player.
 .It Cm restart
-Restart the current song from the beginning.
+Rewind the current song from the beginning.
 .It Cm add Ar
 Enqueue the given files.
 .It Cm flush
 Erase the playlist.
+.It Cm show
+Print the current playlist.
+.It Cm status
+Print playback status and current song.
 .El
 .Sh FILES
 .Bl -tag -width "/tmp/amused-$UID" -compact
