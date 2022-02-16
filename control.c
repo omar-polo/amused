@@ -259,12 +259,14 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				if (song == NULL)
 					break;
 				/* XXX: watch out for failures! */
+				play_state = STATE_PLAYING;
 				main_play_song(song);
 				break;
 			case STATE_PLAYING:
 				/* do nothing */
 				break;
 			case STATE_PAUSED:
+				play_state = STATE_PLAYING;
 				main_send_player(IMSG_RESUME, -1, NULL, 0);
 				break;
 			}
@@ -289,6 +291,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_PAUSE:
 			if (play_state != STATE_PLAYING)
 				break;
+			play_state = STATE_PAUSED;
 			main_send_player(IMSG_PAUSE, -1, NULL, 0);
 			break;
 		case IMSG_CTL_STOP:
