@@ -278,7 +278,7 @@ player(int debug, int verbose)
 
 	while (!halted) {
 		while (nextfd == -1)
-			assert(player_dispatch() == IMSG_STOP);
+			player_dispatch();
 
 		player_playnext();
 		player_sendeof();
