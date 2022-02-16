@@ -255,7 +255,6 @@ player(int debug, int verbose)
 	}
 #endif
 
-
 	audio_init();
 
 	/* mark fd as blocking i/o mode */
