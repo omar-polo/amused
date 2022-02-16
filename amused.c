@@ -201,7 +201,7 @@ start_child(enum amused_process proc, int fd)
 	}
 
 	if (fd != 3) {
-		if (dup2(fd, 3) == -1)
+		if (fd != -1 && dup2(fd, 3) == -1)
 			fatal("cannot setup imsg fd");
 	} else if (fcntl(F_SETFD, 0) == -1)
 		fatal("cannot setup imsg fd");
@@ -209,7 +209,7 @@ start_child(enum amused_process proc, int fd)
 	argv[argc++] = argv0;
 	switch (proc) {
 	case PROC_MAIN:
-		fatal("can not start main process");
+		break;
 	case PROC_PLAYER:
 		argv[argc++] = "-Tp";
 		break;
@@ -335,6 +335,13 @@ main(int argc, char **argv)
 	else
 		ctl(argc, argv);
 	return 0;
+}
+
+void
+spawn_daemon(void)
+{
+	debug = 0;
+	start_child(PROC_MAIN, -1);
 }
 
 void

@@ -290,24 +290,52 @@ ctl_add(struct parse_result *res, int argc, char **argv)
 	return ctlaction(res);
 }
 
-__dead void
-ctl(int argc, char **argv)
+static int
+sockconn(void)
 {
-	struct sockaddr_un	 sun;
-	int			 ctl_sock;
+	struct sockaddr_un	sun;
+	int			sock, saved_errno;
 
-	log_init(1, LOG_DAEMON);
-	log_setverbose(verbose);
-
-	if ((ctl_sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
 		fatal("socket");
 
 	memset(&sun, 0, sizeof(sun));
 	sun.sun_family = AF_UNIX;
 	strlcpy(sun.sun_path, csock, sizeof(sun.sun_path));
+	if (connect(sock, (struct sockaddr *)&sun, sizeof(sun)) == -1) {
+		saved_errno = errno;
+		close(sock);
+		errno = saved_errno;
+		return -1;
+	}
 
-	if (connect(ctl_sock, (struct sockaddr *)&sun, sizeof(sun)) == -1)
-		fatal("connect %s", csock);
+	return sock;
+}
+
+__dead void
+ctl(int argc, char **argv)
+{
+	int ctl_sock, i = 0;
+
+	log_init(1, LOG_DAEMON);
+	log_setverbose(verbose);
+
+	do {
+		struct timespec	ts = { 0, 50000000 }; /* 0.05 seconds */
+
+		if ((ctl_sock = sockconn()) != -1)
+			break;
+		if (errno != ENOENT && errno != ECONNREFUSED)
+			fatal("connect %s", csock);
+
+		if (i == 0)
+			spawn_daemon();
+
+		nanosleep(&ts, NULL);
+	} while (++i < 20);
+
+	if (ctl_sock == -1)
+		fatalx("failed to connect to the daemon");
 
 	ibuf = xmalloc(sizeof(*ibuf));
 	imsg_init(ibuf, ctl_sock);

@@ -82,6 +82,7 @@ struct ctl_command {
 };
 
 /* amused.c */
+void		spawn_daemon(void);
 void		imsg_event_add(struct imsgev *iev);
 int		imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
 		    pid_t, int, const void *, uint16_t);
