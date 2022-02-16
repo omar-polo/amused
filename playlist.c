@@ -98,3 +98,20 @@ playlist_truncate(void)
 	playlist.cap = 0;
 	play_off = -1;
 }
+
+void
+playlist_dropcurrent(void)
+{
+	size_t i;
+
+	if (play_off == -1 || playlist.len == 0)
+		return;
+
+	free(playlist.songs[play_off]);
+
+	playlist.len--;
+	for (i = play_off; i < playlist.len; ++i)
+		playlist.songs[i] = playlist.songs[i+1];
+
+	playlist.songs[playlist.len] = NULL;
+}

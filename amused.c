@@ -160,10 +160,12 @@ main_dispatch_player(int sig, short event, void *d)
 
 		switch (imsg.hdr.type) {
 		case IMSG_ERR:
-			/* TODO: remove current track from the playlist */
+			playlist_dropcurrent();
+			/* fallthrough */
 		case IMSG_EOF:
 			main_playlist_advance();
 			break;
+
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
 			    imsg.hdr.type);
@@ -397,7 +399,7 @@ main_playlist_advance(void)
 		if (main_play_song(song))
 			break;
 
-		/* TODO: remove the song from the playlist */
+		playlist_dropcurrent();
 	}
 }
 
@@ -413,7 +415,7 @@ main_restart_track(void)
 	if (main_play_song(song))
 		return;
 
-	/* TODO: remove the song from the playlist */
+	playlist_dropcurrent();
 	main_playlist_advance();
 }
 

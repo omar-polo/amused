@@ -41,5 +41,6 @@ const char		*playlist_current(void);
 const char		*playlist_advance(void);
 void			 playlist_reset(void);
 void			 playlist_truncate(void);
+void			 playlist_dropcurrent(void);
 
 #endif
