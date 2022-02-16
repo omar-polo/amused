@@ -41,7 +41,7 @@ dist: clean
 	tar -ztf amused-${AMUSED_VERSION}.tar.gz | \
 		sed -e 's/^amused-${AMUSED_VERSION}//' | \
 		sort > amused-dist.txt.new
-	diff -u amused-dist.txt{,new}
+	diff -u amused-dist.txt{,.new}
 	rm amused-dist.txt.new
 
 .include <bsd.prog.mk>
