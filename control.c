@@ -271,9 +271,11 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				main_playlist_advance();
 				break;
 			case STATE_PLAYING:
+				play_state = STATE_PAUSED;
 				main_send_player(IMSG_PAUSE, -1, NULL, 0);
 				break;
 			case STATE_PAUSED:
+				play_state = STATE_PLAYING;
 				main_send_player(IMSG_RESUME, -1, NULL, 0);
 				break;
 			}
