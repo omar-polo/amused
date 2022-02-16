@@ -66,7 +66,6 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
     void *d)
 {
 	uint32_t sample_rate;
-	struct sio_par par;
 
 	if (meta->type == FLAC__METADATA_TYPE_STREAMINFO) {
 		sample_rate = meta->data.stream_info.sample_rate;
@@ -78,18 +77,6 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
 
 		if (player_setrate(sample_rate) == -1)
 			err(1, "player_setrate");
-
-		sio_stop(hdl);
-
-		sio_initpar(&par);
-		par.rate = sample_rate;
-		if (!sio_setpar(hdl, &par))
-			err(1, "sio_setpar");
-		if (!sio_getpar(hdl, &par))
-			err(1, "sio_getpar");
-		/* TODO: check that there is a sane sample rate? */
-		if (!sio_start(hdl))
-			err(1, "sio_start");
 	}
 }
 
