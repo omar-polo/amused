@@ -312,6 +312,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			break;
 		case IMSG_CTL_FLUSH:
 			playlist_truncate();
+			break;
 		case IMSG_CTL_SHOW:
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
