@@ -16,6 +16,7 @@ PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
 MANDIR ?= ${PREFIX}/man/man
 .else
+NOMAN = Yes
 CFLAGS += -Werror -Wall -Wstrict-prototypes -Wunused-variable
 PREFIX ?= ${HOME}
 BINDIR ?= ${PREFIX}/bin
