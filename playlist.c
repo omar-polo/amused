@@ -56,7 +56,7 @@ playlist_current(void)
 const char *
 playlist_advance(void)
 {
-	if (playlist.len == 0 || play_off+1 == playlist.len)
+	if (playlist.len == 0)
 		return NULL;
 
 	play_off++;
