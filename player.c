@@ -106,7 +106,7 @@ player_pendingimsg(void)
 		return 1;
 
 	pfd.fd = ibuf->fd;
-	pfd.revents = POLLIN;
+	pfd.events = POLLIN;
 
 	r = poll(&pfd, 1, 0);
 	if (r == -1)
