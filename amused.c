@@ -444,3 +444,18 @@ main_enqueue(struct imsgev *iev, struct imsg *imsg)
 err:
 	imsg_compose_event(iev, IMSG_CTL_ERR, 0, 0, -1, err, strlen(err)+1);
 }
+
+void
+main_send_playlist(struct imsgev *iev)
+{
+	char path[PATH_MAX];
+	size_t i;
+
+	for (i = 0; i < playlist.len; ++i) {
+		strlcpy(path, playlist.songs[i], sizeof(path));
+		imsg_compose_event(iev, IMSG_CTL_SHOW, 0, 0, -1, path,
+		    sizeof(path));
+	}
+
+	imsg_compose_event(iev, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
+}

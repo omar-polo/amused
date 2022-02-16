@@ -89,6 +89,7 @@ int		main_send_player(uint16_t, int, const void *, uint16_t);
 void		main_playlist_advance(void);
 void		main_restart_track(void);
 void		main_enqueue(struct imsgev *, struct imsg *);
+void		main_send_playlist(struct imsgev *);
 
 /* ctl.c */
 __dead void	usage(void);

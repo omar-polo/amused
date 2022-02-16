@@ -49,6 +49,7 @@ struct ctl_command ctl_commands[] = {
 	{ "restart",	RESTART,	ctl_noarg,	"" },
 	{ "add",	ADD,		ctl_add,	"files...", 1 },
 	{ "flush",	FLUSH,		ctl_noarg,	"" },
+	{ "show",	SHOW,		ctl_noarg,	"" },
 	{ NULL },
 };
 

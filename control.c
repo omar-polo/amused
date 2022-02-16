@@ -300,6 +300,8 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			playlist_truncate();
 			break;
 		case IMSG_CTL_SHOW:
+			main_send_playlist(&c->iev);
+			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
 			    imsg.hdr.type);
