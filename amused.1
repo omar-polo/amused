@@ -1,0 +1,82 @@
+.\" Copyright (c) 2022 Omar Polo <op@openbsd.org>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd February 16 2022
+.Dt AMUSED 1
+.Os
+.Sh NAME
+.Nm amused
+.Nd music player
+.Sh SYNOPSIS
+.Nm
+.Op Fl dv
+.Op Fl s Ar socket
+.Ar command
+.Op Ar argument ...
+.Sh DESCRIPTION
+.Nm
+is a music player daemon and command-line utility.
+.Pp
+If called without any sub-
+.Ar command
+it forks in the background and starts the daemon.
+Once the daemon is running, music files can be enqueued and the reproduction
+controlled.
+.Pp
+The following options are available:
+.Bl -tag -width 12m
+.It Fl d
+Do not daemonize.
+if this option is specified,
+.Nm
+will run in the foreground and log to
+.Em stderr .
+.It Fl v
+Produce more verbose output.
+.It Fl s Ar socket
+Use
+.Ar socket
+instead of the default
+.Pa /tmp/amused-$UID
+to communicate with the daemon.
+.El
+.Pp
+The following commands are available:
+.Bl -tag -width 12m
+.It Cm play
+Start playing the playlist.
+.It Cm pause
+Pause the reproduction.
+.It Cm toggle
+Toggle pause state.
+.It Cm stop
+Stop the music player.
+.It Cm restart
+Restart the current song from the beginning.
+.It Cm add Ar
+Enqueue the given files.
+.It Cm flush
+Erase the playlist.
+.El
+.Sh FILES
+.Bl -tag -width "/tmp/amused-$UID" -compact
+.It Pa /tmp/amused-$UID
+UNIX-domain socket used for communication with the daemon.
+.El
+.Sh AUTHORS
+.An -nosplit
+Then
+.Nm
+utility was written by
+.An Omar Polo Aq Mt op@openbsd.org .
