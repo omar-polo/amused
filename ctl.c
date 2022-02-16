@@ -130,11 +130,54 @@ enqueue_tracks(char **files)
 	return enq == 0;
 }
 
+static void
+print_error_message(const char *prfx, struct imsg *imsg)
+{
+	size_t datalen;
+	char *msg;
+
+	datalen = IMSG_DATA_SIZE(*imsg);
+	if ((msg = calloc(1, datalen)) == NULL)
+		fatal("calloc %zu", datalen);
+	memcpy(msg, imsg->data, datalen);
+	if (datalen == 0 || msg[datalen-1] != '\0')
+		fatalx("malformed error message");
+
+	log_warnx("%s: %s", prfx, msg);
+	free(msg);
+}
+
+static int
+show_add(struct imsg *imsg, int *ret, char ***files)
+{
+	if (**files == NULL) {
+		log_warnx("received more replies than file sent");
+		*ret = 1;
+		return 1;
+	}
+
+	if (imsg->hdr.type == IMSG_CTL_ERR)
+		print_error_message(**files, imsg);
+	else if (imsg->hdr.type == IMSG_CTL_ADD)
+		log_debug("enqueued %s", **files);
+	else
+		fatalx("got invalid message %d", imsg->hdr.type);
+
+	(*files)++;
+	return (**files) == NULL;
+}
+
 static int
 show_complete(struct imsg *imsg, int *ret)
 {
 	size_t datalen;
 	char path[PATH_MAX];
+
+	if (imsg->hdr.type == IMSG_CTL_ERR) {
+		print_error_message("show failed", imsg);
+		*ret = 1;
+		return 1;
+	}
 
 	datalen = IMSG_DATA_SIZE(*imsg);
 	if (datalen == 0)
@@ -156,6 +199,7 @@ ctlaction(struct parse_result *res)
 	struct imsg imsg;
 	ssize_t n;
 	int ret = 0, done = 1;
+	char **files;
 
 	switch (res->action) {
 	case PLAY:
@@ -174,6 +218,8 @@ ctlaction(struct parse_result *res)
 		imsg_compose(ibuf, IMSG_CTL_RESTART, 0, 0, -1, NULL, 0);
 		break;
 	case ADD:
+		done = 0;
+		files = res->files;
 		ret = enqueue_tracks(res->files);
 		break;
 	case FLUSH:
@@ -207,6 +253,9 @@ ctlaction(struct parse_result *res)
 				break;
 
 			switch (res->action) {
+			case ADD:
+				done = show_add(&imsg, &ret, &files);
+				break;
 			case SHOW:
 				done = show_complete(&imsg, &ret);
 				break;
