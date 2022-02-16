@@ -377,13 +377,13 @@ main_play_song(const char *song)
 	strlcpy(path, song, sizeof(path));
 	if ((fd = open(path, O_RDONLY)) == -1) {
 		log_warn("open %s", path);
-		return -1;
+		return 0;
 	}
 
 	play_state = STATE_PLAYING;
 	imsg_compose_event(iev_player, IMSG_PLAY, 0, 0, fd,
 	    path, sizeof(path));
-	return 0;
+	return 1;
 }
 
 void
