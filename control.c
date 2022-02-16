@@ -265,8 +265,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				/* do nothing */
 				break;
 			case STATE_PAUSED:
-				imsg_compose_event(iev_player, IMSG_RESUME,
-				    0, 0, -1, NULL, 0);
+				main_send_player(IMSG_RESUME, -1, NULL, 0);
 				break;
 			}
 			break;
@@ -280,27 +279,25 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				main_play_song(song);
 				break;
 			case STATE_PLAYING:
-				imsg_compose_event(iev_player, IMSG_PAUSE, 0, 0, -1,
-				    NULL, 0);
+				main_send_player(IMSG_PAUSE, -1, NULL, 0);
 				break;
 			case STATE_PAUSED:
-				imsg_compose_event(iev_player, IMSG_RESUME, 0, 0, -1,
-				    NULL, 0);
+				main_send_player(IMSG_RESUME, -1, NULL, 0);
 				break;
 			}
 			break;
 		case IMSG_CTL_PAUSE:
 			if (play_state != STATE_PLAYING)
 				break;
-			imsg_compose_event(iev_player, IMSG_PAUSE, 0, 0, -1, NULL, 0);
+			main_send_player(IMSG_PAUSE, -1, NULL, 0);
 			break;
 		case IMSG_CTL_STOP:
 			if (play_state == STATE_STOPPED)
 				break;
-			imsg_compose_event(iev_player, IMSG_STOP, 0, 0, -1, NULL, 0);
+			main_send_player(IMSG_STOP, -1, NULL, 0);
 			break;
 		case IMSG_CTL_RESTART:
-			imsg_compose_event(iev_player, IMSG_STOP, 0, 0, -1, NULL, 0);
+			main_send_player(IMSG_STOP, -1, NULL, 0);
 			song = playlist_current();
 			if (song == NULL)
 				break;

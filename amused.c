@@ -365,6 +365,12 @@ imsg_compose_event(struct imsgev *iev, uint16_t type, uint32_t peerid,
 }
 
 int
+main_send_player(uint16_t type, int fd, const void *data, uint16_t datalen)
+{
+	return imsg_compose_event(iev_player, type, 0, 0, fd, data, datalen);
+}
+
+int
 main_play_song(const char *song)
 {
 	char path[PATH_MAX] = { 0 };

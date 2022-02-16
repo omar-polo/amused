@@ -85,6 +85,7 @@ struct ctl_command {
 void		imsg_event_add(struct imsgev *iev);
 int		imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
 		    pid_t, int, const void *, uint16_t);
+int		main_send_player(uint16_t, int, const void *, uint16_t);
 int		main_play_song(const char *);
 void		main_enqueue(struct imsgev *, struct imsg *);
 
