@@ -466,3 +466,19 @@ main_send_playlist(struct imsgev *iev)
 
 	imsg_compose_event(iev, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
 }
+
+void
+main_send_status(struct imsgev *iev)
+{
+	struct player_status s;
+	const char *song;
+
+	memset(&s, 0, sizeof(s));
+
+	song = playlist_current();
+	if (song != NULL)
+		strlcpy(s.path, song, sizeof(s.path));
+	s.status = play_state;
+
+	imsg_compose_event(iev, IMSG_CTL_STATUS, 0, 0, -1, &s, sizeof(s));
+}

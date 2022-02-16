@@ -23,6 +23,7 @@
 #include <err.h>
 #include <event.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <sndio.h>
 #include <stdio.h>
 #include <stdint.h>

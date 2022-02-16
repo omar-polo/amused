@@ -21,6 +21,7 @@
 #include <err.h>
 #include <event.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <sndio.h>
 #include <stdio.h>
 #include <stdlib.h>

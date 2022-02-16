@@ -42,6 +42,7 @@ enum imsg_type {
 	IMSG_CTL_ADD,
 	IMSG_CTL_FLUSH,
 	IMSG_CTL_SHOW,
+	IMSG_CTL_STATUS,
 
 	IMSG_CTL_ERR,
 };
@@ -63,6 +64,7 @@ enum actions {
 	ADD,
 	FLUSH,
 	SHOW,
+	STATUS,
 };
 
 struct ctl_command;
@@ -81,6 +83,11 @@ struct ctl_command {
 	int			 has_pledge;
 };
 
+struct player_status {
+	char	path[PATH_MAX];
+	int	status;
+};
+
 /* amused.c */
 void		spawn_daemon(void);
 void		imsg_event_add(struct imsgev *iev);
@@ -91,6 +98,7 @@ void		main_playlist_advance(void);
 void		main_restart_track(void);
 void		main_enqueue(struct imsgev *, struct imsg *);
 void		main_send_playlist(struct imsgev *);
+void		main_send_status(struct imsgev *);
 
 /* ctl.c */
 __dead void	usage(void);

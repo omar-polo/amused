@@ -34,6 +34,7 @@
 
 #include "amused.h"
 #include "log.h"
+#include "playlist.h"
 #include "xmalloc.h"
 
 static struct imsgbuf *ibuf;
@@ -50,6 +51,7 @@ struct ctl_command ctl_commands[] = {
 	{ "add",	ADD,		ctl_add,	"files...", 1 },
 	{ "flush",	FLUSH,		ctl_noarg,	"" },
 	{ "show",	SHOW,		ctl_noarg,	"" },
+	{ "status",	STATUS,		ctl_noarg,	"" },
 	{ NULL },
 };
 
@@ -195,6 +197,47 @@ show_complete(struct imsg *imsg, int *ret)
 }
 
 static int
+show_status(struct imsg *imsg, int *ret)
+{
+	struct player_status s;
+	size_t datalen;
+
+	if (imsg->hdr.type == IMSG_CTL_ERR) {
+		print_error_message("show failed", imsg);
+		*ret = 1;
+		return 1;
+	}
+
+	if (imsg->hdr.type != IMSG_CTL_STATUS)
+		fatalx("%s: got wrong reply", __func__);
+
+	datalen = IMSG_DATA_SIZE(*imsg);
+	if (datalen != sizeof(s))
+		fatalx("%s: data size mismatch", __func__);
+	memcpy(&s, imsg->data, sizeof(s));
+	if (s.path[sizeof(s.path)-1] != '\0')
+		fatalx("%s: data corrupted?", __func__);
+
+	switch (s.status) {
+	case STATE_STOPPED:
+		printf("stopped ");
+		break;
+	case STATE_PLAYING:
+		printf("playing ");
+		break;
+	case STATE_PAUSED:
+		printf("paused ");
+		break;
+	default:
+		printf("unknown ");
+		break;
+	}
+
+	printf("%s\n", s.path);
+	return 1;
+}
+
+static int
 ctlaction(struct parse_result *res)
 {
 	struct imsg imsg;
@@ -230,6 +273,10 @@ ctlaction(struct parse_result *res)
 		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
 		break;
+	case STATUS:
+		done = 0;
+		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
+		break;
 	case NONE:
 		/* action not expected */
 		fatalx("invalid action %u", res->action);
@@ -259,6 +306,9 @@ ctlaction(struct parse_result *res)
 				break;
 			case SHOW:
 				done = show_complete(&imsg, &ret);
+				break;
+			case STATUS:
+				done = show_status(&imsg, &ret);
 				break;
 			default:
 				done = 1;

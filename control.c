@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <event.h>
 #include <imsg.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -303,6 +304,9 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			break;
 		case IMSG_CTL_SHOW:
 			main_send_playlist(&c->iev);
+			break;
+		case IMSG_CTL_STATUS:
+			main_send_status(&c->iev);
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
