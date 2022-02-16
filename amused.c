@@ -138,7 +138,6 @@ main_dispatch_player(int sig, short event, void *d)
 	struct imsg	 imsg;
 	ssize_t		 n;
 	int		 shut = 0;
-	const char	*song;
 
 	if (event & EV_READ) {
 		if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
@@ -160,13 +159,10 @@ main_dispatch_player(int sig, short event, void *d)
 			break;
 
 		switch (imsg.hdr.type) {
-		case IMSG_EOF:
 		case IMSG_ERR:
-			song = playlist_advance();
-			if (song == NULL)
-				break;
-			/* XXX: watch out for failures! */
-			main_play_song(song);
+			/* TODO: remove current track from the playlist */
+		case IMSG_EOF:
+			main_playlist_advance();
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
@@ -378,17 +374,47 @@ main_play_song(const char *song)
 
 	strlcpy(path, song, sizeof(path));
 	if ((fd = open(path, O_RDONLY)) == -1) {
-#if todo
 		log_warn("open %s", path);
 		return -1;
-#else
-		fatal("open %s", path);
-#endif
 	}
 
+	play_state = STATE_PLAYING;
 	imsg_compose_event(iev_player, IMSG_PLAY, 0, 0, fd,
 	    path, sizeof(path));
 	return 0;
+}
+
+void
+main_playlist_advance(void)
+{
+	const char *song;
+
+	for (;;) {
+		song = playlist_advance();
+		if (song == NULL)
+			return;
+
+		if (main_play_song(song))
+			break;
+
+		/* TODO: remove the song from the playlist */
+	}
+}
+
+void
+main_restart_track(void)
+{
+	const char *song;
+
+	song = playlist_current();
+	if (song == NULL)
+		return;
+
+	if (main_play_song(song))
+		return;
+
+	/* TODO: remove the song from the playlist */
+	main_playlist_advance();
 }
 
 void

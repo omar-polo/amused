@@ -222,7 +222,6 @@ control_dispatch_imsg(int fd, short event, void *bula)
 	struct ctl_conn	*c;
 	struct imsg	 imsg;
 	ssize_t		 n;
-	const char	*song;
 
 	if ((c = control_connbyfd(fd)) == NULL) {
 		log_warnx("%s: fd %d: not found", __func__, fd);
@@ -255,12 +254,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_PLAY:
 			switch (play_state) {
 			case STATE_STOPPED:
-				song = playlist_advance();
-				if (song == NULL)
-					break;
-				/* XXX: watch out for failures! */
-				play_state = STATE_PLAYING;
-				main_play_song(song);
+				main_playlist_advance();
 				break;
 			case STATE_PLAYING:
 				/* do nothing */
@@ -274,11 +268,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_TOGGLE_PLAY:
 			switch (play_state) {
 			case STATE_STOPPED:
-				song = playlist_advance();
-				if (song == NULL)
-					break;
-				/* XXX: watch out for failures! */
-				main_play_song(song);
+				main_playlist_advance();
 				break;
 			case STATE_PLAYING:
 				main_send_player(IMSG_PAUSE, -1, NULL, 0);
@@ -301,11 +291,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			break;
 		case IMSG_CTL_RESTART:
 			main_send_player(IMSG_STOP, -1, NULL, 0);
-			song = playlist_current();
-			if (song == NULL)
-				break;
-			/* XXX: watch out for failures */
-			main_play_song(song);
+			main_restart_track();
 			break;
 		case IMSG_CTL_ADD:
 			main_enqueue(&c->iev, &imsg);
