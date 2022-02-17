@@ -30,18 +30,24 @@ int		repeat_all = 1;
 ssize_t		play_off = -1;
 
 void
-playlist_enqueue(const char *path)
+playlist_push(struct playlist *playlist, const char *path)
 {
 	size_t newcap;
 
-	if (playlist.len == playlist.cap) {
-		newcap = MAX(16, playlist.cap * 1.5);
-		playlist.songs = xrecallocarray(playlist.songs, playlist.cap,
-		    newcap, sizeof(*playlist.songs));
-		playlist.cap = newcap;
+	if (playlist->len == playlist->cap) {
+		newcap = MAX(16, playlist->cap * 1.5);
+		playlist->songs = xrecallocarray(playlist->songs,
+		    playlist->cap, newcap, sizeof(*playlist->songs));
+		playlist->cap = newcap;
 	}
 
-	playlist.songs[playlist.len++] = xstrdup(path);
+	playlist->songs[playlist->len++] = xstrdup(path);
+}
+
+void
+playlist_enqueue(const char *path)
+{
+	playlist_push(&playlist, path);
 }
 
 const char *
