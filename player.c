@@ -27,6 +27,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <sndio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <imsg.h>

@@ -41,6 +41,7 @@ static struct imsgbuf *ibuf;
 
 int	ctl_noarg(struct parse_result *, int, char **);
 int	ctl_add(struct parse_result *, int, char **);
+int	ctl_load(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "play",	PLAY,		ctl_noarg,	"" },
@@ -54,6 +55,7 @@ struct ctl_command ctl_commands[] = {
 	{ "status",	STATUS,		ctl_noarg,	"" },
 	{ "next",	NEXT,		ctl_noarg,	"" },
 	{ "prev",	PREV,		ctl_noarg,	"" },
+	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
 	{ NULL },
 };
 
@@ -285,6 +287,7 @@ ctlaction(struct parse_result *res)
 	case PREV:
 		imsg_compose(ibuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
 		break;
+	case LOAD:
 	case NONE:
 		/* action not expected */
 		fatalx("invalid action %u", res->action);
@@ -345,7 +348,61 @@ ctl_add(struct parse_result *res, int argc, char **argv)
 	if (argc < 2)
 		ctl_usage(res->ctl);
 	res->files = argv+1;
+
+	if (pledge("stdio rpath", NULL) == -1)
+		fatal("pledge");
+
 	return ctlaction(res);
+}
+
+int
+ctl_load(struct parse_result *res, int argc, char **argv)
+{
+	const char	*file;
+	char		*line = NULL;
+	char		 path[PATH_MAX];
+	size_t		 linesize = 0;
+	ssize_t		 linelen;
+
+	if (argc < 2)
+		res->file = stdin;
+	else if (argc == 2) {
+		if ((res->file = fopen(argv[1], "r")) == NULL)
+			fatal("open %s", argv[1]);
+	} else
+		ctl_usage(res->ctl);
+
+	if (pledge("stdio rpath", NULL) == -1)
+		fatal("pledge");
+
+	imsg_compose(ibuf, IMSG_CTL_FLUSH, 0, 0, -1, NULL, 0);
+
+	while ((linelen = getline(&line, &linesize, res->file)) != -1) {
+		if (linelen == 0)
+			continue;
+		line[linelen-1] = '\0';
+		file = line;
+		if (file[0] == '>' && file[1] == ' ')
+			file += 2;
+		if (file[0] == ' ' && file[1] == ' ')
+			file += 2;
+
+		memset(&path, 0, sizeof(path));
+		if (realpath(file, path) == NULL) {
+			log_warn("realpath %s", file);
+			continue;
+		}
+
+		imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
+		    path, sizeof(path));
+	}
+
+	imsg_flush(ibuf);
+	free(line);
+	if (ferror(res->file))
+		fatal("getline");
+	fclose(res->file);
+	return 0;
 }
 
 static int

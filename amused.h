@@ -69,6 +69,7 @@ enum actions {
 	STATUS,
 	PREV,
 	NEXT,
+	LOAD,
 };
 
 struct ctl_command;
@@ -76,6 +77,7 @@ struct ctl_command;
 struct parse_result {
 	enum actions		 action;
 	char			**files;
+	FILE			*file;
 	struct ctl_command	*ctl;
 };
 
