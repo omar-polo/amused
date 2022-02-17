@@ -41,6 +41,7 @@ static struct imsgbuf *ibuf;
 
 int	ctl_noarg(struct parse_result *, int, char **);
 int	ctl_add(struct parse_result *, int, char **);
+int	ctl_show(struct parse_result *, int, char **);
 int	ctl_load(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
@@ -51,7 +52,7 @@ struct ctl_command ctl_commands[] = {
 	{ "restart",	RESTART,	ctl_noarg,	"" },
 	{ "add",	ADD,		ctl_add,	"files...", 1 },
 	{ "flush",	FLUSH,		ctl_noarg,	"" },
-	{ "show",	SHOW,		ctl_noarg,	"" },
+	{ "show",	SHOW,		ctl_show,	"" },
 	{ "status",	STATUS,		ctl_noarg,	"" },
 	{ "next",	NEXT,		ctl_noarg,	"" },
 	{ "prev",	PREV,		ctl_noarg,	"" },
@@ -175,7 +176,7 @@ show_add(struct imsg *imsg, int *ret, char ***files)
 }
 
 static int
-show_complete(struct imsg *imsg, int *ret)
+show_complete(struct parse_result *res, struct imsg *imsg, int *ret)
 {
 	struct player_status s;
 	size_t datalen;
@@ -196,7 +197,9 @@ show_complete(struct imsg *imsg, int *ret)
 	if (s.path[sizeof(s.path)-1] != '\0')
 		fatalx("%s: data corrupted?", __func__);
 
-	printf("%s %s\n", s.status == STATE_PLAYING ? ">" : " ", s.path);
+	if (res->pretty)
+		printf("%c ", s.status == STATE_PLAYING ? '>' : ' ');
+	printf("%s\n", s.path);
 	return 0;
 }
 
@@ -382,7 +385,7 @@ ctlaction(struct parse_result *res)
 				done = show_add(&imsg, &ret, &files);
 				break;
 			case SHOW:
-				done = show_complete(&imsg, &ret);
+				done = show_complete(res, &imsg, &ret);
 				break;
 			case STATUS:
 				done = show_status(&imsg, &ret);
@@ -420,6 +423,24 @@ ctl_add(struct parse_result *res, int argc, char **argv)
 
 	if (pledge("stdio rpath", NULL) == -1)
 		fatal("pledge");
+
+	return ctlaction(res);
+}
+
+int
+ctl_show(struct parse_result *res, int argc, char **argv)
+{
+	int ch;
+
+	while ((ch = getopt(argc, argv, "p")) != -1) {
+		switch (ch) {
+		case 'p':
+			res->pretty = 1;
+			break;
+		default:
+			ctl_usage(res->ctl);
+		}
+	}
 
 	return ctlaction(res);
 }

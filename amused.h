@@ -81,6 +81,7 @@ struct parse_result {
 	enum actions		 action;
 	char			**files;
 	FILE			*file;
+	int			 pretty;
 	struct ctl_command	*ctl;
 };
 
