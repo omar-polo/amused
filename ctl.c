@@ -242,6 +242,69 @@ show_status(struct imsg *imsg, int *ret)
 }
 
 static int
+show_load(struct parse_result *res, struct imsg *imsg, int *ret)
+{
+	const char	*file;
+	char		*line = NULL;
+	char		 path[PATH_MAX];
+	size_t		 linesize = 0;
+	ssize_t		 linelen;
+	int		 any = 0;
+
+	if (imsg->hdr.type == IMSG_CTL_ERR) {
+		print_error_message("load failed", imsg);
+		*ret = 1;
+		return 1;
+	}
+
+	if (imsg->hdr.type == IMSG_CTL_ADD)
+		return 0;
+
+	if (imsg->hdr.type == IMSG_CTL_COMMIT)
+		return 1;
+
+	if (imsg->hdr.type != IMSG_CTL_BEGIN)
+		fatalx("got unexpected message %d", imsg->hdr.type);
+
+	while ((linelen = getline(&line, &linesize, res->file)) != -1) {
+		if (linelen == 0)
+			continue;
+		line[linelen-1] = '\0';
+		file = line;
+		if (file[0] == '>' && file[1] == ' ')
+			file += 2;
+		if (file[0] == ' ' && file[1] == ' ')
+			file += 2;
+
+		memset(&path, 0, sizeof(path));
+		if (realpath(file, path) == NULL) {
+			log_warn("realpath %s", file);
+			continue;
+		}
+
+		any++;
+		imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
+		    path, sizeof(path));
+	}
+
+	free(line);
+	if (ferror(res->file))
+		fatal("getline");
+	fclose(res->file);
+	res->file = NULL;
+
+	if (!any) {
+		*ret = 1;
+		return 1;
+	}
+
+	imsg_compose(ibuf, IMSG_CTL_COMMIT, 0, 0, -1,
+	    NULL, 0);
+	imsg_flush(ibuf);
+	return 0;
+}
+
+static int
 ctlaction(struct parse_result *res)
 {
 	struct imsg imsg;
@@ -288,6 +351,9 @@ ctlaction(struct parse_result *res)
 		imsg_compose(ibuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
 		break;
 	case LOAD:
+		done = 0;
+		imsg_compose(ibuf, IMSG_CTL_BEGIN, 0, 0, -1, NULL, 0);
+		break;
 	case NONE:
 		/* action not expected */
 		fatalx("invalid action %u", res->action);
@@ -320,6 +386,9 @@ ctlaction(struct parse_result *res)
 				break;
 			case STATUS:
 				done = show_status(&imsg, &ret);
+				break;
+			case LOAD:
+				done = show_load(res, &imsg, &ret);
 				break;
 			default:
 				done = 1;
@@ -358,12 +427,6 @@ ctl_add(struct parse_result *res, int argc, char **argv)
 int
 ctl_load(struct parse_result *res, int argc, char **argv)
 {
-	const char	*file;
-	char		*line = NULL;
-	char		 path[PATH_MAX];
-	size_t		 linesize = 0;
-	ssize_t		 linelen;
-
 	if (argc < 2)
 		res->file = stdin;
 	else if (argc == 2) {
@@ -375,34 +438,7 @@ ctl_load(struct parse_result *res, int argc, char **argv)
 	if (pledge("stdio rpath", NULL) == -1)
 		fatal("pledge");
 
-	imsg_compose(ibuf, IMSG_CTL_FLUSH, 0, 0, -1, NULL, 0);
-
-	while ((linelen = getline(&line, &linesize, res->file)) != -1) {
-		if (linelen == 0)
-			continue;
-		line[linelen-1] = '\0';
-		file = line;
-		if (file[0] == '>' && file[1] == ' ')
-			file += 2;
-		if (file[0] == ' ' && file[1] == ' ')
-			file += 2;
-
-		memset(&path, 0, sizeof(path));
-		if (realpath(file, path) == NULL) {
-			log_warn("realpath %s", file);
-			continue;
-		}
-
-		imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
-		    path, sizeof(path));
-	}
-
-	imsg_flush(ibuf);
-	free(line);
-	if (ferror(res->file))
-		fatal("getline");
-	fclose(res->file);
-	return 0;
+	return ctlaction(res);
 }
 
 static int
