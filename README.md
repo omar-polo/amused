@@ -5,11 +5,10 @@ built-in, on the contrary: it's quite minimal (a fancy word to say
 that does very little.)  It composes well, or aims to do so, with
 other tools, find(1) in particular.
 
-The main feature is that the process of decoding the audio from the
-files is done in a sandboxed project that runs with `pledge("stdio
-recvfd audio")`.  Oh, by the way, amused targets OpenBSD only: it
-relies its make infrastructure to build, uses various cool stuff
-from its libc and can output only to sndio.
+The main feature is that audio decoding runs in a sandboxed process
+under `pledge("stdio recvfd audio")`.  Oh, by the way, amused targets
+OpenBSD only: it relies its make infrastructure to build, uses
+various cool stuff from its libc and can output only to sndio.
 
 (I *think* it's possible to compile it on other UNIX-like systems
 too by providing shims for some non-portable functions -- hello
