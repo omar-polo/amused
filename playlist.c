@@ -114,17 +114,23 @@ playlist_reset(void)
 }
 
 void
-playlist_truncate(void)
+playlist_free(struct playlist *playlist)
 {
 	size_t i;
 
-	for (i = 0; i < playlist.len; ++i)
-		free(playlist.songs[i]);
-	free(playlist.songs);
-	playlist.songs = NULL;
+	for (i = 0; i < playlist->len; ++i)
+		free(playlist->songs[i]);
+	free(playlist->songs);
+	playlist->songs = NULL;
 
-	playlist.len = 0;
-	playlist.cap = 0;
+	playlist->len = 0;
+	playlist->cap = 0;
+}
+
+void
+playlist_truncate(void)
+{
+	playlist_free(&playlist);
 	play_off = -1;
 }
 
