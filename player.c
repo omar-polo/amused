@@ -40,6 +40,7 @@
 
 static struct imsgbuf *ibuf;
 
+static int got_stop;
 static int nextfd = -1;
 static char nextpath[PATH_MAX];
 
@@ -155,6 +156,8 @@ player_dispatch(void)
 		fatalx("expected at least a message");
 
 	ret = imsg.hdr.type;
+	if (ret == IMSG_STOP)
+		got_stop = 1;
 	switch (imsg.hdr.type) {
 	case IMSG_PLAY:
 		player_enqueue(&imsg);
@@ -280,7 +283,11 @@ player(int debug, int verbose)
 			player_dispatch();
 
 		player_playnext();
-		player_sendeof();
+
+		if (!got_stop)
+			player_sendeof();
+		else
+			got_stop = 0;
 	}
 
 	return 0;
