@@ -100,6 +100,7 @@ void		imsg_event_add(struct imsgev *iev);
 int		imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
 		    pid_t, int, const void *, uint16_t);
 int		main_send_player(uint16_t, int, const void *, uint16_t);
+void		main_playlist_resume(void);
 void		main_playlist_advance(void);
 void		main_playlist_previous(void);
 void		main_restart_track(void);

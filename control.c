@@ -256,7 +256,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_PLAY:
 			switch (play_state) {
 			case STATE_STOPPED:
-				main_playlist_advance();
+				main_playlist_resume();
 				break;
 			case STATE_PLAYING:
 				/* do nothing */
@@ -270,7 +270,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_TOGGLE_PLAY:
 			switch (play_state) {
 			case STATE_STOPPED:
-				main_playlist_advance();
+				main_playlist_resume();
 				break;
 			case STATE_PLAYING:
 				play_state = STATE_PAUSED;

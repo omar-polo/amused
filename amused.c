@@ -397,6 +397,22 @@ main_play_song(const char *song)
 }
 
 void
+main_playlist_resume(void)
+{
+	const char *song;
+
+	if ((song = playlist_current()) == NULL)
+		song = playlist_advance();
+
+	for (;song != NULL; song = playlist_advance()) {
+		if (main_play_song(song))
+			return;
+
+		playlist_dropcurrent();
+	}
+}
+
+void
 main_playlist_advance(void)
 {
 	const char *song;
