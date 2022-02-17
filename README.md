@@ -3,7 +3,7 @@
 amused is a music player.  It doesn't have any amazing functionalities
 built-in, on the contrary: it's quite minimal (a fancy word to say
 that does very little.)  It composes well, or aims to do so, with
-other tools, find(1) in particular.
+other tools thought.
 
 The main feature is that audio decoding runs in a sandboxed process
 under `pledge("stdio recvfd audio")`.  Oh, by the way, amused targets
@@ -38,13 +38,23 @@ The fine man page has all nitty gritty details, but the TL;DR is
  - enqueue music with `amused add files...`
  - control the playback with `amused play|pause|toggle|stop` etc
 
-Pro tip: amused plays well with find:
+amused tries to be usable in composition with other more familiar
+tools instead of providing everything itself.  For instance, there
+isn't a command to remove an item from the playlist, or shuffle it;
+instead, standard UNIX tools can be used:
+
+	$ amused show | grep -vi kobayashi | amused load
+	$ amused show | sort -R | amused load
+	$ amused show | sort | uniq | amused load
+
+It also doesn't provide any means to manage a music collection.  It
+plays nice with find(1) however:
 
 	find . -type f -iname \*.opus -exec amused add {} +
 
 Well, for these kinds of things I wrote a wrapper around find called
-walk that's very handy in combo with amused too!
+walk that provides 80% of what I do with find in 20% of the characters:
 
-	walk \*.opus ! amused add
+	walk \*.opus amused add
 
 (walk lives in my [dotfiles](//git.omarpolo.com/dotsnew))
