@@ -43,7 +43,7 @@ Pro tip: amused plays well with find:
 
 	find . -type f -iname \*.opus -exec amused add {} +
 
-Well, for these kinds of things I wrote a wrapper aronud find called
+Well, for these kinds of things I wrote a wrapper around find called
 walk that's very handy in combo with amused too!
 
 	walk \*.opus ! amused add
