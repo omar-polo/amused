@@ -45,7 +45,9 @@ struct {
 	struct event	ev;
 	struct event	evt;
 	int		fd;
-} control_state = {.fd = -1};
+	struct playlist	play;
+	pid_t		tx;
+} control_state = {.fd = -1, .tx = -1};
 
 struct ctl_conn {
 	TAILQ_ENTRY(ctl_conn)	entry;
@@ -203,6 +205,12 @@ control_close(int fd)
 		return;
 	}
 
+	/* abort the transaction if running by this user */
+	if (c->iev.ibuf.pid == control_state.tx) {
+		playlist_free(&control_state.play);
+		control_state.tx = -1;
+	}
+
 	msgbuf_clear(&c->iev.ibuf.w);
 	TAILQ_REMOVE(&ctl_conns, c, entry);
 
@@ -298,9 +306,6 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_restart_track();
 			break;
-		case IMSG_CTL_ADD:
-			main_enqueue(&c->iev, &imsg);
-			break;
 		case IMSG_CTL_FLUSH:
 			playlist_truncate();
 			break;
@@ -317,6 +322,36 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_PREV:
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_previous();
+			break;
+		case IMSG_CTL_BEGIN:
+			if (control_state.tx != -1) {
+				main_senderr(&c->iev, "locked");
+				break;
+			}
+			control_state.tx = c->iev.ibuf.pid;
+			imsg_compose_event(&c->iev, IMSG_CTL_BEGIN, 0, 0, -1,
+			    NULL, 0);
+			break;
+		case IMSG_CTL_ADD:
+			if (control_state.tx != -1 &&
+			    control_state.tx != c->iev.ibuf.pid) {
+				main_senderr(&c->iev, "locked");
+				break;
+			}
+			main_enqueue(control_state.tx != -1,
+			   &control_state.play,&c->iev, &imsg);
+			break;
+		case IMSG_CTL_COMMIT:
+			if (control_state.tx != c->iev.ibuf.pid) {
+				main_senderr(&c->iev, "locked");
+				break;
+			}
+			playlist_swap(&control_state.play);
+			memset(&control_state.play, 0,
+			    sizeof(control_state.play));
+			control_state.tx = -1;
+			imsg_compose_event(&c->iev, IMSG_CTL_COMMIT, 0, 0, -1,
+			    NULL, 0);
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,

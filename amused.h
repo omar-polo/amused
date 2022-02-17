@@ -39,12 +39,15 @@ enum imsg_type {
 	IMSG_CTL_PAUSE,
 	IMSG_CTL_STOP,
 	IMSG_CTL_RESTART,
-	IMSG_CTL_ADD,
 	IMSG_CTL_FLUSH,
 	IMSG_CTL_SHOW,
 	IMSG_CTL_STATUS,
 	IMSG_CTL_NEXT,
 	IMSG_CTL_PREV,
+
+	IMSG_CTL_BEGIN,
+	IMSG_CTL_ADD,		/* path to a file */
+	IMSG_CTL_COMMIT,
 
 	IMSG_CTL_ERR,
 };
@@ -94,6 +97,8 @@ struct player_status {
 	int	status;
 };
 
+struct playlist;
+
 /* amused.c */
 void		spawn_daemon(void);
 void		imsg_event_add(struct imsgev *iev);
@@ -104,7 +109,8 @@ void		main_playlist_resume(void);
 void		main_playlist_advance(void);
 void		main_playlist_previous(void);
 void		main_restart_track(void);
-void		main_enqueue(struct imsgev *, struct imsg *);
+void		main_senderr(struct imsgev *, const char *);
+void		main_enqueue(int, struct playlist *, struct imsgev *, struct imsg *);
 void		main_send_playlist(struct imsgev *);
 void		main_send_status(struct imsgev *);
 

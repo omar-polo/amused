@@ -463,7 +463,15 @@ main_restart_track(void)
 }
 
 void
-main_enqueue(struct imsgev *iev, struct imsg *imsg)
+main_senderr(struct imsgev *iev, const char *msg)
+{
+	imsg_compose_event(iev, IMSG_CTL_ERR, 0, 0, -1,
+	    msg, strlen(msg)+1);
+}
+
+void
+main_enqueue(int tx, struct playlist *px, struct imsgev *iev,
+    struct imsg *imsg)
 {
 	size_t datalen;
 	char path[PATH_MAX] = { 0 };
@@ -481,7 +489,10 @@ main_enqueue(struct imsgev *iev, struct imsg *imsg)
 		goto err;
 	}
 
-	playlist_enqueue(path);
+	if (px)
+		playlist_push(px, path);
+	else
+		playlist_enqueue(path);
 	imsg_compose_event(iev, IMSG_CTL_ADD, 0, 0, -1, path, sizeof(path));
 	return;
 err:
