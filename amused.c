@@ -404,7 +404,7 @@ main_playlist_resume(void)
 	if ((song = playlist_current()) == NULL)
 		song = playlist_advance();
 
-	for (;song != NULL; song = playlist_advance()) {
+	for (; song != NULL; song = playlist_advance()) {
 		if (main_play_song(song))
 			return;
 
