@@ -36,6 +36,7 @@ extern int		 repeat_one;
 extern int		 repeat_all;
 extern ssize_t		 play_off;
 
+void			 playlist_swap(struct playlist *);
 void			 playlist_push(struct playlist *, const char *);
 void			 playlist_enqueue(const char *);
 const char		*playlist_current(void);

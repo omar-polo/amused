@@ -30,6 +30,16 @@ int		repeat_all = 1;
 ssize_t		play_off = -1;
 
 void
+playlist_swap(struct playlist *p)
+{
+	playlist_truncate();
+
+	playlist.len = p->len;
+	playlist.cap = p->cap;
+	playlist.songs = p->songs;
+}
+
+void
 playlist_push(struct playlist *playlist, const char *path)
 {
 	size_t newcap;
