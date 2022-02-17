@@ -80,7 +80,7 @@ struct ctl_command;
 struct parse_result {
 	enum actions		 action;
 	char			**files;
-	FILE			*file;
+	const char		*file;
 	int			 pretty;
 	struct ctl_command	*ctl;
 };

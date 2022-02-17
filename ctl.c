@@ -247,6 +247,7 @@ show_status(struct imsg *imsg, int *ret)
 static int
 show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 {
+	FILE		*f;
 	const char	*file;
 	char		*line = NULL;
 	char		 path[PATH_MAX];
@@ -269,7 +270,15 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 	if (imsg->hdr.type != IMSG_CTL_BEGIN)
 		fatalx("got unexpected message %d", imsg->hdr.type);
 
-	while ((linelen = getline(&line, &linesize, res->file)) != -1) {
+	if (res->file == NULL)
+		f = stdin;
+	else if ((f = fopen(res->file, "r")) == NULL) {
+		log_warn("can't open %s", res->file);
+		*ret = 1;
+		return 1;
+	}
+
+	while ((linelen = getline(&line, &linesize, f)) != -1) {
 		if (linelen == 0)
 			continue;
 		line[linelen-1] = '\0';
@@ -291,10 +300,9 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 	}
 
 	free(line);
-	if (ferror(res->file))
+	if (ferror(f))
 		fatal("getline");
-	fclose(res->file);
-	res->file = NULL;
+	fclose(f);
 
 	if (!any) {
 		*ret = 1;
@@ -464,11 +472,10 @@ int
 ctl_load(struct parse_result *res, int argc, char **argv)
 {
 	if (argc < 2)
-		res->file = stdin;
-	else if (argc == 2) {
-		if ((res->file = fopen(argv[1], "r")) == NULL)
-			fatal("open %s", argv[1]);
-	} else
+		res->file = NULL;
+	else if (argc == 2)
+		res->file = argv[1];
+	else
 		ctl_usage(res->ctl);
 
 	if (pledge("stdio rpath", NULL) == -1)
