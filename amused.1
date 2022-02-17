@@ -135,6 +135,12 @@ Remove duplicates:
 .Bd -literal -offset indent
 $ amused show | sort | uniq | amused load
 .Ed
+.Pp
+Select a song with
+.Xr fzf 1
+.Bd -literal -offset indent
+$ amused jump "$(amused show | fzf +s)"
+.Ed
 .Sh AUTHORS
 .An -nosplit
 Then
