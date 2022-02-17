@@ -76,6 +76,12 @@ Print playback status and current song.
 Play the next song.
 .It Cm prev
 Play the previous song.
+.It Cm load Op Ar file
+Load a playlist from
+.Ar file ,
+which has one song per line.
+If not specified, reads from
+.Em stdin .
 .El
 .Sh FILES
 .Bl -tag -width "/tmp/amused-$UID" -compact
