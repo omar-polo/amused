@@ -46,7 +46,7 @@ struct {
 	struct event	evt;
 	int		fd;
 	struct playlist	play;
-	pid_t		tx;
+	int		tx;
 } control_state = {.fd = -1, .tx = -1};
 
 struct ctl_conn {
@@ -206,7 +206,7 @@ control_close(int fd)
 	}
 
 	/* abort the transaction if running by this user */
-	if (c->iev.ibuf.pid == control_state.tx) {
+	if (control_state.tx != -1 && c->iev.ibuf.fd == control_state.tx) {
 		playlist_free(&control_state.play);
 		control_state.tx = -1;
 	}
@@ -331,13 +331,13 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				main_senderr(&c->iev, "locked");
 				break;
 			}
-			control_state.tx = c->iev.ibuf.pid;
+			control_state.tx = c->iev.ibuf.fd;
 			imsg_compose_event(&c->iev, IMSG_CTL_BEGIN, 0, 0, -1,
 			    NULL, 0);
 			break;
 		case IMSG_CTL_ADD:
 			if (control_state.tx != -1 &&
-			    control_state.tx != c->iev.ibuf.pid) {
+			    control_state.tx != c->iev.ibuf.fd) {
 				main_senderr(&c->iev, "locked");
 				break;
 			}
@@ -345,7 +345,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			   &control_state.play,&c->iev, &imsg);
 			break;
 		case IMSG_CTL_COMMIT:
-			if (control_state.tx != c->iev.ibuf.pid) {
+			if (control_state.tx != c->iev.ibuf.fd) {
 				main_senderr(&c->iev, "locked");
 				break;
 			}
