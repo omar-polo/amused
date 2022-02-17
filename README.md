@@ -19,7 +19,7 @@ bundle a copy of imsg.c too)
 
 ## building
 
-	make
+	$ make
 
 it needs the following packages from ports:
 
