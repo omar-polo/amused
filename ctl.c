@@ -317,19 +317,25 @@ ctlaction(struct parse_result *res)
 
 	switch (res->action) {
 	case PLAY:
+		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_PLAY, 0, 0, -1, NULL, 0);
+		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 		break;
 	case PAUSE:
 		imsg_compose(ibuf, IMSG_CTL_PAUSE, 0, 0, -1, NULL, 0);
 		break;
 	case TOGGLE:
+		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_TOGGLE_PLAY, 0, 0, -1, NULL, 0);
+		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 		break;
 	case STOP:
 		imsg_compose(ibuf, IMSG_CTL_STOP, 0, 0, -1, NULL, 0);
 		break;
 	case RESTART:
+		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_RESTART, 0, 0, -1, NULL, 0);
+		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 		break;
 	case ADD:
 		done = 0;
@@ -348,10 +354,14 @@ ctlaction(struct parse_result *res)
 		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 		break;
 	case NEXT:
+		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_NEXT, 0, 0, -1, NULL, 0);
+		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 		break;
 	case PREV:
+		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
+		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 		break;
 	case LOAD:
 		done = 0;
@@ -387,7 +397,12 @@ ctlaction(struct parse_result *res)
 			case SHOW:
 				done = show_complete(res, &imsg, &ret);
 				break;
+			case PLAY:
+			case TOGGLE:
+			case RESTART:
 			case STATUS:
+			case NEXT:
+			case PREV:
 				done = show_status(&imsg, &ret);
 				break;
 			case LOAD:
