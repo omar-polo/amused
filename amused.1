@@ -109,6 +109,16 @@ Load a previous state:
 .Bd -literal -offset indent
 $ amused load < state
 .Ed
+.Pp
+Randomize the current playlist:
+.Bd -literal -offset indent
+$ amused show | sort -R | amused load
+.Ed
+.Pp
+Remove duplicates:
+.Bd -literal -offset indent
+$ amused show | sort | uniq | amused load
+.Ed
 .Sh AUTHORS
 .An -nosplit
 Then
