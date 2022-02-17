@@ -26,13 +26,12 @@
 .Op Ar argument ...
 .Sh DESCRIPTION
 .Nm
-is a music player daemon and command-line utility.
-.Pp
-If called without any sub-
-.Ar command
-it forks in the background and starts the daemon.
-Once the daemon is running, music files can be enqueued and the reproduction
-controlled.
+is a music player daemon and command-line utility that plays music
+in the background.
+The server is automatically started when the user interacts with
+it, but it can be started manually by running
+.Nm
+without any arguments.
 .Pp
 The following options are available:
 .Bl -tag -width 12m
@@ -42,6 +41,7 @@ if this option is specified,
 .Nm
 will run in the foreground and log to
 .Em stderr .
+It's ignored if any commands are given on the command line.
 .It Fl v
 Produce more verbose output.
 .It Fl s Ar socket
@@ -55,7 +55,7 @@ to communicate with the daemon.
 The following commands are available:
 .Bl -tag -width 12m
 .It Cm play
-Start or resume playing the playlist.
+Start or resume the playback.
 .It Cm pause
 Pause the playback.
 .It Cm toggle
@@ -63,7 +63,7 @@ Play/pause the playback.
 .It Cm stop
 Stop the music player.
 .It Cm restart
-Rewind the current song from the beginning.
+Rewind the current song to the beginning.
 .It Cm add Ar
 Enqueue the given files.
 .It Cm flush
@@ -89,6 +89,12 @@ which has one song per line.
 If not specified, reads from
 .Em stdin .
 .El
+.Pp
+Commands can be also abbreviated to the smallest unique prefix,
+so that for example
+.Sq re
+can be given instead of
+.Sq restart .
 .Sh FILES
 .Bl -tag -width "/tmp/amused-$UID" -compact
 .It Pa /tmp/amused-$UID
