@@ -14,6 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/types.h>
+
+#include <regex.h>
 #include <stdlib.h>
 #include <syslog.h>
 
@@ -159,4 +162,27 @@ playlist_dropcurrent(void)
 		playlist.songs[i] = playlist.songs[i+1];
 
 	playlist.songs[playlist.len] = NULL;
+}
+
+const char *
+playlist_jump(const char *arg)
+{
+	size_t i;
+	regex_t re;
+
+	if (regcomp(&re, arg, REG_ICASE | REG_NOSUB) != 0)
+		return NULL;
+
+	for (i = 0; i < playlist.len; ++i) {
+		if (regexec(&re, playlist.songs[i], 0, NULL, 0) == 0)
+			break;
+	}
+	regfree(&re);
+
+	if (i == playlist.len)
+		return NULL;
+
+	play_state = STATE_PLAYING;
+	play_off = i;
+	return playlist.songs[i];
 }

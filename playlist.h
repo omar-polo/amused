@@ -46,5 +46,6 @@ void			 playlist_reset(void);
 void			 playlist_free(struct playlist *);
 void			 playlist_truncate(void);
 void			 playlist_dropcurrent(void);
+const char		*playlist_jump(const char *);
 
 #endif

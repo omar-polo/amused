@@ -34,7 +34,7 @@ enum imsg_type {
 	IMSG_EOF,
 	IMSG_ERR,
 
-	IMSG_CTL_PLAY,
+	IMSG_CTL_PLAY,		/* with optional filename */
 	IMSG_CTL_TOGGLE_PLAY,
 	IMSG_CTL_PAUSE,
 	IMSG_CTL_STOP,
@@ -44,6 +44,7 @@ enum imsg_type {
 	IMSG_CTL_STATUS,
 	IMSG_CTL_NEXT,
 	IMSG_CTL_PREV,
+	IMSG_CTL_JUMP,
 
 	IMSG_CTL_BEGIN,
 	IMSG_CTL_ADD,		/* path to a file */
@@ -73,6 +74,7 @@ enum actions {
 	PREV,
 	NEXT,
 	LOAD,
+	JUMP,
 };
 
 struct ctl_command;
@@ -106,6 +108,7 @@ void		imsg_event_add(struct imsgev *iev);
 int		imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
 		    pid_t, int, const void *, uint16_t);
 int		main_send_player(uint16_t, int, const void *, uint16_t);
+void		main_playlist_jump(struct imsgev *, struct imsg *);
 void		main_playlist_resume(void);
 void		main_playlist_advance(void);
 void		main_playlist_previous(void);

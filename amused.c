@@ -397,6 +397,42 @@ main_play_song(const char *song)
 }
 
 void
+main_playlist_jump(struct imsgev *iev, struct imsg *imsg)
+{
+	size_t datalen;
+	char arg[PATH_MAX];
+	const char *song;
+
+	datalen = IMSG_DATA_SIZE(*imsg);
+	if (datalen != sizeof(arg)) {
+		main_senderr(iev, "wrong size");
+		return;
+	}
+
+	memcpy(arg, imsg->data, sizeof(arg));
+	if (arg[sizeof(arg)-1] != '\0') {
+		main_senderr(iev, "data corrupted");
+		return;
+	}
+
+	song = playlist_jump(arg);
+	if (song == NULL) {
+		main_senderr(iev, "not found");
+		return;
+	}
+
+	main_send_player(IMSG_STOP, -1, NULL, 0);
+	if (!main_play_song(song)) {
+		main_senderr(iev, "can't play");
+		playlist_dropcurrent();
+		main_playlist_advance();
+		return;
+	}
+
+	main_send_status(iev);
+}
+
+void
 main_playlist_resume(void)
 {
 	const char *song;

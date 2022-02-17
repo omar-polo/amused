@@ -323,6 +323,9 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_previous();
 			break;
+		case IMSG_CTL_JUMP:
+			main_playlist_jump(&c->iev, &imsg);
+			break;
 		case IMSG_CTL_BEGIN:
 			if (control_state.tx != -1) {
 				main_senderr(&c->iev, "locked");

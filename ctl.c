@@ -43,6 +43,7 @@ int	ctl_noarg(struct parse_result *, int, char **);
 int	ctl_add(struct parse_result *, int, char **);
 int	ctl_show(struct parse_result *, int, char **);
 int	ctl_load(struct parse_result *, int, char **);
+int	ctl_jump(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "play",	PLAY,		ctl_noarg,	"" },
@@ -57,6 +58,7 @@ struct ctl_command ctl_commands[] = {
 	{ "next",	NEXT,		ctl_noarg,	"" },
 	{ "prev",	PREV,		ctl_noarg,	"" },
 	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
+	{ "jump",	JUMP,		ctl_jump,	"pattern" },
 	{ NULL },
 };
 
@@ -136,6 +138,17 @@ enqueue_tracks(char **files)
 	}
 
 	return enq == 0;
+}
+
+static int
+jump_req(const char *arg)
+{
+	char path[PATH_MAX];
+
+	memset(path, 0, sizeof(path));
+	strlcpy(path, arg, sizeof(path));
+	imsg_compose(ibuf, IMSG_CTL_JUMP, 0, 0, -1, path, sizeof(path));
+	return 0;
 }
 
 static void
@@ -375,6 +388,10 @@ ctlaction(struct parse_result *res)
 		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_BEGIN, 0, 0, -1, NULL, 0);
 		break;
+	case JUMP:
+		done = 0;
+		ret = jump_req(res->file);
+		break;
 	case NONE:
 		/* action not expected */
 		fatalx("invalid action %u", res->action);
@@ -411,6 +428,7 @@ ctlaction(struct parse_result *res)
 			case STATUS:
 			case NEXT:
 			case PREV:
+			case JUMP:
 				done = show_status(&imsg, &ret);
 				break;
 			case LOAD:
@@ -481,6 +499,23 @@ ctl_load(struct parse_result *res, int argc, char **argv)
 	if (pledge("stdio rpath", NULL) == -1)
 		fatal("pledge");
 
+	return ctlaction(res);
+}
+
+int
+ctl_jump(struct parse_result *res, int argc, char **argv)
+{
+	int ch;
+
+	while ((ch = getopt(argc, argv, "")) != -1)
+		ctl_usage(res->ctl);
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 1)
+		ctl_usage(res->ctl);
+
+	res->file = argv[0];
 	return ctlaction(res);
 }
 
