@@ -472,13 +472,15 @@ err:
 void
 main_send_playlist(struct imsgev *iev)
 {
-	char path[PATH_MAX];
+	struct player_status s;
 	size_t i;
 
 	for (i = 0; i < playlist.len; ++i) {
-		strlcpy(path, playlist.songs[i], sizeof(path));
-		imsg_compose_event(iev, IMSG_CTL_SHOW, 0, 0, -1, path,
-		    sizeof(path));
+		memset(&s, 0, sizeof(s));
+		strlcpy(s.path, playlist.songs[i], sizeof(s.path));
+		s.status = play_off == i ? STATE_PLAYING : STATE_STOPPED;
+		imsg_compose_event(iev, IMSG_CTL_SHOW, 0, 0, -1, &s,
+		    sizeof(s));
 	}
 
 	imsg_compose_event(iev, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);

@@ -175,8 +175,8 @@ show_add(struct imsg *imsg, int *ret, char ***files)
 static int
 show_complete(struct imsg *imsg, int *ret)
 {
+	struct player_status s;
 	size_t datalen;
-	char path[PATH_MAX];
 
 	if (imsg->hdr.type == IMSG_CTL_ERR) {
 		print_error_message("show failed", imsg);
@@ -188,13 +188,13 @@ show_complete(struct imsg *imsg, int *ret)
 	if (datalen == 0)
 		return 1;
 
-	if (datalen != sizeof(path))
+	if (datalen != sizeof(s))
 		fatalx("%s: data size mismatch", __func__);
-	memcpy(path, imsg->data, sizeof(path));
-	if (path[datalen-1] != '\0')
+	memcpy(&s, imsg->data, sizeof(s));
+	if (s.path[sizeof(s.path)-1] != '\0')
 		fatalx("%s: data corrupted?", __func__);
 
-	printf("%s\n", path);
+	printf("%s %s\n", s.status == STATE_PLAYING ? ">" : " ", s.path);
 	return 0;
 }
 
