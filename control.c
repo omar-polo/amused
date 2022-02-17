@@ -291,6 +291,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_STOP:
 			if (play_state == STATE_STOPPED)
 				break;
+			play_state = STATE_STOPPED;
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			break;
 		case IMSG_CTL_RESTART:
