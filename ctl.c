@@ -52,6 +52,8 @@ struct ctl_command ctl_commands[] = {
 	{ "flush",	FLUSH,		ctl_noarg,	"" },
 	{ "show",	SHOW,		ctl_noarg,	"" },
 	{ "status",	STATUS,		ctl_noarg,	"" },
+	{ "next",	NEXT,		ctl_noarg,	"" },
+	{ "prev",	PREV,		ctl_noarg,	"" },
 	{ NULL },
 };
 
@@ -276,6 +278,12 @@ ctlaction(struct parse_result *res)
 	case STATUS:
 		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
+		break;
+	case NEXT:
+		imsg_compose(ibuf, IMSG_CTL_NEXT, 0, 0, -1, NULL, 0);
+		break;
+	case PREV:
+		imsg_compose(ibuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
 		break;
 	case NONE:
 		/* action not expected */

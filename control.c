@@ -308,6 +308,14 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_STATUS:
 			main_send_status(&c->iev);
 			break;
+		case IMSG_CTL_NEXT:
+			main_send_player(IMSG_STOP, -1, NULL, 0);
+			main_playlist_advance();
+			break;
+		case IMSG_CTL_PREV:
+			main_send_player(IMSG_STOP, -1, NULL, 0);
+			main_playlist_previous();
+			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
 			    imsg.hdr.type);

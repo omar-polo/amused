@@ -43,6 +43,8 @@ enum imsg_type {
 	IMSG_CTL_FLUSH,
 	IMSG_CTL_SHOW,
 	IMSG_CTL_STATUS,
+	IMSG_CTL_NEXT,
+	IMSG_CTL_PREV,
 
 	IMSG_CTL_ERR,
 };
@@ -65,6 +67,8 @@ enum actions {
 	FLUSH,
 	SHOW,
 	STATUS,
+	PREV,
+	NEXT,
 };
 
 struct ctl_command;
@@ -95,6 +99,7 @@ int		imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
 		    pid_t, int, const void *, uint16_t);
 int		main_send_player(uint16_t, int, const void *, uint16_t);
 void		main_playlist_advance(void);
+void		main_playlist_previous(void);
 void		main_restart_track(void);
 void		main_enqueue(struct imsgev *, struct imsg *);
 void		main_send_playlist(struct imsgev *);

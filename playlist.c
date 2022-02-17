@@ -78,6 +78,29 @@ playlist_advance(void)
 	return playlist.songs[play_off];
 }
 
+const char *
+playlist_previous(void)
+{
+	if (playlist.len == 0) {
+		play_state = STATE_STOPPED;
+		return NULL;
+	}
+
+	play_off--;
+	if (play_off < 0) {
+		if (repeat_all)
+			play_off = playlist.len - 1;
+		else {
+			play_state = STATE_STOPPED;
+			play_off = -1;
+			return NULL;
+		}
+	}
+
+	play_state = STATE_PLAYING;
+	return playlist.songs[play_off];
+}
+
 void
 playlist_reset(void)
 {

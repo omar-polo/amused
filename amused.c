@@ -411,6 +411,23 @@ main_playlist_advance(void)
 }
 
 void
+main_playlist_previous(void)
+{
+	const char *song;
+
+	for (;;) {
+		song = playlist_previous();
+		if (song == NULL)
+			return;
+
+		if (main_play_song(song))
+			break;
+
+		playlist_dropcurrent();
+	}
+}
+
+void
 main_restart_track(void)
 {
 	const char *song;

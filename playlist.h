@@ -39,6 +39,7 @@ extern ssize_t		 play_off;
 void			 playlist_enqueue(const char *);
 const char		*playlist_current(void);
 const char		*playlist_advance(void);
+const char		*playlist_previous(void);
 void			 playlist_reset(void);
 void			 playlist_truncate(void);
 void			 playlist_dropcurrent(void);
