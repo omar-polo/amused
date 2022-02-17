@@ -88,6 +88,27 @@ If not specified, reads from
 .It Pa /tmp/amused-$UID
 UNIX-domain socket used for communication with the daemon.
 .El
+.Sh EXAMPLES
+Enqueue all mp3 files in the current directory:
+.Bd -literal -offset indent
+$ amused add *.mp3
+.Ed
+.Pp
+Recursively add all opus files:
+.Bd -literal -offset indent
+$ find . -type f -iname \\*.opus -exec amused add {} +
+.Ed
+.Pp
+Save the state of the player to the file
+.Pa state :
+.Bd -literal -offset indent
+$ amused show > state
+.Ed
+.Pp
+Load a previous state:
+.Bd -literal -offset indent
+$ amused load < state
+.Ed
 .Sh AUTHORS
 .An -nosplit
 Then
