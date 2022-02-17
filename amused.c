@@ -186,7 +186,7 @@ main_dispatch_player(int sig, short event, void *d)
 static pid_t
 start_child(enum amused_process proc, int fd)
 {
-	const char	*argv[5];
+	const char	*argv[6];
 	int		 argc = 0;
 	pid_t		 pid;
 
@@ -207,8 +207,11 @@ start_child(enum amused_process proc, int fd)
 		fatal("cannot setup imsg fd");
 
 	argv[argc++] = argv0;
+
 	switch (proc) {
 	case PROC_MAIN:
+		argv[argc++] = "-s";
+		argv[argc++] = csock;
 		break;
 	case PROC_PLAYER:
 		argv[argc++] = "-Tp";
