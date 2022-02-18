@@ -525,7 +525,7 @@ main_enqueue(int tx, struct playlist *px, struct imsgev *iev,
 		goto err;
 	}
 
-	if (px)
+	if (tx)
 		playlist_push(px, path);
 	else
 		playlist_enqueue(path);
