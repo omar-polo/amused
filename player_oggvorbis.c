@@ -63,7 +63,7 @@ play_oggvorbis(int fd)
 
 		printf("bitstream is %d channel, %ldHz\n", vi->channels, vi->rate);
 
-		if (player_setrate(vi->rate) == -1)
+		if (player_setup(vi->rate, vi->channels) == -1)
 			err(1, "player_setrate");
 	}
 

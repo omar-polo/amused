@@ -67,16 +67,18 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
     void *d)
 {
 	uint32_t sample_rate;
+	int channels;
 
 	if (meta->type == FLAC__METADATA_TYPE_STREAMINFO) {
 		sample_rate = meta->data.stream_info.sample_rate;
+		channels = meta->data.stream_info.channels;
 
 		printf("sample rate: %d\n", sample_rate);
 		printf("channels: %d\n", meta->data.stream_info.channels);
 		printf("bps: %d\n", meta->data.stream_info.bits_per_sample);
 		printf("total samples: %"PRIu64"\n", meta->data.stream_info.total_samples);
 
-		if (player_setrate(sample_rate) == -1)
+		if (player_setup(sample_rate, channels) == -1)
 			err(1, "player_setrate");
 	}
 }

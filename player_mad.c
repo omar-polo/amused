@@ -95,7 +95,7 @@ output(void *data, const struct mad_header *header, struct mad_pcm *pcm)
 
 	if (buffer->sample_rate != pcm->samplerate) {
 		buffer->sample_rate = pcm->samplerate;
-		if (player_setrate(pcm->samplerate) == -1)
+		if (player_setup(pcm->samplerate, 2) == -1)
 			err(1, "player_setrate");
 	}
 

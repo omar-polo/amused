@@ -76,7 +76,7 @@ play_opus(int fd)
 
 			head = op_head(of, li);
 			if (head->input_sample_rate) {
-				if (player_setrate(head->input_sample_rate)
+				if (player_setup(head->input_sample_rate, 2)
 				    == -1)
 					err(1, "player_setrate");
 			}

@@ -123,7 +123,7 @@ __dead void	usage(void);
 __dead void	ctl(int, char **);
 
 /* player.c */
-int	player_setrate(int);
+int	player_setup(int, int);
 void	player_senderr(void);
 void	player_sendeof(void);
 int	player_shouldstop(void);
