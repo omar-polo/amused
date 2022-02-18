@@ -42,6 +42,7 @@ struct buffer {
 	const void *start;
 	size_t length;
 	int sample_rate;
+	int channels;
 };
 
 static enum mad_flow
@@ -56,6 +57,7 @@ input(void *d, struct mad_stream *stream)
 	mad_stream_buffer(stream, buffer->start, buffer->length);
 	buffer->length = 0;
 	buffer->sample_rate = 0;
+	buffer->channels = 0;
 	return MAD_FLOW_CONTINUE;
 }
 
@@ -93,15 +95,12 @@ output(void *data, const struct mad_header *header, struct mad_pcm *pcm)
 	leftch = pcm->samples[0];
 	rightch = pcm->samples[1];
 
-	if (buffer->sample_rate != pcm->samplerate) {
+	if (buffer->sample_rate != pcm->samplerate ||
+	    buffer->channels != pcm->channels) {
 		buffer->sample_rate = pcm->samplerate;
-		if (player_setup(pcm->samplerate, 2) == -1)
+		buffer->channels = pcm->channels;
+		if (player_setup(pcm->samplerate, pcm->channels) == -1)
 			err(1, "player_setrate");
-	}
-
-	if (pcm->channels != 2) {
-		printf("mono not supported!\n");
-		return MAD_FLOW_STOP;
 	}
 
 	for (i = 0, len = 0; i < nsamples; ++i) {
@@ -115,9 +114,11 @@ output(void *data, const struct mad_header *header, struct mad_pcm *pcm)
 		buf[len++] = sample & 0xff;
 		buf[len++] = (sample >> 8) & 0xff;
 
-		sample = scale(*rightch++);
-		buf[len++] = sample & 0xff;
-		buf[len++] = (sample >> 8) & 0xff;
+		if (pcm->channels == 2) {
+			sample = scale(*rightch++);
+			buf[len++] = sample & 0xff;
+			buf[len++] = (sample >> 8) & 0xff;
+		}
 	}
 
 	if (len != 0)
