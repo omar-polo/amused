@@ -34,6 +34,7 @@
 #include <vorbis/vorbisfile.h>
 
 #include "amused.h"
+#include "log.h"
 
 #ifndef nitems
 #define nitems(x) (sizeof(x)/sizeof(x[0]))
@@ -50,8 +51,10 @@ play_oggvorbis(int fd)
 	if ((f = fdopen(fd, "r")) == NULL)
 		err(1, "fdopen");
 
-	if (ov_open_callbacks(f, &vf, NULL, 0, OV_CALLBACKS_NOCLOSE) < 0)
-		errx(1, "input is not an Ogg bitstream");
+	if (ov_open_callbacks(f, &vf, NULL, 0, OV_CALLBACKS_NOCLOSE) < 0) {
+		log_warnx("input is not an Ogg bitstream");
+		goto end;
+	}
 
 	{
 		char **ptr;
@@ -78,7 +81,7 @@ play_oggvorbis(int fd)
 		if (ret == 0)
 			eof = 1;
 		else if (ret < 0)
-			warnx("non-fatal error in the stream %ld", ret);
+			log_warnx("non-fatal error in the stream %ld", ret);
 		else {
 			/* TODO: deal with sample rate changes */
 			sio_write(hdl, pcmout, ret);
@@ -86,5 +89,7 @@ play_oggvorbis(int fd)
 	}
 
 	ov_clear(&vf);
+
+end:
 	fclose(f);
 }
