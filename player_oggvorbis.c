@@ -80,9 +80,7 @@ play_oggvorbis(int fd)
 		    &current_section);
 		if (ret == 0)
 			eof = 1;
-		else if (ret < 0)
-			log_warnx("non-fatal error in the stream %ld", ret);
-		else {
+		else if (ret > 0) {
 			/* TODO: deal with sample rate changes */
 			sio_write(hdl, pcmout, ret);
 		}
