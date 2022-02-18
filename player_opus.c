@@ -33,6 +33,7 @@
 #include <opusfile.h>
 
 #include "amused.h"
+#include "log.h"
 
 #ifndef nitems
 #define nitems(x) (sizeof(x)/sizeof(x[0]))
@@ -53,8 +54,10 @@ play_opus(int fd)
 		err(1, "fdopen");
 
 	of = op_open_callbacks(f, &cb, NULL, 0, &ret);
-	if (of == NULL)
-		errx(1, "failed open opus file");
+	if (of == NULL) {
+		close(fd);
+		return;
+	}
 
 	for (;;) {
 		if (player_shouldstop())
@@ -64,8 +67,10 @@ play_opus(int fd)
 		ret = op_read_stereo(of, pcm, nitems(pcm));
 		if (ret == OP_HOLE) /* corrupt file segment? */
 			continue;
-		if (ret < 0)
-			errx(1, "error decoding file (%d)", ret);
+		if (ret < 0) {
+			log_warnx("error %d decoding file", ret);
+			break;
+		}
 		if (ret == 0)
 			break; /* eof */
 
