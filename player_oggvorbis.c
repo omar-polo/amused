@@ -86,4 +86,5 @@ play_oggvorbis(int fd)
 	}
 
 	ov_clear(&vf);
+	fclose(f);
 }

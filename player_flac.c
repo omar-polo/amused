@@ -118,4 +118,6 @@ play_flac(int fd)
 	}
 
 	FLAC__stream_decoder_delete(decoder);
+
+	fclose(f);
 }

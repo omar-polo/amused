@@ -175,15 +175,18 @@ play_mp3(int fd)
 
 	if (fstat(fd, &stat) == -1) {
 		log_warn("fstat");
-		return;
+		goto end;
 	}
 
 	m = mmap(NULL, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (m == MAP_FAILED) {
 		log_warn("map failed");
-		return;
+		goto end;
 	}
 
 	decode(m, stat.st_size);
 	munmap(m, stat.st_size);
+
+end:
+	close(fd);
 }
