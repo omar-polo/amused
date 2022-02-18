@@ -46,6 +46,7 @@ play_oggvorbis(int fd)
 	static uint8_t pcmout[4096];
 	FILE *f;
 	OggVorbis_File vf;
+	vorbis_info *vi;
 	int current_section, eof = 0;
 
 	if ((f = fdopen(fd, "r")) == NULL)
@@ -56,19 +57,14 @@ play_oggvorbis(int fd)
 		goto end;
 	}
 
-	{
-		char **ptr;
-		vorbis_info *vi;
-
-		vi = ov_info(&vf, -1);
-		for (ptr = ov_comment(&vf, -1)->user_comments; *ptr; ++ptr)
-			printf("%s\n", *ptr);
-
-		printf("bitstream is %d channel, %ldHz\n", vi->channels, vi->rate);
-
-		if (player_setup(vi->rate, vi->channels) == -1)
-			err(1, "player_setrate");
-	}
+	/*
+	 * we could extract some tags by looping over the NULL
+	 * terminated array returned by ov_comment(&vf, -1), see
+	 * previous revision of this file.
+	 */
+	vi = ov_info(&vf, -1);
+	if (player_setup(vi->rate, vi->channels) == -1)
+		err(1, "player_setrate");
 
 	while (!eof) {
 		long ret;
