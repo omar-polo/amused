@@ -31,6 +31,7 @@
 #include <FLAC/stream_decoder.h>
 
 #include "amused.h"
+#include "log.h"
 
 static FLAC__StreamDecoderWriteStatus
 writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
@@ -73,11 +74,6 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
 		sample_rate = meta->data.stream_info.sample_rate;
 		channels = meta->data.stream_info.channels;
 
-		printf("sample rate: %d\n", sample_rate);
-		printf("channels: %d\n", meta->data.stream_info.channels);
-		printf("bps: %d\n", meta->data.stream_info.bits_per_sample);
-		printf("total samples: %"PRIu64"\n", meta->data.stream_info.total_samples);
-
 		if (player_setup(sample_rate, channels) == -1)
 			err(1, "player_setrate");
 	}
@@ -87,14 +83,15 @@ static void
 errcb(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status,
     void *data)
 {
-	warnx("error: %s", FLAC__StreamDecoderErrorStatusString[status]);
+	log_warnx("flac error: %s", FLAC__StreamDecoderErrorStatusString[status]);
 }
 
 void
 play_flac(int fd)
 {
 	FILE *f;
-	int ok = 1;
+	int s, ok = 1;
+	const char *state;
 	FLAC__StreamDecoder *decoder = NULL;
 	FLAC__StreamDecoderInitStatus init_status;
 
@@ -114,9 +111,11 @@ play_flac(int fd)
 		    FLAC__StreamDecoderInitStatusString[init_status]);
 
 	ok = FLAC__stream_decoder_process_until_end_of_stream(decoder);
-	warnx("decoding %s", ok ? "succeeded" : "failed");
-	warnx("state: %s",
-	    FLAC__StreamDecoderStateString[FLAC__stream_decoder_get_state(decoder)]);
+	if (!ok) {
+		s = FLAC__stream_decoder_get_state(decoder);
+		state = FLAC__StreamDecoderStateString[s];
+		log_warnx("decoding failed; state: %s", state);
+	}
 
 	FLAC__stream_decoder_delete(decoder);
 }
