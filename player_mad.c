@@ -33,6 +33,7 @@
 #include <mad.h>
 
 #include "amused.h"
+#include "log.h"
 
 struct mad_stream mad_stream;
 struct mad_frame mad_frame;
@@ -53,7 +54,6 @@ input(void *d, struct mad_stream *stream)
 	if (buffer->length == 0)
 		return MAD_FLOW_STOP;
 
-	printf("decode time!  start=%p, len=%zu\n", buffer->start, buffer->length);
 	mad_stream_buffer(stream, buffer->start, buffer->length);
 	buffer->length = 0;
 	buffer->sample_rate = 0;
@@ -106,7 +106,6 @@ output(void *data, const struct mad_header *header, struct mad_pcm *pcm)
 	for (i = 0, len = 0; i < nsamples; ++i) {
 		if (len+4 >= sizeof(buf)) {
 			sio_write(hdl, buf, len);
-			/* fwrite(buf, 1, len, stdout); */
 			len = 0;
 		}
 
@@ -122,7 +121,6 @@ output(void *data, const struct mad_header *header, struct mad_pcm *pcm)
 	}
 
 	if (len != 0)
-		/* fwrite(buf, 1, len, stdout); */
 		sio_write(hdl, buf, len);
 
 	return MAD_FLOW_CONTINUE;
@@ -133,7 +131,12 @@ error(void *d, struct mad_stream *stream, struct mad_frame *frame)
 {
 	struct buffer *buffer = d;
 
-	warnx("decoding error 0x%04x (%s) at byte offset %zu",
+	/*
+	 * most of the decoding errors are actually ID3 tags.  Since
+	 * they're common, this has a lower priority to avoid spamming
+	 * syslog.
+	 */
+	log_debug("decoding error 0x%04x (%s) at byte offset %zu",
 	    stream->error, mad_stream_errorstr(stream),
 	    stream->this_frame - (const unsigned char *)buffer->start);
 
