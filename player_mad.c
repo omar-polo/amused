@@ -173,13 +173,16 @@ play_mp3(int fd)
 	struct stat stat;
 	void *m;
 
-	if (fstat(fd, &stat) == -1)
-		err(1, "fstat");
-	warnx("file size %lld", stat.st_size);
+	if (fstat(fd, &stat) == -1) {
+		log_warn("fstat");
+		return;
+	}
 
 	m = mmap(NULL, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	if (m == MAP_FAILED)
-		err(1, "mmap");
+	if (m == MAP_FAILED) {
+		log_warn("map failed");
+		return;
+	}
 
 	decode(m, stat.st_size);
 	munmap(m, stat.st_size);
