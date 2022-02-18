@@ -60,6 +60,7 @@ play_opus(int fd)
 		if (player_shouldstop())
 			break;
 
+		/* NB: will downmix multichannels files into two channels */
 		ret = op_read_stereo(of, pcm, nitems(pcm));
 		if (ret == OP_HOLE) /* corrupt file segment? */
 			continue;
