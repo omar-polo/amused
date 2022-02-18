@@ -111,8 +111,8 @@ play_flac(int fd)
 		    FLAC__StreamDecoderInitStatusString[init_status]);
 
 	ok = FLAC__stream_decoder_process_until_end_of_stream(decoder);
-	if (!ok) {
-		s = FLAC__stream_decoder_get_state(decoder);
+	s = FLAC__stream_decoder_get_state(decoder);
+	if (!ok && s != FLAC__STREAM_DECODER_ABORTED) {
 		state = FLAC__StreamDecoderStateString[s];
 		log_warnx("decoding failed; state: %s", state);
 	}
