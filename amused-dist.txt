@@ -1,6 +1,7 @@
 
 /LICENSE
 /Makefile
+/README.md
 /amused-version.mk
 /amused.1
 /amused.c
