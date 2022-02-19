@@ -45,6 +45,7 @@ enum imsg_type {
 	IMSG_CTL_NEXT,
 	IMSG_CTL_PREV,
 	IMSG_CTL_JUMP,
+	IMSG_CTL_REPEAT,	/* struct player_repeat */
 
 	IMSG_CTL_BEGIN,
 	IMSG_CTL_ADD,		/* path to a file */
@@ -75,15 +76,22 @@ enum actions {
 	NEXT,
 	LOAD,
 	JUMP,
+	REPEAT,
 };
 
 struct ctl_command;
+
+struct player_repeat {
+	int	repeat_one;
+	int	repeat_all;
+};
 
 struct parse_result {
 	enum actions		 action;
 	char			**files;
 	const char		*file;
 	int			 pretty;
+	struct player_repeat	 rep;
 	struct ctl_command	*ctl;
 };
 

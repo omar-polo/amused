@@ -229,9 +229,10 @@ control_close(int fd)
 void
 control_dispatch_imsg(int fd, short event, void *bula)
 {
-	struct ctl_conn	*c;
-	struct imsg	 imsg;
-	ssize_t		 n;
+	struct ctl_conn		*c;
+	struct imsg		 imsg;
+	struct player_repeat	 rp;
+	ssize_t		 	 n;
 
 	if ((c = control_connbyfd(fd)) == NULL) {
 		log_warnx("%s: fd %d: not found", __func__, fd);
@@ -325,6 +326,17 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			break;
 		case IMSG_CTL_JUMP:
 			main_playlist_jump(&c->iev, &imsg);
+			break;
+		case IMSG_CTL_REPEAT:
+			if (IMSG_DATA_SIZE(imsg) != sizeof(rp)) {
+				log_warnx("%s: got wrong size", __func__);
+				break;
+			}
+			memcpy(&rp, imsg.data, sizeof(rp));
+			if (rp.repeat_all != -1)
+				repeat_all = rp.repeat_all;
+			if (rp.repeat_one != -1)
+				repeat_one = rp.repeat_one;
 			break;
 		case IMSG_CTL_BEGIN:
 			if (control_state.tx != -1) {

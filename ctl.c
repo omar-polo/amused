@@ -44,6 +44,7 @@ int	ctl_add(struct parse_result *, int, char **);
 int	ctl_show(struct parse_result *, int, char **);
 int	ctl_load(struct parse_result *, int, char **);
 int	ctl_jump(struct parse_result *, int, char **);
+int	ctl_repeat(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "play",	PLAY,		ctl_noarg,	"" },
@@ -59,6 +60,7 @@ struct ctl_command ctl_commands[] = {
 	{ "prev",	PREV,		ctl_noarg,	"" },
 	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
 	{ "jump",	JUMP,		ctl_jump,	"pattern" },
+	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off" },
 	{ NULL },
 };
 
@@ -392,6 +394,10 @@ ctlaction(struct parse_result *res)
 		done = 0;
 		ret = jump_req(res->file);
 		break;
+	case REPEAT:
+		imsg_compose(ibuf, IMSG_CTL_REPEAT, 0, 0, -1,
+		    &res->rep, sizeof(res->rep));
+		break;
 	case NONE:
 		/* action not expected */
 		fatalx("invalid action %u", res->action);
@@ -516,6 +522,38 @@ ctl_jump(struct parse_result *res, int argc, char **argv)
 		ctl_usage(res->ctl);
 
 	res->file = argv[0];
+	return ctlaction(res);
+}
+
+int
+ctl_repeat(struct parse_result *res, int argc, char **argv)
+{
+	int ch, b;
+
+	while ((ch = getopt(argc, argv, "")) != -1)
+		ctl_usage(res->ctl);
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 2)
+		ctl_usage(res->ctl);
+
+	if (!strcmp(argv[1], "on"))
+		b = 1;
+	else if (!strcmp(argv[1], "off"))
+		b = 0;
+	else
+		ctl_usage(res->ctl);
+
+	res->rep.repeat_one = -1;
+	res->rep.repeat_all = -1;
+	if (!strcmp(argv[0], "one"))
+		res->rep.repeat_one = b;
+	else if (!strcmp(argv[0], "all"))
+		res->rep.repeat_all = b;
+	else
+		ctl_usage(res->ctl);
+
 	return ctlaction(res);
 }
 
