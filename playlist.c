@@ -27,11 +27,22 @@
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-struct playlist	playlist;
-enum play_state	play_state;
-int		repeat_one;
-int		repeat_all = 1;
-ssize_t		play_off = -1;
+struct playlist	 playlist;
+enum play_state	 play_state;
+int		 repeat_one;
+int		 repeat_all = 1;
+ssize_t		 play_off = -1;
+const char	*current_song;
+
+static void
+setsong(ssize_t i)
+{
+	free((char *)current_song);
+	if (i == -1)
+		current_song = NULL;
+	else
+		current_song = xstrdup(playlist.songs[i]);
+}
 
 void
 playlist_swap(struct playlist *p)
@@ -92,17 +103,6 @@ playlist_enqueue(const char *path)
 }
 
 const char *
-playlist_current(void)
-{
-	if (playlist.len == 0 || play_off == -1) {
-		play_state = STATE_STOPPED;
-		return NULL;
-	}
-
-	return playlist.songs[play_off];
-}
-
-const char *
 playlist_advance(void)
 {
 	if (playlist.len == 0) {
@@ -117,10 +117,12 @@ playlist_advance(void)
 		else {
 			play_state = STATE_STOPPED;
 			play_off = -1;
+			setsong(play_off);
 			return NULL;
 		}
 	}
 
+	setsong(play_off);
 	play_state = STATE_PLAYING;
 	return playlist.songs[play_off];
 }
@@ -140,10 +142,12 @@ playlist_previous(void)
 		else {
 			play_state = STATE_STOPPED;
 			play_off = -1;
+			setsong(play_off);
 			return NULL;
 		}
 	}
 
+	setsong(play_off);
 	play_state = STATE_PLAYING;
 	return playlist.songs[play_off];
 }
@@ -212,5 +216,6 @@ playlist_jump(const char *arg)
 
 	play_state = STATE_PLAYING;
 	play_off = i;
+	setsong(play_off);
 	return playlist.songs[i];
 }

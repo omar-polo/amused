@@ -103,7 +103,7 @@ main_status(void)
 		break;
 	}
 
-	if ((cur = playlist_current()) != NULL)
+	if ((cur = current_song) != NULL)
 		log_info("playing %s", cur);
 	else
 		log_info("not playing anything");
@@ -437,7 +437,7 @@ main_playlist_resume(void)
 {
 	const char *song;
 
-	if ((song = playlist_current()) == NULL)
+	if ((song = current_song) == NULL)
 		song = playlist_advance();
 
 	for (; song != NULL; song = playlist_advance()) {
@@ -487,7 +487,7 @@ main_restart_track(void)
 {
 	const char *song;
 
-	song = playlist_current();
+	song = current_song;
 	if (song == NULL)
 		return;
 
@@ -556,13 +556,11 @@ void
 main_send_status(struct imsgev *iev)
 {
 	struct player_status s;
-	const char *song;
 
 	memset(&s, 0, sizeof(s));
 
-	song = playlist_current();
-	if (song != NULL)
-		strlcpy(s.path, song, sizeof(s.path));
+	if (current_song != NULL)
+		strlcpy(s.path, current_song, sizeof(s.path));
 	s.status = play_state;
 
 	imsg_compose_event(iev, IMSG_CTL_STATUS, 0, 0, -1, &s, sizeof(s));

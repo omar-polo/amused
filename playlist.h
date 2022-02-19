@@ -35,11 +35,11 @@ extern enum play_state	 play_state;
 extern int		 repeat_one;
 extern int		 repeat_all;
 extern ssize_t		 play_off;
+extern const char	*current_song;
 
 void			 playlist_swap(struct playlist *);
 void			 playlist_push(struct playlist *, const char *);
 void			 playlist_enqueue(const char *);
-const char		*playlist_current(void);
 const char		*playlist_advance(void);
 const char		*playlist_previous(void);
 void			 playlist_reset(void);
