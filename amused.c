@@ -566,6 +566,8 @@ main_send_status(struct imsgev *iev)
 	if (current_song != NULL)
 		strlcpy(s.path, current_song, sizeof(s.path));
 	s.status = play_state;
+	s.rp.repeat_all = repeat_all;
+	s.rp.repeat_one = repeat_one;
 
 	imsg_compose_event(iev, IMSG_CTL_STATUS, 0, 0, -1, &s, sizeof(s));
 }

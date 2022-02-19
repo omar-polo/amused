@@ -86,6 +86,12 @@ struct player_repeat {
 	int	repeat_all;
 };
 
+struct player_status {
+	char			path[PATH_MAX];
+	int			status;
+	struct player_repeat	rp;
+};
+
 struct parse_result {
 	enum actions		 action;
 	char			**files;
@@ -101,11 +107,6 @@ struct ctl_command {
 	int			(*main)(struct parse_result *, int, char **);
 	const char		*usage;
 	int			 has_pledge;
-};
-
-struct player_status {
-	char	path[PATH_MAX];
-	int	status;
 };
 
 struct playlist;
