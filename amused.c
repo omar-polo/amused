@@ -161,8 +161,12 @@ main_dispatch_player(int sig, short event, void *d)
 		switch (imsg.hdr.type) {
 		case IMSG_ERR:
 			playlist_dropcurrent();
-			/* fallthrough */
+			main_playlist_advance();
+			break;
 		case IMSG_EOF:
+			if (repeat_one && current_song != NULL)
+				if (main_play_song(current_song))
+					break;
 			main_playlist_advance();
 			break;
 
