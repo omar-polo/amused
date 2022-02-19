@@ -18,6 +18,7 @@
 
 #include <regex.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "log.h"
@@ -35,7 +36,34 @@ ssize_t		play_off = -1;
 void
 playlist_swap(struct playlist *p)
 {
+	ssize_t i = -1;
+
+	if (play_off != -1) {
+		/* try to adjust play_off to match the same song */
+		for (i = 0; i < p->len; ++i) {
+			if (!strcmp(playlist.songs[play_off], p->songs[i]))
+				break;
+		}
+		/* try to match one song before */
+		if (i == p->len && play_off >= 1)
+			for (i = 0; i < p->len; ++i)
+				if (!strcmp(playlist.songs[play_off-1],
+				    p->songs[i]))
+					break;
+		/* or one song after */
+		if (i == p->len && play_off < playlist.len-1)
+			for (i = 0; i < p->len; ++i)
+				if (!strcmp(playlist.songs[play_off+1],
+				    p->songs[i]))
+					break;
+		if (i == p->len)
+			i = -1;
+	}
+
 	playlist_truncate();
+
+	if (i != -1)
+		play_off = i;
 
 	playlist.len = p->len;
 	playlist.cap = p->cap;
