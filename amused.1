@@ -54,20 +54,35 @@ to communicate with the daemon.
 .Pp
 The following commands are available:
 .Bl -tag -width 12m
-.It Cm play
-Start or resume the playback.
-.It Cm pause
-Pause the playback.
-.It Cm toggle
-Play/pause the playback.
-.It Cm stop
-Stop the music player.
-.It Cm restart
-Rewind the current song to the beginning.
 .It Cm add Ar
 Enqueue the given files.
 .It Cm flush
 Erase the playlist.
+.It Cm jump Ar pattern
+Play the first song in the playing queue that matches
+.Ar pattern
+.Pq a basic regexp .
+.It Cm load Op Ar file
+Load a playlist from
+.Ar file ,
+which has one song per line.
+If not specified, reads from
+.Em stdin .
+.It Cm next
+Play the next song.
+.It Cm pause
+Pause the playback.
+.It Cm play
+Start or resume the playback.
+.It Cm prev
+Play the previous song.
+.It Cm repeat one|all on|off
+Enable or disable the repetition of the current track
+.Pq Cm one
+or of the playing queue
+.Pq Cm all .
+.It Cm restart
+Rewind the current song to the beginning.
 .It Cm show Op Fl p
 Print the current playlist.
 With
@@ -75,28 +90,13 @@ With
 it prints a
 .Dq pretty
 list with the current playing song prefixed by
-.Sq > \&
+.Sq > \& .
 .It Cm status
 Print playback status and current song.
-.It Cm next
-Play the next song.
-.It Cm prev
-Play the previous song.
-.It Cm load Op Ar file
-Load a playlist from
-.Ar file ,
-which has one song per line.
-If not specified, reads from
-.Em stdin .
-.It Cm jump Ar pattern
-Play the first song in the playing queue that matches
-.Ar pattern
-.Pq a basic regexp .
-.It Cm repeat one|all on|off
-Enable or disable the repetition of the current track
-.Pq Cm one
-or of the playing queue
-.Pq Cm all .
+.It Cm stop
+Stop the music player.
+.It Cm toggle
+Play/pause the playback.
 .El
 .Pp
 Commands can be also abbreviated to the smallest unique prefix,
