@@ -299,7 +299,7 @@ main(int argc, char **argv)
 	if (argv0 == NULL)
 		argv0 = "amused";
 
-	while ((ch = getopt(argc, argv, "ds:T:vV")) != -1) {
+	while ((ch = getopt(argc, argv, "ds:T:v")) != -1) {
 		switch (ch) {
 		case 'd':
 			debug = 1;
@@ -320,10 +320,6 @@ main(int argc, char **argv)
 		case 'v':
 			verbose++;
 			break;
-		case 'V':
-			printf("%s version %s\n", getprogname(),
-			    AMUSED_VERSION);
-			exit(0);
 		default:
 			usage();
 		}

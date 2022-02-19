@@ -4,8 +4,7 @@ SRCS=	amused.c control.c log.c xmalloc.c player.c ctl.c playlist.c \
 
 .include "amused-version.mk"
 
-CPPFLAGS +=	-DAMUSED_VERSION=\"${AMUSED_VERSION}\" \
-		-I/usr/local/include -I/usr/local/include/opus
+CPPFLAGS += -I/usr/local/include -I/usr/local/include/opus
 
 LDADD =	-levent -lm -lsndio -lutil \
 	-L/usr/local/lib -lmad -lvorbisfile -lopusfile -lFLAC

@@ -68,7 +68,6 @@ __dead void
 usage(void)
 {
 	fprintf(stderr, "usage: %s [-dv] [-s socket]\n", getprogname());
-	fprintf(stderr, "%s version %s\n", getprogname(), AMUSED_VERSION);
 	exit(1);
 }
 
