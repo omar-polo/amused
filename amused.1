@@ -68,6 +68,12 @@ Load a playlist from
 which has one song per line.
 If not specified, reads from
 .Em stdin .
+.It Cm monitor
+Stop indefinitely and print the events as happen.
+Events are print one per line and are triggered either by other
+instances of
+.Nm
+issuing commands or the player itself anvancing the playing queue.
 .It Cm next
 Play the next song.
 .It Cm pause

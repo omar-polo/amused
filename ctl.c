@@ -61,6 +61,7 @@ struct ctl_command ctl_commands[] = {
 	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
 	{ "jump",	JUMP,		ctl_jump,	"pattern" },
 	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off" },
+	{ "monitor",	MONITOR,	ctl_noarg,	"" },
 	{ NULL },
 };
 
@@ -333,6 +334,70 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 }
 
 static int
+show_monitor(struct imsg *imsg, int *ret)
+{
+	int type;
+
+	if (imsg->hdr.type != IMSG_CTL_MONITOR) {
+		log_warnx("wrong message type received: %d",
+		    imsg->hdr.type);
+		*ret = 1;
+		return 1;
+	}
+
+	if (IMSG_DATA_SIZE(*imsg) != sizeof(type)) {
+		log_warnx("size mismatch");
+		*ret = 1;
+		return 1;
+	}
+
+	memcpy(&type, imsg->data, sizeof(type));
+	switch (type) {
+	case IMSG_CTL_PLAY:
+		puts("play");
+		break;
+	case IMSG_CTL_TOGGLE_PLAY:
+		puts("toggle");
+		break;
+	case IMSG_CTL_PAUSE:
+		puts("pause");
+		break;
+	case IMSG_CTL_STOP:
+		puts("stop");
+		break;
+	case IMSG_CTL_RESTART:
+		puts("restart");
+		break;
+	case IMSG_CTL_FLUSH:
+		puts("flush");
+		break;
+	case IMSG_CTL_NEXT:
+		puts("next");
+		break;
+	case IMSG_CTL_PREV:
+		puts("prev");
+		break;
+	case IMSG_CTL_JUMP:
+		puts("jump");
+		break;
+	case IMSG_CTL_REPEAT:
+		puts("repeat");
+		break;
+	case IMSG_CTL_ADD:
+		puts("add");
+		break;
+	case IMSG_CTL_COMMIT:
+		puts("load");
+		break;
+	default:
+		puts("unknown");
+		break;
+	}
+
+	return 0;
+}
+
+static int
 ctlaction(struct parse_result *res)
 {
 	struct imsg imsg;
@@ -415,6 +480,11 @@ ctlaction(struct parse_result *res)
 		imsg_compose(ibuf, IMSG_CTL_REPEAT, 0, 0, -1,
 		    &res->rep, sizeof(res->rep));
 		break;
+	case MONITOR:
+		done = 0;
+		imsg_compose(ibuf, IMSG_CTL_MONITOR, 0, 0, -1,
+		    NULL, 0);
+		break;
 	case NONE:
 		/* action not expected */
 		fatalx("invalid action %u", res->action);
@@ -456,6 +526,9 @@ ctlaction(struct parse_result *res)
 				break;
 			case LOAD:
 				done = show_load(res, &imsg, &ret);
+				break;
+			case MONITOR:
+				done = show_monitor(&imsg, &ret);
 				break;
 			default:
 				done = 1;

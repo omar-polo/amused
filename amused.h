@@ -79,6 +79,7 @@ enum actions {
 	LOAD,
 	JUMP,
 	REPEAT,
+	MONITOR,
 };
 
 struct ctl_command;
