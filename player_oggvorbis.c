@@ -63,7 +63,7 @@ play_oggvorbis(int fd)
 	 * previous revision of this file.
 	 */
 	vi = ov_info(&vf, -1);
-	if (player_setup(vi->rate, vi->channels) == -1)
+	if (player_setup(16, vi->rate, vi->channels) == -1)
 		err(1, "player_setrate");
 
 	while (!eof) {

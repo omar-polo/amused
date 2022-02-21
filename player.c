@@ -74,7 +74,7 @@ audio_init(void)
 }
 
 int
-player_setup(int rate, int channels)
+player_setup(int bits, int rate, int channels)
 {
 	struct sio_par par;
 
@@ -83,6 +83,7 @@ player_setup(int rate, int channels)
 	sio_stop(hdl);
 
 	sio_initpar(&par);
+	par.bits = bits;
 	par.rate = rate;
 	par.pchan = channels;
 	if (!sio_setpar(hdl, &par) || !sio_getpar(hdl, &par)) {
@@ -90,7 +91,7 @@ player_setup(int rate, int channels)
 		return -1;
 	}
 
-	if (par.pchan != channels) {
+	if (par.bits != bits || par.pchan != channels) {
 		log_warnx("failed to set params");
 		return -1;
 	}

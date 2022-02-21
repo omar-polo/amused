@@ -82,7 +82,7 @@ play_opus(int fd)
 
 			head = op_head(of, li);
 			if (head->input_sample_rate &&
-			    player_setup(head->input_sample_rate, 2) == -1)
+			    player_setup(16, head->input_sample_rate, 2) == -1)
 				err(1, "player_setrate");
 		}
 
