@@ -51,6 +51,8 @@ enum imsg_type {
 	IMSG_CTL_ADD,		/* path to a file */
 	IMSG_CTL_COMMIT,
 
+	IMSG_CTL_MONITOR,
+
 	IMSG_CTL_ERR,
 };
 

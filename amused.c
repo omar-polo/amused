@@ -162,12 +162,20 @@ main_dispatch_player(int sig, short event, void *d)
 		case IMSG_ERR:
 			playlist_dropcurrent();
 			main_playlist_advance();
+			if (play_state == STATE_PLAYING)
+				control_notify(NULL, IMSG_CTL_NEXT);
+			else
+				control_notify(NULL, IMSG_CTL_STOP);
 			break;
 		case IMSG_EOF:
 			if (repeat_one && current_song != NULL)
 				if (main_play_song(current_song))
 					break;
 			main_playlist_advance();
+			if (play_state == STATE_PLAYING)
+				control_notify(NULL, IMSG_CTL_NEXT);
+			else
+				control_notify(NULL, IMSG_CTL_STOP);
 			break;
 
 		default:
