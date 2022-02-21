@@ -30,6 +30,8 @@
 #include <imsg.h>
 #include <unistd.h>
 
+#include <string.h>
+
 #include <mad.h>
 
 #include "amused.h"
@@ -61,31 +63,14 @@ input(void *d, struct mad_stream *stream)
 	return MAD_FLOW_CONTINUE;
 }
 
-/* scale a mad sample to 16 bits */
-static inline int
-scale(mad_fixed_t sample)
-{
-	/* round */
-	sample += (1L << (MAD_F_FRACBITS - 16));
-
-	/* clip */
-	if (sample >= MAD_F_ONE)
-		sample = MAD_F_ONE - 1;
-	else if (sample < -MAD_F_ONE)
-		sample -= MAD_F_ONE;
-
-	/* quantize */
-	return sample >> (MAD_F_FRACBITS + 1 - 16);
-}
-
 static enum mad_flow
 output(void *data, const struct mad_header *header, struct mad_pcm *pcm)
 {
-	static uint8_t buf[BUFSIZ];
+	static uint32_t buf[BUFSIZ];
 	size_t len;
 	struct buffer *buffer = data;
 	int nsamples, i;
-	uint16_t sample;
+	uint32_t sample;
 	const mad_fixed_t *leftch, *rightch;
 
 	if (player_shouldstop())
@@ -99,29 +84,27 @@ output(void *data, const struct mad_header *header, struct mad_pcm *pcm)
 	    buffer->channels != pcm->channels) {
 		buffer->sample_rate = pcm->samplerate;
 		buffer->channels = pcm->channels;
-		if (player_setup(16, pcm->samplerate, pcm->channels) == -1)
+		if (player_setup(32, pcm->samplerate, pcm->channels) == -1)
 			err(1, "player_setrate");
 	}
 
 	for (i = 0, len = 0; i < nsamples; ++i) {
-		if (len+4 >= sizeof(buf)) {
-			sio_write(hdl, buf, len);
+		if (len+2 >= sizeof(buf)) {
+			sio_write(hdl, buf, len * sizeof(sample));
 			len = 0;
 		}
 
-		sample = scale(*leftch++);
-		buf[len++] = sample & 0xff;
-		buf[len++] = (sample >> 8) & 0xff;
+		sample = *leftch++;
+		buf[len++] = sample;
 
 		if (pcm->channels == 2) {
-			sample = scale(*rightch++);
-			buf[len++] = sample & 0xff;
-			buf[len++] = (sample >> 8) & 0xff;
+			sample = *rightch++;
+			buf[len++] = sample;
 		}
 	}
 
 	if (len != 0)
-		sio_write(hdl, buf, len);
+		sio_write(hdl, buf, len * sizeof(sample));
 
 	return MAD_FLOW_CONTINUE;
 }
