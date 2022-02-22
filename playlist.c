@@ -186,6 +186,7 @@ playlist_dropcurrent(void)
 		return;
 
 	free(playlist.songs[play_off]);
+	setsong(-1);
 
 	playlist.len--;
 	for (i = play_off; i < playlist.len; ++i)
