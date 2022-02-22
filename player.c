@@ -196,7 +196,7 @@ player_sendeof(void)
 	imsg_flush(ibuf);
 }
 
-void
+int
 player_playnext(void)
 {
 	int fd = nextfd;
@@ -216,8 +216,10 @@ player_playnext(void)
 	else {
 		log_warnx("unknown file type for %s", nextpath);
 		player_senderr();
-		return;
+		return 0;
 	}
+
+	return 1;
 }
 
 int
@@ -290,9 +292,7 @@ player(int debug, int verbose)
 		while (nextfd == -1)
 			player_dispatch();
 
-		player_playnext();
-
-		if (!got_stop)
+		if (player_playnext() && !got_stop)
 			player_sendeof();
 		else
 			got_stop = 0;
