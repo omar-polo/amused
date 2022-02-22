@@ -190,6 +190,7 @@ playlist_dropcurrent(void)
 	playlist.len--;
 	for (i = play_off; i < playlist.len; ++i)
 		playlist.songs[i] = playlist.songs[i+1];
+	play_off--;
 
 	playlist.songs[playlist.len] = NULL;
 }
