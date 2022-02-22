@@ -394,6 +394,7 @@ show_monitor(struct imsg *imsg, int *ret)
 		break;
 	}
 
+	fflush(stdout);
 	return 0;
 }
 
