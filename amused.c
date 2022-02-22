@@ -133,9 +133,11 @@ main_dispatch_player(int sig, short event, void *d)
 			playlist_dropcurrent();
 			/* fallthrough */
 		case IMSG_EOF:
-			if (repeat_one && current_song != NULL)
+			if (repeat_one && current_song != NULL) {
 				if (main_play_song(current_song))
 					break;
+				playlist_dropcurrent();
+			}
 			main_playlist_advance();
 			if (play_state == STATE_PLAYING)
 				control_notify(NULL, IMSG_CTL_NEXT);
