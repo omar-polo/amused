@@ -50,7 +50,6 @@ const char	*argv0;
 pid_t		 player_pid;
 struct event	 ev_sigint;
 struct event	 ev_sigterm;
-struct event	 ev_siginfo;
 
 enum amused_process {
 	PROC_MAIN,
@@ -84,32 +83,6 @@ main_shutdown(void)
 }
 
 static void
-main_status(void)
-{
-	const char *cur;
-
-	switch (play_state) {
-	case STATE_STOPPED:
-		log_info("status: stopped");
-		break;
-	case STATE_PLAYING:
-		log_info("status: playing");
-		break;
-	case STATE_PAUSED:
-		log_info("status: paused");
-		break;
-	default:
-		log_info("status: unknown");
-		break;
-	}
-
-	if ((cur = current_song) != NULL)
-		log_info("playing %s", cur);
-	else
-		log_info("not playing anything");
-}
-
-static void
 main_sig_handler(int sig, short event, void *arg)
 {
 	/*
@@ -121,9 +94,6 @@ main_sig_handler(int sig, short event, void *arg)
 	case SIGTERM:
 	case SIGINT:
 		main_shutdown();
-		break;
-	case SIGINFO:
-		main_status();
 		break;
 	default:
 		fatalx("unexpected signal %d", sig);
@@ -265,11 +235,9 @@ amused_main(void)
 
 	signal_set(&ev_sigint, SIGINT, main_sig_handler, NULL);
 	signal_set(&ev_sigterm, SIGTERM, main_sig_handler, NULL);
-	signal_set(&ev_siginfo, SIGINFO, main_sig_handler, NULL);
 
 	signal_add(&ev_sigint, NULL);
 	signal_add(&ev_sigterm, NULL);
-	signal_add(&ev_siginfo, NULL);
 
 	signal(SIGHUP, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
