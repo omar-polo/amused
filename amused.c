@@ -144,7 +144,6 @@ main_dispatch_player(int sig, short event, void *d)
 			else
 				control_notify(NULL, IMSG_CTL_STOP);
 			break;
-
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
 			    imsg.hdr.type);
