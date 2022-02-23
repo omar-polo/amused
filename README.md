@@ -23,7 +23,7 @@ too)
 it needs the following packages from ports:
 
  - flac
- - libmad
+ - libmpg123
  - libvorbis
  - opusfile
 

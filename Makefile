@@ -1,13 +1,13 @@
 PROG=	amused
 SRCS=	amused.c control.c log.c xmalloc.c player.c ctl.c playlist.c \
-	player_flac.c player_mad.c player_opus.c player_oggvorbis.c
+	player_flac.c player_123.c player_opus.c player_oggvorbis.c
 
 .include "amused-version.mk"
 
 CPPFLAGS += -I/usr/local/include -I/usr/local/include/opus
 
 LDADD =	-levent -lm -lsndio -lutil \
-	-L/usr/local/lib -lmad -lvorbisfile -lopusfile -lFLAC
+	-L/usr/local/lib -lmpg123 -lvorbisfile -lopusfile -lFLAC
 DPADD =	${LIBEVENT} ${LIBM} ${LIBSNDIO} ${LIBUTIL}
 
 .if "${AMUSED_RELEASE}" == "Yes"
