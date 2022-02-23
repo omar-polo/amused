@@ -78,7 +78,8 @@ player_setup(int bits, int rate, int channels)
 {
 	struct sio_par par;
 
-	log_debug("switching to sample rate %d", rate);
+	log_debug("%s: bits=%d, rate=%d, channels=%d", __func__,
+	    bits, rate, channels);
 
 	sio_stop(hdl);
 
