@@ -12,8 +12,8 @@
 /log.c
 /log.h
 /player.c
+/player_123.c
 /player_flac.c
-/player_mad.c
 /player_oggvorbis.c
 /player_opus.c
 /playlist.c
