@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
 
@@ -353,12 +354,25 @@ main_send_player(uint16_t type, int fd, const void *data, uint16_t datalen)
 int
 main_play_song(const char *song)
 {
+	struct stat sb;
 	char path[PATH_MAX] = { 0 };
 	int fd;
 
 	strlcpy(path, song, sizeof(path));
 	if ((fd = open(path, O_RDONLY)) == -1) {
 		log_warn("open %s", path);
+		return 0;
+	}
+
+	if (fstat(fd, &sb) == -1) {
+		log_warn("failed to stat %s", path);
+		close(fd);
+		return 0;
+	}
+
+	if (S_ISDIR(sb.st_mode)) {
+		log_info("skipping a directory: %s", path);
+		close(fd);
 		return 0;
 	}
 
