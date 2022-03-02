@@ -518,7 +518,7 @@ main_enqueue(int tx, struct playlist *px, struct imsgev *iev,
 	imsg_compose_event(iev, IMSG_CTL_ADD, 0, 0, -1, path, sizeof(path));
 	return;
 err:
-	imsg_compose_event(iev, IMSG_CTL_ERR, 0, 0, -1, err, strlen(err)+1);
+	main_senderr(iev, err);
 }
 
 void
