@@ -269,9 +269,8 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 	const char	*file;
 	char		*line = NULL;
 	char		 path[PATH_MAX];
-	size_t		 linesize = 0;
-	ssize_t		 linelen;
-	int		 any = 0;
+	size_t		 linesize = 0, i = 0;
+	ssize_t		 linelen, curr = -1;
 
 	if (imsg->hdr.type == IMSG_CTL_ERR) {
 		print_error_message("load failed", imsg);
@@ -301,8 +300,10 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 			continue;
 		line[linelen-1] = '\0';
 		file = line;
-		if (file[0] == '>' && file[1] == ' ')
+		if (file[0] == '>' && file[1] == ' ') {
 			file += 2;
+			curr = i;
+		}
 		if (file[0] == ' ' && file[1] == ' ')
 			file += 2;
 
@@ -312,7 +313,7 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 			continue;
 		}
 
-		any++;
+		i++;
 		imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
 		    path, sizeof(path));
 	}
@@ -322,13 +323,13 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 		fatal("getline");
 	fclose(f);
 
-	if (!any) {
+	if (i == 0) {
 		*ret = 1;
 		return 1;
 	}
 
 	imsg_compose(ibuf, IMSG_CTL_COMMIT, 0, 0, -1,
-	    NULL, 0);
+	    &curr, sizeof(curr));
 	imsg_flush(ibuf);
 	return 0;
 }

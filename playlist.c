@@ -45,11 +45,14 @@ setsong(ssize_t i)
 }
 
 void
-playlist_swap(struct playlist *p)
+playlist_swap(struct playlist *p, ssize_t off)
 {
 	ssize_t i = -1;
 
-	if (current_song != NULL) {
+	if (off > p->len)
+		off = -1;
+
+	if (current_song != NULL && off < 0) {
 		/* try to adjust play_off to match the same song */
 		for (i = 0; i < p->len; ++i) {
 			if (!strcmp(current_song, p->songs[i]))
@@ -73,6 +76,8 @@ playlist_swap(struct playlist *p)
 
 	if (i != -1)
 		play_off = i;
+	else if (off >= 0)
+		play_off = off;
 
 	playlist.len = p->len;
 	playlist.cap = p->cap;

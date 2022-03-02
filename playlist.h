@@ -37,7 +37,7 @@ extern int		 repeat_all;
 extern ssize_t		 play_off;
 extern const char	*current_song;
 
-void			 playlist_swap(struct playlist *);
+void			 playlist_swap(struct playlist *, ssize_t);
 void			 playlist_push(struct playlist *, const char *);
 void			 playlist_enqueue(const char *);
 const char		*playlist_advance(void);

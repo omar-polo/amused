@@ -247,7 +247,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 	struct ctl_conn		*c;
 	struct imsg		 imsg;
 	struct player_repeat	 rp;
-	ssize_t		 	 n;
+	ssize_t		 	 n, off;
 
 	if ((c = control_connbyfd(fd)) == NULL) {
 		log_warnx("%s: fd %d: not found", __func__, fd);
@@ -388,7 +388,12 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				main_senderr(&c->iev, "locked");
 				break;
 			}
-			playlist_swap(&control_state.play);
+			if (IMSG_DATA_SIZE(imsg) != sizeof(off)) {
+				main_senderr(&c->iev, "wrong size");
+				break;
+			}
+			memcpy(&off, imsg.data, sizeof(off));
+			playlist_swap(&control_state.play, off);
 			memset(&control_state.play, 0,
 			    sizeof(control_state.play));
 			control_state.tx = -1;

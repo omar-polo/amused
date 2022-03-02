@@ -49,7 +49,7 @@ enum imsg_type {
 
 	IMSG_CTL_BEGIN,
 	IMSG_CTL_ADD,		/* path to a file */
-	IMSG_CTL_COMMIT,
+	IMSG_CTL_COMMIT,	/* offset of the track to jump to */
 
 	IMSG_CTL_MONITOR,
 
