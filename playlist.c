@@ -82,6 +82,9 @@ playlist_swap(struct playlist *p, ssize_t off)
 	playlist.len = p->len;
 	playlist.cap = p->cap;
 	playlist.songs = p->songs;
+
+	if (play_state == STATE_STOPPED)
+		setsong(play_off);
 }
 
 void
