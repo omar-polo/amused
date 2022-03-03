@@ -39,8 +39,7 @@ The following options are available:
 Do not daemonize.
 If this option is specified,
 .Nm
-will run in the foreground and log to
-.Em stderr .
+will run in the foreground and log to standard error.
 It's ignored if any commands are given on the command line.
 .It Fl v
 Produce more verbose output.
@@ -66,8 +65,7 @@ Play the first song in the playing queue that matches
 Load a playlist from
 .Ar file ,
 which has one song per line.
-If not specified, reads from
-.Em stdin .
+If not specified, reads from standard input.
 .It Cm monitor
 Stop indefinitely and print the events as happen.
 Events are print one per line and are triggered either by other
