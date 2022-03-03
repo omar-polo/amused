@@ -553,17 +553,32 @@ end:
 int
 ctl_noarg(struct parse_result *res, int argc, char **argv)
 {
-	if (argc > 1)
+	int ch;
+
+	while ((ch = getopt(argc, argv, "")) != -1)
 		ctl_usage(res->ctl);
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 0)
+		ctl_usage(res->ctl);
+
 	return ctlaction(res);
 }
 
 int
 ctl_add(struct parse_result *res, int argc, char **argv)
 {
-	if (argc < 2)
+	int ch;
+
+	while ((ch = getopt(argc, argv, "")) != -1)
 		ctl_usage(res->ctl);
-	res->files = argv+1;
+	argc -= optind;
+	argv += optind;
+
+	if (argc == 0)
+		ctl_usage(res->ctl);
+	res->files = argv;
 
 	if (pledge("stdio rpath", NULL) == -1)
 		fatal("pledge");
@@ -592,10 +607,17 @@ ctl_show(struct parse_result *res, int argc, char **argv)
 int
 ctl_load(struct parse_result *res, int argc, char **argv)
 {
-	if (argc < 2)
+	int ch;
+
+	while ((ch = getopt(argc, argv, "")) != -1)
+		ctl_usage(res->ctl);
+	argc -= optind;
+	argv += optind;
+
+	if (argc == 0)
 		res->file = NULL;
-	else if (argc == 2)
-		res->file = argv[1];
+	else if (argc == 1)
+		res->file = argv[0];
 	else
 		ctl_usage(res->ctl);
 
