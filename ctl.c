@@ -261,7 +261,7 @@ show_status(struct imsg *imsg, int *ret)
 	}
 
 	printf("%s\n", s.path);
-	printf("repeat one %s -- repeat all %s\n",
+	printf("repeat one %s\nrepeat all %s\n",
 	    s.rp.repeat_one ? "on" : "off",
 	    s.rp.repeat_all ? "on" : "off");
 	return 1;
