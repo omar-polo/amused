@@ -553,7 +553,7 @@ end:
 int
 ctl_noarg(struct parse_result *res, int argc, char **argv)
 {
-	if (argc != 1)
+	if (argc > 1)
 		ctl_usage(res->ctl);
 	return ctlaction(res);
 }
