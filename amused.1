@@ -22,25 +22,25 @@
 .Nm
 .Op Fl dv
 .Op Fl s Ar socket
+.Oo
 .Ar command
 .Op Ar argument ...
+.Oc
 .Sh DESCRIPTION
 .Nm
 is a music player daemon and command-line utility that plays music
 in the background.
 The server is automatically started when the user interacts with
-it, but it can be started manually by running
-.Nm
-without any arguments.
+it.
 .Pp
 The following options are available:
 .Bl -tag -width 12m
 .It Fl d
-Do not daemonize.
-If this option is specified,
+Do not daemonize if starting the daemon:
 .Nm
 will run in the foreground and log to standard error.
-It's ignored if any commands are given on the command line.
+It's ignored if any commands are given on the command line or if the
+server was already running.
 .It Fl v
 Produce more verbose output.
 .It Fl s Ar socket
@@ -49,6 +49,11 @@ Use
 instead of the default
 .Pa /tmp/amused-$UID
 to communicate with the daemon.
+.It Ar command Op Ar argument ...
+Specify the command to run.
+If no commands are specified, the
+.Ic status
+command is assumed.
 .El
 .Pp
 The following commands are available:

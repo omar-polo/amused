@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <event.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <sndio.h>
 #include <stdio.h>
@@ -85,16 +86,20 @@ parse(int argc, char **argv)
 {
 	struct ctl_command	*ctl = NULL;
 	struct parse_result	 res;
+	const char		*argv0;
 	int			 i, status;
 
 	memset(&res, 0, sizeof(res));
 
+	if ((argv0 = argv[0]) == NULL)
+		argv0 = "status";
+
 	for (i = 0; ctl_commands[i].name != NULL; ++i) {
-		if (strncmp(ctl_commands[i].name, argv[0], strlen(argv[0]))
+		if (strncmp(ctl_commands[i].name, argv0, strlen(argv0))
 		    == 0) {
 			if (ctl != NULL) {
 				fprintf(stderr,
-				    "ambiguous argument: %s\n", argv[0]);
+				    "ambiguous argument: %s\n", argv0);
 				usage();
 			}
 			ctl = &ctl_commands[i];
@@ -650,48 +655,114 @@ ctl_repeat(struct parse_result *res, int argc, char **argv)
 }
 
 static int
-sockconn(void)
+ctl_get_lock(const char *lockfile)
 {
-	struct sockaddr_un	sun;
-	int			sock, saved_errno;
+	int lockfd;
 
-	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
-		fatal("socket");
-
-	memset(&sun, 0, sizeof(sun));
-	sun.sun_family = AF_UNIX;
-	strlcpy(sun.sun_path, csock, sizeof(sun.sun_path));
-	if (connect(sock, (struct sockaddr *)&sun, sizeof(sun)) == -1) {
-		saved_errno = errno;
-		close(sock);
-		errno = saved_errno;
+	if ((lockfd = open(lockfile, O_WRONLY|O_CREAT, 0600)) == -1) {
+		log_debug("open failed: %s", strerror(errno));
 		return -1;
 	}
 
-	return sock;
+	if (flock(lockfd, LOCK_EX|LOCK_NB) == -1) {
+		log_debug("flock failed: %s", strerror(errno));
+		if (errno != EAGAIN)
+			return -1;
+		while (flock(lockfd, LOCK_EX) == -1 && errno == EINTR)
+			/* nop */;
+		close(lockfd);
+		return -2;
+	}
+	log_debug("flock succeeded");
+
+	return lockfd;
+}
+
+static int
+ctl_connect(void)
+{
+	struct timespec		 ts = { 0, 50000000 }; /* 0.05 seconds */
+	struct sockaddr_un	 sa;
+	size_t			 size;
+	int			 fd, lockfd = -1, locked = 0, spawned = 0;
+	char			*lockfile = NULL;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	size = strlcpy(sa.sun_path, csock, sizeof(sa.sun_path));
+	if (size >= sizeof(sa.sun_path)) {
+		errno = ENAMETOOLONG;
+		return -1;
+	}
+
+retry:
+	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+		return -1;
+
+	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+		log_debug("connection failed: %s", strerror(errno));
+		if (errno != ECONNREFUSED && errno != ENOENT)
+			goto failed;
+		close(fd);
+
+		if (!locked) {
+			xasprintf(&lockfile, "%s.lock", csock);
+			if ((lockfd = ctl_get_lock(lockfile)) < 0) {
+				log_debug("didn't get the lock (%d)", lockfd);
+
+				free(lockfile);
+				lockfile = NULL;
+
+				if (lockfd == -1)
+					goto retry;
+			}
+
+			/*
+			 * Always retry at least once, even if we got
+			 * the lock, because another client could have
+			 * taken the lock, started the server and released
+			 * the lock between our connect() and flock()
+			 */
+			locked = 1;
+			goto retry;
+		}
+
+		if (!spawned) {
+			log_debug("spawning the daemon");
+			spawn_daemon();
+			spawned = 1;
+		}
+
+		nanosleep(&ts, NULL);
+		goto retry;
+	}
+
+	if (locked && lockfd >= 0) {
+		unlink(lockfile);
+		free(lockfile);
+		close(lockfd);
+	}
+	return fd;
+
+failed:
+	if (locked) {
+		free(lockfile);
+		close(lockfd);
+	}
+	close(fd);
+	return -1;
 }
 
 __dead void
 ctl(int argc, char **argv)
 {
-	int ctl_sock, i = 0;
+	int ctl_sock;
 
 	log_init(1, LOG_DAEMON);
 	log_setverbose(verbose);
 
-	do {
-		struct timespec	ts = { 0, 50000000 }; /* 0.05 seconds */
-
-		if ((ctl_sock = sockconn()) != -1)
-			break;
-		if (errno != ENOENT && errno != ECONNREFUSED)
-			fatal("connect %s", csock);
-
-		if (i == 0)
-			spawn_daemon();
-
-		nanosleep(&ts, NULL);
-	} while (++i < 20);
+	if ((ctl_sock = ctl_connect()) == -1)
+		fatal("can't connect");
 
 	if (ctl_sock == -1)
 		fatalx("failed to connect to the daemon");

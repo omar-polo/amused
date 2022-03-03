@@ -165,9 +165,12 @@ main_dispatch_player(int sig, short event, void *d)
 static pid_t
 start_child(enum amused_process proc, int fd)
 {
-	const char	*argv[6];
+	const char	*argv[7];
 	int		 argc = 0;
 	pid_t		 pid;
+
+	if (fd == -1 && debug)
+		goto exec;
 
 	switch (pid = fork()) {
 	case -1:
@@ -185,12 +188,14 @@ start_child(enum amused_process proc, int fd)
 	} else if (fcntl(F_SETFD, 0) == -1)
 		fatal("cannot setup imsg fd");
 
+exec:
 	argv[argc++] = argv0;
 
 	switch (proc) {
 	case PROC_MAIN:
 		argv[argc++] = "-s";
 		argv[argc++] = csock;
+		argv[argc++] = "-Tm";
 		break;
 	case PROC_PLAYER:
 		argv[argc++] = "-Tp";
@@ -263,7 +268,7 @@ amused_main(void)
 int
 main(int argc, char **argv)
 {
-	int ch, proc = PROC_MAIN;
+	int ch, proc = -1;
 
 	log_init(1, LOG_DAEMON);	/* Log to stderr until daemonized */
 	log_setverbose(1);
@@ -283,6 +288,9 @@ main(int argc, char **argv)
 			break;
 		case 'T':
 			switch (*optarg) {
+			case 'm':
+				proc = PROC_MAIN;
+				break;
 			case 'p':
 				proc = PROC_PLAYER;
 				break;
@@ -300,23 +308,23 @@ main(int argc, char **argv)
 	argv += optind;
 	argc -= optind;
 
+	if (proc == PROC_MAIN)
+		amused_main();
 	if (proc == PROC_PLAYER)
 		exit(player(debug, verbose));
 
 	if (csock == NULL)
 		xasprintf(&csock, "/tmp/amused-%d", getuid());
 
-	if (argc == 0)
-		amused_main();
-	else
-		ctl(argc, argv);
-	return 0;
+	if (argc > 0)
+		debug = 0;
+
+	ctl(argc, argv);
 }
 
 void
 spawn_daemon(void)
 {
-	debug = 0;
 	start_child(PROC_MAIN, -1);
 }
 
