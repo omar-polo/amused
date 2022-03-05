@@ -560,7 +560,7 @@ ctl_noarg(struct parse_result *res, int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 0)
+	if (argc > 0)
 		ctl_usage(res->ctl);
 
 	return ctlaction(res);
