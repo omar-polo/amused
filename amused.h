@@ -140,6 +140,7 @@ int	player_setup(int, int, int);
 void	player_senderr(void);
 void	player_sendeof(void);
 int	player_shouldstop(void);
+int	play(const void *, size_t);
 int	player(int, int);
 
 void	play_oggvorbis(int fd);

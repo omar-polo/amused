@@ -70,9 +70,6 @@ play_mp3(int fd)
 		goto done;
 
 	for (;;) {
-		if (player_shouldstop())
-			break;
-
 		err = mpg123_read(mh, buf, sizeof(buf), &len);
 		switch (err) {
 		case MPG123_DONE:
@@ -82,7 +79,8 @@ play_mp3(int fd)
 				goto done;
 			break;
 		case MPG123_OK:
-			sio_write(hdl, buf, len);
+			if (!play(buf, len))
+				goto done;
 			break;
 		default:
 			log_warnx("error %d decoding mp3", err);

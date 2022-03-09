@@ -60,9 +60,6 @@ play_opus(int fd)
 	}
 
 	for (;;) {
-		if (player_shouldstop())
-			break;
-
 		/* NB: will downmix multichannels files into two channels */
 		ret = op_read_stereo(of, pcm, nitems(pcm));
 		if (ret == OP_HOLE) /* corrupt file segment? */
@@ -90,7 +87,9 @@ play_opus(int fd)
 			out[2*i+0] = pcm[i] & 0xFF;
 			out[2*i+1] = (pcm[i] >> 8) & 0xFF;
 		}
-		sio_write(hdl, out, 4*ret);
+
+		if (!play(out, 4*ret))
+			break;
 	}
 
 	op_free(of);

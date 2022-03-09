@@ -69,16 +69,14 @@ play_oggvorbis(int fd)
 	while (!eof) {
 		long ret;
 
-		if (player_shouldstop())
-			break;
-
 		ret = ov_read(&vf, pcmout, sizeof(pcmout), 0, 2, 1,
 		    &current_section);
 		if (ret == 0)
 			eof = 1;
 		else if (ret > 0) {
 			/* TODO: deal with sample rate changes */
-			sio_write(hdl, pcmout, ret);
+			if (!play(pcmout, ret))
+				break;
 		}
 	}
 

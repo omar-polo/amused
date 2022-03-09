@@ -41,13 +41,10 @@ writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
 	int i;
 	size_t len;
 
-	if (player_shouldstop())
-		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
-
 	for (i = 0, len = 0; i < frame->header.blocksize; ++i) {
 		if (len+4 >= sizeof(buf)) {
-			sio_write(hdl, buf, len);
-			len = 0;
+			if (!play(buf, len))
+				goto quit;
 		}
 
 		buf[len++] = buffer[0][i] & 0xff;
@@ -57,10 +54,12 @@ writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
 		buf[len++] = (buffer[1][i] >> 8) & 0xff;
 	}
 
-	if (len != 0)
-		sio_write(hdl, buf, len);
+	if (len != 0 && !play(buf, len))
+		goto quit;
 
 	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
+quit:
+	return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 }
 
 static void

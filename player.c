@@ -251,6 +251,15 @@ player_shouldstop(void)
 }
 
 int
+play(const void *buf, size_t len)
+{
+	if (player_shouldstop())
+		return 0;
+	sio_write(hdl, buf, len);
+	return 1;
+}
+
+int
 player(int debug, int verbose)
 {
 	int flags;
