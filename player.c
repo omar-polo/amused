@@ -39,7 +39,8 @@
 #include "log.h"
 #include "xmalloc.h"
 
-static struct imsgbuf *ibuf;
+struct sio_hdl		*hdl;
+static struct imsgbuf	*ibuf;
 
 static int got_stop;
 static int nextfd = -1;

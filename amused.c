@@ -41,7 +41,6 @@
 #include "playlist.h"
 #include "xmalloc.h"
 
-struct sio_hdl	*hdl;
 char		*csock = NULL;
 int		 debug;
 int		 verbose;

@@ -17,7 +17,6 @@
 #ifndef AMUSED_H
 #define AMUSED_H
 
-extern struct sio_hdl	*hdl;
 extern char		*csock;
 extern int		 debug;
 extern int		 verbose;
@@ -137,9 +136,6 @@ __dead void	ctl(int, char **);
 
 /* player.c */
 int	player_setup(int, int, int);
-void	player_senderr(void);
-void	player_sendeof(void);
-int	player_shouldstop(void);
 int	play(const void *, size_t);
 int	player(int, int);
 
