@@ -42,7 +42,6 @@
 struct sio_hdl		*hdl;
 static struct imsgbuf	*ibuf;
 
-static int got_stop;
 static int nextfd = -1;
 static char nextpath[PATH_MAX];
 
@@ -166,8 +165,6 @@ player_dispatch(void)
 		fatalx("expected at least a message");
 
 	ret = imsg.hdr.type;
-	if (ret == IMSG_STOP)
-		got_stop = 1;
 	switch (imsg.hdr.type) {
 	case IMSG_PLAY:
 		player_enqueue(&imsg);
@@ -198,30 +195,33 @@ player_sendeof(void)
 	imsg_flush(ibuf);
 }
 
-int
+void
 player_playnext(void)
 {
 	int fd = nextfd;
+	int r;
 
 	assert(nextfd != -1);
 	nextfd = -1;
 
 	/* XXX: use magic(5) for this, not file extensions */
 	if (strstr(nextpath, ".ogg") != NULL)
-		play_oggvorbis(fd);
+		r = play_oggvorbis(fd);
 	else if (strstr(nextpath, ".mp3") != NULL)
-		play_mp3(fd);
+		r = play_mp3(fd);
 	else if (strstr(nextpath, ".flac") != NULL)
-		play_flac(fd);
+		r = play_flac(fd);
 	else if (strstr(nextpath, ".opus") != NULL)
-		play_opus(fd);
+		r = play_opus(fd);
 	else {
 		log_warnx("unknown file type for %s", nextpath);
-		player_senderr();
-		return 0;
+		r = -1;
 	}
 
-	return 1;
+	if (r == -1)
+		player_senderr();
+	else if (r == 0)
+		player_sendeof();
 }
 
 int
@@ -302,11 +302,7 @@ player(int debug, int verbose)
 	while (!halted) {
 		while (nextfd == -1)
 			player_dispatch();
-
-		if (player_playnext() && !got_stop)
-			player_sendeof();
-		else
-			got_stop = 0;
+		player_playnext();
 	}
 
 	return 0;
