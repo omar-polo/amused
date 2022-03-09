@@ -84,7 +84,7 @@ errcb(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status,
 	log_warnx("flac error: %s", FLAC__StreamDecoderErrorStatusString[status]);
 }
 
-void
+int
 play_flac(int fd)
 {
 	FILE *f;
@@ -110,12 +110,16 @@ play_flac(int fd)
 
 	ok = FLAC__stream_decoder_process_until_end_of_stream(decoder);
 	s = FLAC__stream_decoder_get_state(decoder);
+
+	FLAC__stream_decoder_delete(decoder);
+	fclose(f);
+
 	if (!ok && s != FLAC__STREAM_DECODER_ABORTED) {
 		state = FLAC__StreamDecoderStateString[s];
 		log_warnx("decoding failed; state: %s", state);
+		return 1;
 	}
-
-	FLAC__stream_decoder_delete(decoder);
-
-	fclose(f);
+	if (!ok)
+		return -1;
+	return 0;
 }

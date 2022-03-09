@@ -39,20 +39,21 @@
 #define nitems(x) (sizeof(x)/sizeof(x[0]))
 #endif
 
-void
+int
 play_oggvorbis(int fd)
 {
 	static uint8_t pcmout[4096];
 	FILE *f;
 	OggVorbis_File vf;
 	vorbis_info *vi;
-	int current_section, eof = 0;
+	int current_section, eof = 0, ret = 0;
 
 	if ((f = fdopen(fd, "r")) == NULL)
 		err(1, "fdopen");
 
 	if (ov_open_callbacks(f, &vf, NULL, 0, OV_CALLBACKS_NOCLOSE) < 0) {
 		log_warnx("input is not an Ogg bitstream");
+		ret = -1;
 		goto end;
 	}
 
@@ -74,8 +75,10 @@ play_oggvorbis(int fd)
 			eof = 1;
 		else if (ret > 0) {
 			/* TODO: deal with sample rate changes */
-			if (!play(pcmout, ret))
+			if (!play(pcmout, ret)) {
+				ret = 1;
 				break;
+			}
 		}
 	}
 
@@ -83,4 +86,5 @@ play_oggvorbis(int fd)
 
 end:
 	fclose(f);
+	return ret;
 }

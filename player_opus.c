@@ -38,36 +38,37 @@
 #define nitems(x) (sizeof(x)/sizeof(x[0]))
 #endif
 
-void
+int
 play_opus(int fd)
 {
 	static uint16_t pcm[BUFSIZ];
 	static uint8_t out[BUFSIZ * 2];
 	OggOpusFile *of;
 	void *f;
-	int ret;
+	int r, ret = 0;
 	OpusFileCallbacks cb = {NULL, NULL, NULL, NULL};
 	int i, li, prev_li = -1;
 
 	if ((f = op_fdopen(&cb, fd, "r")) == NULL)
 		err(1, "fdopen");
 
-	of = op_open_callbacks(f, &cb, NULL, 0, &ret);
+	of = op_open_callbacks(f, &cb, NULL, 0, &r);
 	if (of == NULL) {
 		close(fd);
-		return;
+		return -1;
 	}
 
 	for (;;) {
 		/* NB: will downmix multichannels files into two channels */
-		ret = op_read_stereo(of, pcm, nitems(pcm));
-		if (ret == OP_HOLE) /* corrupt file segment? */
+		r = op_read_stereo(of, pcm, nitems(pcm));
+		if (r == OP_HOLE) /* corrupt file segment? */
 			continue;
-		if (ret < 0) {
+		if (r < 0) {
 			log_warnx("error %d decoding file", ret);
+			ret = -1;
 			break;
 		}
-		if (ret == 0)
+		if (r == 0)
 			break; /* eof */
 
 		li = op_current_link(of);
@@ -75,7 +76,6 @@ play_opus(int fd)
 			const OpusHead *head;
 
 			prev_li = li;
-
 			head = op_head(of, li);
 			if (head->input_sample_rate &&
 			    player_setup(16, head->input_sample_rate, 2) == -1)
@@ -87,9 +87,12 @@ play_opus(int fd)
 			out[2*i+1] = (pcm[i] >> 8) & 0xFF;
 		}
 
-		if (!play(out, 4*ret))
+		if (!play(out, 4*ret)) {
+			ret = 1;
 			break;
+		}
 	}
 
 	op_free(of);
+	return ret;
 }

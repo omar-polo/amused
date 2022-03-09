@@ -139,9 +139,9 @@ int	player_setup(int, int, int);
 int	play(const void *, size_t);
 int	player(int, int);
 
-void	play_oggvorbis(int fd);
-void	play_mp3(int fd);
-void	play_flac(int fd);
-void	play_opus(int fd);
+int	play_oggvorbis(int fd);
+int	play_mp3(int fd);
+int	play_flac(int fd);
+int	play_opus(int fd);
 
 #endif

@@ -48,13 +48,13 @@ setup(mpg123_handle *mh)
 	return 1;
 }
 
-void
+int
 play_mp3(int fd)
 {
 	static char	 buf[4096];
 	size_t		 len;
 	mpg123_handle	*mh;
-	int		 err;
+	int		 err, ret = -1;
 
 	if ((mh = mpg123_new(NULL, NULL)) == NULL)
 		fatal("mpg123_new");
@@ -62,7 +62,7 @@ play_mp3(int fd)
 	if (mpg123_open_fd(mh, fd) != MPG123_OK) {
 		log_warnx("mpg123_open_fd failed");
 		close(fd);
-		return;
+		return -1;
 	}
 
 	if (!setup(mh))
@@ -72,14 +72,17 @@ play_mp3(int fd)
 		err = mpg123_read(mh, buf, sizeof(buf), &len);
 		switch (err) {
 		case MPG123_DONE:
+			ret = 0;
 			goto done;
 		case MPG123_NEW_FORMAT:
 			if (!setup(mh))
 				goto done;
 			break;
 		case MPG123_OK:
-			if (!play(buf, len))
+			if (!play(buf, len)) {
+				ret = 1;
 				goto done;
+			}
 			break;
 		default:
 			log_warnx("error %d decoding mp3", err);
@@ -90,4 +93,5 @@ play_mp3(int fd)
 done:
 	mpg123_delete(mh);
 	close(fd);
+	return ret;
 }
