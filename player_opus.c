@@ -24,7 +24,6 @@
 #include <math.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <sndio.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <imsg.h>

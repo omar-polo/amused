@@ -23,7 +23,6 @@
 #include <err.h>
 #include <event.h>
 #include <limits.h>
-#include <sndio.h>
 #include <imsg.h>
 #include <unistd.h>
 
