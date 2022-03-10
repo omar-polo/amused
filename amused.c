@@ -212,7 +212,7 @@ exec:
 }
 
 /* daemon main routine */
-static __dead int
+static __dead void
 amused_main(void)
 {
 	int	 pipe_main2player[2];
