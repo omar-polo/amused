@@ -53,21 +53,11 @@ playlist_swap(struct playlist *p, ssize_t off)
 		off = -1;
 
 	if (current_song != NULL && off < 0) {
-		/* try to adjust play_off to match the same song */
+		/* try to match the currently played song */
 		for (i = 0; i < p->len; ++i) {
 			if (!strcmp(current_song, p->songs[i]))
 				break;
 		}
-		/* try to match one song before */
-		if (i == p->len && play_off >= 1)
-			for (i = 0; i < p->len; ++i)
-				if (!strcmp(current_song, p->songs[i]))
-					break;
-		/* or one song after */
-		if (i == p->len && play_off < playlist.len-1)
-			for (i = 0; i < p->len; ++i)
-				if (!strcmp(current_song, p->songs[i]))
-					break;
 		if (i == p->len)
 			i = -1;
 	}
