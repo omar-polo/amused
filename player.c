@@ -296,7 +296,7 @@ player(int debug, int verbose)
 	signal(SIGHUP, SIG_IGN);
 	signal(SIGPIPE, SIG_IGN);
 
-	if (pledge("stdio recvfd", NULL) == -1)
+	if (pledge("stdio recvfd audio", NULL) == -1)
 		fatal("pledge");
 
 	while (!halted) {
