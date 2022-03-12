@@ -52,10 +52,5 @@ plays nice with find(1) however:
 
 	find . -type f -iname \*.opus -exec amused add {} +
 
-Well, for these kinds of things I wrote a wrapper around find called
-walk that provides 80% of what I do with find in 20% of the characters:
-
-	walk \*.opus amused add
-
-but you got the idea (walk lives in my
-[dotfiles](//git.omarpolo.com/dotsnew).)
+I wrote a bit more about the background of amused [in a blog
+post](https://www.omarpolo.com/post/amused.html).
