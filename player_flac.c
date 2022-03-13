@@ -44,6 +44,7 @@ writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
 		if (len+4 >= sizeof(buf)) {
 			if (!play(buf, len))
 				goto quit;
+			len = 0;
 		}
 
 		buf[len++] = buffer[0][i] & 0xff;
