@@ -30,6 +30,8 @@ it needs the following packages from ports:
 Release tarballs installs into `/usr/local/`, git checkouts installs
 into `~/bin` (idea and implementation stolen from got, thanks stsp!)
 
+It'll be available on OpenBSD starting with 7.1
+
 
 ## usage
 
