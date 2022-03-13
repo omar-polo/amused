@@ -115,12 +115,12 @@ play_flac(int fd)
 	FLAC__stream_decoder_delete(decoder);
 	fclose(f);
 
-	if (!ok && s != FLAC__STREAM_DECODER_ABORTED) {
+	if (s == FLAC__STREAM_DECODER_ABORTED)
+		return 1;
+	else if (!ok) {
 		state = FLAC__StreamDecoderStateString[s];
 		log_warnx("decoding failed; state: %s", state);
-		return 1;
-	}
-	if (!ok)
 		return -1;
-	return 0;
+	} else
+		return 0;
 }
