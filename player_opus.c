@@ -82,12 +82,12 @@ play_opus(int fd)
 				err(1, "player_setrate");
 		}
 
-		for (i = 0; i < 2*ret; ++i) {
+		for (i = 0; i < 2*r; ++i) {
 			out[2*i+0] = pcm[i] & 0xFF;
 			out[2*i+1] = (pcm[i] >> 8) & 0xFF;
 		}
 
-		if (!play(out, 4*ret)) {
+		if (!play(out, 4*r)) {
 			ret = 1;
 			break;
 		}
