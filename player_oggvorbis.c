@@ -67,15 +67,15 @@ play_oggvorbis(int fd)
 		err(1, "player_setrate");
 
 	while (!eof) {
-		long ret;
+		long r;
 
-		ret = ov_read(&vf, pcmout, sizeof(pcmout), 0, 2, 1,
+		r = ov_read(&vf, pcmout, sizeof(pcmout), 0, 2, 1,
 		    &current_section);
-		if (ret == 0)
+		if (r == 0)
 			eof = 1;
-		else if (ret > 0) {
+		else if (r > 0) {
 			/* TODO: deal with sample rate changes */
-			if (!play(pcmout, ret)) {
+			if (!play(pcmout, r)) {
 				ret = 1;
 				break;
 			}
