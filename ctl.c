@@ -307,13 +307,13 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 			continue;
 		line[linelen-1] = '\0';
 		file = line;
-		if (file[0] == '>' && file[1] == ' ') {
+		if (!strncmp(file, "> ", 2)) {
 			file += 2;
 			curr = i;
-		}
-		if (file[0] == ' ' && file[1] == ' ')
+		} else if (!strncmp(file, "  ", 2))
 			file += 2;
-		if (file[0] == '.' && file[1] == '/')
+
+		if (!strncmp(file, "./", 2))
 			file += 2;
 
 		if (*file == '/')
