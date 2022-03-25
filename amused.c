@@ -383,8 +383,7 @@ main_play_song(const char *song)
 	}
 
 	play_state = STATE_PLAYING;
-	imsg_compose_event(iev_player, IMSG_PLAY, 0, 0, fd,
-	    path, sizeof(path));
+	main_send_player(IMSG_PLAY, fd, path, sizeof(path));
 	return 1;
 }
 
