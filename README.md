@@ -12,8 +12,7 @@ cool stuff from its libc and can output only to sndio.
 
 (I *think* it's possible to compile it on other UNIX-like systems too by
 providing shims for some non-portable functions -- hello libbsd -- and
-assuming that sndio is available.  And that you bundle a copy of imsg.c
-too)
+assuming that sndio is available.  And bundling a copy of imsg.c too)
 
 
 ## building
