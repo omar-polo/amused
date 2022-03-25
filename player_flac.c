@@ -34,24 +34,43 @@
 
 static FLAC__StreamDecoderWriteStatus
 writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
-    const int32_t * const *buffer, void *data)
+    const int32_t * const *src, void *data)
 {
 	static uint8_t buf[BUFSIZ];
-	int i;
+	int c, i, bps, chans;
 	size_t len;
 
+	bps = frame->header.bits_per_sample;
+	chans = frame->header.channels;
+
 	for (i = 0, len = 0; i < frame->header.blocksize; ++i) {
-		if (len+4 >= sizeof(buf)) {
+		if (len + 4*chan >= sizeof(buf)) {
 			if (!play(buf, len))
 				goto quit;
 			len = 0;
 		}
 
-		buf[len++] = buffer[0][i] & 0xff;
-		buf[len++] = (buffer[0][i] >> 8) & 0xff;
-
-		buf[len++] = buffer[1][i] & 0xff;
-		buf[len++] = (buffer[1][i] >> 8) & 0xff;
+		for (c = 0; c < chans; ++c) {
+			switch (bps) {
+			case 8:
+				buf[len++] = src[c][i] & 0xff;
+				break;
+			case 16:
+				buf[len++] = src[c][i] & 0xff;
+				buf[len++] = (src[c][i] >> 8) & 0xff;
+				break;
+			case 24:
+			case 32:
+				buf[len++] = src[c][i] & 0xff;
+				buf[len++] = (src[c][i] >> 8) & 0xff;
+				buf[len++] = (src[c][i] >> 16) & 0xff;
+				buf[len++] = (src[c][i] >> 24) & 0xff;
+				break;
+			default:
+				log_warnx("unsupported flac bps=%d", bps);
+				goto quit;
+			}
+		}
 	}
 
 	if (len != 0 && !play(buf, len))
@@ -67,13 +86,14 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
     void *d)
 {
 	uint32_t sample_rate;
-	int channels;
+	int channels, bits;
 
 	if (meta->type == FLAC__METADATA_TYPE_STREAMINFO) {
+		bits = meta->data.stream_info.bits_per_sample;
 		sample_rate = meta->data.stream_info.sample_rate;
 		channels = meta->data.stream_info.channels;
 
-		if (player_setup(16, sample_rate, channels) == -1)
+		if (player_setup(bits, sample_rate, channels) == -1)
 			err(1, "player_setrate");
 	}
 }
