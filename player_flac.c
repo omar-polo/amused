@@ -44,7 +44,7 @@ writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
 	chans = frame->header.channels;
 
 	for (i = 0, len = 0; i < frame->header.blocksize; ++i) {
-		if (len + 4*chan >= sizeof(buf)) {
+		if (len + 4*chans >= sizeof(buf)) {
 			if (!play(buf, len))
 				goto quit;
 			len = 0;
