@@ -272,8 +272,8 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 	FILE		*f;
 	const char	*file;
 	char		*line = NULL;
-	char		 path[PATH_MAX];
-	size_t		 linesize = 0, i = 0;
+	char		 path[PATH_MAX], cwd[PATH_MAX];
+	size_t		 linesize = 0, i = 0, n;
 	ssize_t		 linelen, curr = -1;
 
 	if (imsg->hdr.type == IMSG_CTL_ERR) {
@@ -299,6 +299,9 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 		return 1;
 	}
 
+	if (getcwd(cwd, sizeof(cwd)) == NULL)
+		fatal("getcwd");
+
 	while ((linelen = getline(&line, &linesize, f)) != -1) {
 		if (linelen == 0)
 			continue;
@@ -310,10 +313,16 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 		}
 		if (file[0] == ' ' && file[1] == ' ')
 			file += 2;
+		if (file[0] == '.' && file[1] == '/')
+			file += 2;
 
-		memset(&path, 0, sizeof(path));
-		if (realpath(file, path) == NULL) {
-			log_warn("realpath %s", file);
+		if (*file == '/')
+			n = strlcpy(path, file, sizeof(path));
+		else
+			n = snprintf(path, sizeof(path), "%s/%s", cwd, file);
+
+		if (n >= sizeof(path)) {
+			log_warnx("path too long: %s", file);
 			continue;
 		}
 
