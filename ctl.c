@@ -316,6 +316,7 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 		if (!strncmp(file, "./", 2))
 			file += 2;
 
+		memset(path, 0, sizeof(path));
 		if (*file == '/')
 			n = strlcpy(path, file, sizeof(path));
 		else
