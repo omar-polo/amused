@@ -196,33 +196,26 @@ player_sendeof(void)
 	imsg_flush(ibuf);
 }
 
-void
+int
 player_playnext(void)
 {
 	int fd = nextfd;
-	int r;
 
 	assert(nextfd != -1);
 	nextfd = -1;
 
 	/* XXX: use magic(5) for this, not file extensions */
 	if (strstr(nextpath, ".ogg") != NULL)
-		r = play_oggvorbis(fd);
+		return play_oggvorbis(fd);
 	else if (strstr(nextpath, ".mp3") != NULL)
-		r = play_mp3(fd);
+		return play_mp3(fd);
 	else if (strstr(nextpath, ".flac") != NULL)
-		r = play_flac(fd);
+		return play_flac(fd);
 	else if (strstr(nextpath, ".opus") != NULL)
-		r = play_opus(fd);
-	else {
-		log_warnx("unknown file type for %s", nextpath);
-		r = -1;
-	}
+		return play_opus(fd);
 
-	if (r == -1)
-		player_senderr();
-	else if (r == 0)
-		player_sendeof();
+	log_warnx("unknown file type for %s", nextpath);
+	return -1;
 }
 
 int
@@ -303,7 +296,11 @@ player(int debug, int verbose)
 	while (!halted) {
 		while (nextfd == -1)
 			player_dispatch();
-		player_playnext();
+
+		if (player_playnext() == -1)
+			player_senderr();
+		else
+			player_sendeof();
 	}
 
 	return 0;
