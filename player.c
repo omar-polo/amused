@@ -88,7 +88,8 @@ player_setup(int bits, int rate, int channels)
 	par.rate = rate;
 	par.pchan = channels;
 	if (!sio_setpar(hdl, &par) || !sio_getpar(hdl, &par)) {
-		log_warnx("invalid params");
+		log_warnx("invalid params (bits=%d, rate=%d, channels=%d",
+		    bits, rate, channels);
 		return -1;
 	}
 
