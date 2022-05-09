@@ -199,22 +199,38 @@ player_sendeof(void)
 int
 player_playnext(void)
 {
+	static char buf[512];
+	ssize_t r;
 	int fd = nextfd;
 
 	assert(nextfd != -1);
 	nextfd = -1;
 
-	/* XXX: use magic(5) for this, not file extensions */
-	if (strstr(nextpath, ".ogg") != NULL)
-		return play_oggvorbis(fd);
-	else if (strstr(nextpath, ".mp3") != NULL)
-		return play_mp3(fd);
-	else if (strstr(nextpath, ".flac") != NULL)
+	r = read(fd, buf, sizeof(buf));
+
+	/* 8 byte is the larger magic number */
+	if (r < 8) {
+		log_warn("failed to read %s", nextpath);
+		goto err;
+	}
+
+	if (lseek(fd, 0, SEEK_SET) == -1) {
+		log_warn("lseek failed");
+		goto err;
+	}
+
+	if (memcmp(buf, "fLaC", 4) == 0)
 		return play_flac(fd);
-	else if (strstr(nextpath, ".opus") != NULL)
+	if (memcmp(buf, "ID3", 3) == 0 ||
+	    memcmp(buf, "\xFF\xFB", 2) == 0)
+		return play_mp3(fd);
+	if (memmem(buf, r, "OpusHead", 8) != NULL)
 		return play_opus(fd);
+	if (memmem(buf, r, "OggS", 4) != NULL)
+		return play_oggvorbis(fd);
 
 	log_warnx("unknown file type for %s", nextpath);
+err:
 	close(fd);
 	return -1;
 }
