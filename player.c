@@ -215,6 +215,7 @@ player_playnext(void)
 		return play_opus(fd);
 
 	log_warnx("unknown file type for %s", nextpath);
+	close(fd);
 	return -1;
 }
 
