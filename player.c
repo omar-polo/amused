@@ -274,7 +274,7 @@ play(const void *buf, size_t len)
 int
 player(int debug, int verbose)
 {
-	int flags;
+	int flags, r;
 	log_init(debug, LOG_DAEMON);
 	log_setverbose(verbose);
 
@@ -314,9 +314,10 @@ player(int debug, int verbose)
 		while (nextfd == -1)
 			player_dispatch();
 
-		if (player_playnext() == -1)
+		r = player_playnext();
+		if (r == -1)
 			player_senderr();
-		else
+		if (r == 0)
 			player_sendeof();
 	}
 
