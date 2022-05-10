@@ -287,7 +287,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				break;
 			case STATE_PAUSED:
 				play_state = STATE_PLAYING;
-				main_send_player(IMSG_RESUME, -1, NULL, 0);
+				main_send_player(IMSG_RESUME, -1);
 				break;
 			}
 			control_notify(&c->iev, imsg.hdr.type);
@@ -299,11 +299,11 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				break;
 			case STATE_PLAYING:
 				play_state = STATE_PAUSED;
-				main_send_player(IMSG_PAUSE, -1, NULL, 0);
+				main_send_player(IMSG_PAUSE, -1);
 				break;
 			case STATE_PAUSED:
 				play_state = STATE_PLAYING;
-				main_send_player(IMSG_RESUME, -1, NULL, 0);
+				main_send_player(IMSG_RESUME, -1);
 				break;
 			}
 			control_notify(&c->iev, imsg.hdr.type);
@@ -312,18 +312,18 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			if (play_state != STATE_PLAYING)
 				break;
 			play_state = STATE_PAUSED;
-			main_send_player(IMSG_PAUSE, -1, NULL, 0);
+			main_send_player(IMSG_PAUSE, -1);
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
 		case IMSG_CTL_STOP:
 			if (play_state == STATE_STOPPED)
 				break;
 			play_state = STATE_STOPPED;
-			main_send_player(IMSG_STOP, -1, NULL, 0);
+			main_send_player(IMSG_STOP, -1);
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
 		case IMSG_CTL_RESTART:
-			main_send_player(IMSG_STOP, -1, NULL, 0);
+			main_send_player(IMSG_STOP, -1);
 			main_restart_track();
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
@@ -338,12 +338,12 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			main_send_status(&c->iev);
 			break;
 		case IMSG_CTL_NEXT:
-			main_send_player(IMSG_STOP, -1, NULL, 0);
+			main_send_player(IMSG_STOP, -1);
 			main_playlist_advance();
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
 		case IMSG_CTL_PREV:
-			main_send_player(IMSG_STOP, -1, NULL, 0);
+			main_send_player(IMSG_STOP, -1);
 			main_playlist_previous();
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
