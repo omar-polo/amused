@@ -129,6 +129,7 @@ main_dispatch_player(int sig, short event, void *d)
 
 		switch (imsg.hdr.type) {
 		case IMSG_ERR:
+			log_warnx("failed to play, skipping %s", current_song);
 			playlist_dropcurrent();
 			/* fallthrough */
 		case IMSG_EOF:
@@ -358,13 +359,11 @@ main_send_player(uint16_t type, int fd, const void *data, uint16_t datalen)
 }
 
 int
-main_play_song(const char *song)
+main_play_song(const char *path)
 {
 	struct stat sb;
-	char path[PATH_MAX] = { 0 };
 	int fd;
 
-	strlcpy(path, song, sizeof(path));
 	if ((fd = open(path, O_RDONLY)) == -1) {
 		log_warn("open %s", path);
 		return 0;
@@ -383,7 +382,7 @@ main_play_song(const char *song)
 	}
 
 	play_state = STATE_PLAYING;
-	main_send_player(IMSG_PLAY, fd, path, sizeof(path));
+	main_send_player(IMSG_PLAY, fd, NULL, 0);
 	return 1;
 }
 

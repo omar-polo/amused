@@ -43,7 +43,6 @@ struct sio_hdl		*hdl;
 static struct imsgbuf	*ibuf;
 
 static int nextfd = -1;
-static char nextpath[PATH_MAX];
 
 volatile sig_atomic_t halted;
 
@@ -128,20 +127,12 @@ player_pendingimsg(void)
 void
 player_enqueue(struct imsg *imsg)
 {
-	size_t datalen;
-
 	if (nextfd != -1)
 		fatalx("track already enqueued");
 
-	datalen = IMSG_DATA_SIZE(*imsg);
-	if (datalen != sizeof(nextpath))
-		fatalx("%s: size mismatch", __func__);
-	memcpy(nextpath, imsg->data, sizeof(nextpath));
-	if (nextpath[datalen-1] != '\0')
-		fatalx("%s: corrupted path", __func__);
 	if ((nextfd = imsg->fd) == -1)
 		fatalx("%s: got invalid file descriptor", __func__);
-	log_debug("enqueued %s", nextpath);
+	log_debug("song enqueued");
 }
 
 /* process only one message */
@@ -210,7 +201,7 @@ player_playnext(void)
 
 	/* 8 byte is the larger magic number */
 	if (r < 8) {
-		log_warn("failed to read %s", nextpath);
+		log_warn("read failed");
 		goto err;
 	}
 
@@ -229,7 +220,7 @@ player_playnext(void)
 	if (memmem(buf, r, "OggS", 4) != NULL)
 		return play_oggvorbis(fd);
 
-	log_warnx("unknown file type for %s", nextpath);
+	log_warnx("unknown file type");
 err:
 	close(fd);
 	return -1;
