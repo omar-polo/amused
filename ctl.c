@@ -45,6 +45,7 @@ int	ctl_show(struct parse_result *, int, char **);
 int	ctl_load(struct parse_result *, int, char **);
 int	ctl_jump(struct parse_result *, int, char **);
 int	ctl_repeat(struct parse_result *, int, char **);
+int	ctl_monitor(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "play",	PLAY,		ctl_noarg,	"" },
@@ -61,7 +62,7 @@ struct ctl_command ctl_commands[] = {
 	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
 	{ "jump",	JUMP,		ctl_jump,	"pattern" },
 	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off" },
-	{ "monitor",	MONITOR,	ctl_noarg,	"" },
+	{ "monitor",	MONITOR,	ctl_monitor,	"[events]" },
 	{ NULL },
 };
 
@@ -349,7 +350,7 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 }
 
 static int
-show_monitor(struct imsg *imsg, int *ret)
+show_monitor(struct parse_result *res, struct imsg *imsg, int *ret)
 {
 	int type;
 
@@ -367,6 +368,15 @@ show_monitor(struct imsg *imsg, int *ret)
 	}
 
 	memcpy(&type, imsg->data, sizeof(type));
+	if (type < 0 || type > IMSG__LAST) {
+		log_warnx("wrong monitor type received");
+		*ret = 1;
+		return 1;
+	}
+
+	if (!res->monitor[type])
+		return 0;
+
 	switch (type) {
 	case IMSG_CTL_PLAY:
 		puts("play");
@@ -544,7 +554,7 @@ ctlaction(struct parse_result *res)
 				done = show_load(res, &imsg, &ret);
 				break;
 			case MONITOR:
-				done = show_monitor(&imsg, &ret);
+				done = show_monitor(res, &imsg, &ret);
 				break;
 			default:
 				done = 1;
@@ -682,6 +692,64 @@ ctl_repeat(struct parse_result *res, int argc, char **argv)
 	else
 		ctl_usage(res->ctl);
 
+	return ctlaction(res);
+}
+
+int
+ctl_monitor(struct parse_result *res, int argc, char **argv)
+{
+	int ch;
+	const char *events;
+	char *dup, *tmp, *tok;
+
+	while ((ch = getopt(argc, argv, "")) != -1)
+		ctl_usage(res->ctl);
+	argc -= optind;
+	argv += optind;
+
+	if (argc > 1)
+		ctl_usage(res->ctl);
+
+	if (argc == 1)
+		events = *argv;
+	else
+		events = "play,toggle,pause,stop,restart,flush,next,prev,"
+			"jump,repeat,add,load";
+
+	tmp = dup = xstrdup(events);
+	while ((tok = strsep(&tmp, ",")) != NULL) {
+		if (*tok == '\0')
+			continue;
+
+		if (!strcmp(tok, "play"))
+			res->monitor[IMSG_CTL_PLAY] = 1;
+		else if (!strcmp(tok, "toggle"))
+			res->monitor[IMSG_CTL_TOGGLE_PLAY] = 1;
+		else if (!strcmp(tok, "pause"))
+			res->monitor[IMSG_CTL_PAUSE] = 1;
+		else if (!strcmp(tok, "stop"))
+			res->monitor[IMSG_CTL_STOP] = 1;
+		else if (!strcmp(tok, "restart"))
+			res->monitor[IMSG_CTL_RESTART] = 1;
+		else if (!strcmp(tok, "flush"))
+			res->monitor[IMSG_CTL_FLUSH] = 1;
+		else if (!strcmp(tok, "next"))
+			res->monitor[IMSG_CTL_NEXT] = 1;
+		else if (!strcmp(tok, "prev"))
+			res->monitor[IMSG_CTL_PREV] = 1;
+		else if (!strcmp(tok, "jump"))
+			res->monitor[IMSG_CTL_JUMP] = 1;
+		else if (!strcmp(tok, "repeat"))
+			res->monitor[IMSG_CTL_REPEAT] = 1;
+		else if (!strcmp(tok, "add"))
+			res->monitor[IMSG_CTL_ADD] = 1;
+		else if (!strcmp(tok, "load"))
+			res->monitor[IMSG_CTL_COMMIT] = 1;
+		else
+			fatalx("unknown event \"%s\"", tok);
+	}
+
+	free(dup);
 	return ctlaction(res);
 }
 

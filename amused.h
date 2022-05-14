@@ -53,6 +53,7 @@ enum imsg_type {
 	IMSG_CTL_MONITOR,
 
 	IMSG_CTL_ERR,
+	IMSG__LAST,
 };
 
 struct imsgev {
@@ -99,6 +100,7 @@ struct parse_result {
 	char			**files;
 	const char		*file;
 	int			 pretty;
+	int			 monitor[IMSG__LAST];
 	struct player_repeat	 rep;
 	struct ctl_command	*ctl;
 };
