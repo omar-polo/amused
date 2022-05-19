@@ -1,3 +1,7 @@
+* amused 0.7; 2022-05-19
+- amused monitor optionally accepts a list of events to report
+- consume all enqueued messages before calling imsg_read
+
 * amused 0.6; 2022-05-10
 - manpage tweaks
 - fix file descriptor leak on player_playnext failure
