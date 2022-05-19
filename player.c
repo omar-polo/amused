@@ -146,20 +146,20 @@ player_dispatch(void)
 	if (halted != 0)
 		return IMSG_STOP;
 
-	pfd.fd = ibuf->fd;
-	pfd.events = POLLIN;
-	if (poll(&pfd, 1, INFTIM) == -1)
-		fatal("poll");
-
-	if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
-		fatalx("imsg_read");
-	if (n == 0)
-		fatalx("pipe closed");
-
+again:
 	if ((n = imsg_get(ibuf, &imsg)) == -1)
 		fatal("imsg_get");
-	if (n == 0) /* no more messages */
-		fatalx("expected at least a message");
+	if (n == 0) {
+		pfd.fd = ibuf->fd;
+		pfd.events = POLLIN;
+		if (poll(&pfd, 1, INFTIM) == -1)
+			fatal("poll");
+		if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
+			fatal("imsg_read");
+		if (n == 0)
+			fatalx("pipe closed");
+		goto again;
+	}
 
 	ret = imsg.hdr.type;
 	switch (imsg.hdr.type) {
