@@ -23,7 +23,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <event.h>
-#include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
 #include <sndio.h>
@@ -139,12 +138,18 @@ player_enqueue(struct imsg *imsg)
 int
 player_dispatch(void)
 {
+	struct pollfd	pfd;
 	struct imsg	imsg;
 	ssize_t		n;
 	int		ret;
 
 	if (halted != 0)
 		return IMSG_STOP;
+
+	pfd.fd = ibuf->fd;
+	pfd.events = POLLIN;
+	if (poll(&pfd, 1, INFTIM) == -1)
+		fatal("poll");
 
 	if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
 		fatalx("imsg_read");
@@ -265,7 +270,8 @@ play(const void *buf, size_t len)
 int
 player(int debug, int verbose)
 {
-	int flags, r;
+	int r;
+
 	log_init(debug, LOG_DAEMON);
 	log_setverbose(verbose);
 
@@ -282,12 +288,6 @@ player(int debug, int verbose)
 #endif
 
 	audio_init();
-
-	/* mark fd as blocking i/o mode */
-	if ((flags = fcntl(3, F_GETFL)) == -1)
-		fatal("fcntl(F_GETFL)");
-	if (fcntl(3, F_SETFL, flags & ~O_NONBLOCK) == -1)
-		fatal("fcntl F_SETFL O_NONBLOCK");
 
 	ibuf = xmalloc(sizeof(*ibuf));
 	imsg_init(ibuf, 3);
