@@ -85,8 +85,9 @@ play_mp3(int fd)
 			}
 			break;
 		default:
-			log_warnx("error %d decoding mp3", err);
-			goto done;
+			log_warnx("error decoding mp3, "
+			    "continuing nevertheless");
+			break;
 		}
 	}
 
