@@ -127,148 +127,7 @@ parse(int argc, char **argv)
 }
 
 static int
-enqueue_tracks(char **files)
-{
-	char res[PATH_MAX];
-	int enq = 0;
-
-	for (; *files != NULL; ++files) {
-		memset(&res, 0, sizeof(res));
-		if (realpath(*files, res) == NULL) {
-			log_warn("realpath %s", *files);
-			continue;
-		}
-
-		imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
-		    res, sizeof(res));
-		enq++;
-	}
-
-	return enq == 0;
-}
-
-static int
-jump_req(const char *arg)
-{
-	char path[PATH_MAX];
-
-	memset(path, 0, sizeof(path));
-	strlcpy(path, arg, sizeof(path));
-	imsg_compose(ibuf, IMSG_CTL_JUMP, 0, 0, -1, path, sizeof(path));
-	return 0;
-}
-
-static void
-print_error_message(const char *prfx, struct imsg *imsg)
-{
-	size_t datalen;
-	char *msg;
-
-	datalen = IMSG_DATA_SIZE(*imsg);
-	if ((msg = calloc(1, datalen)) == NULL)
-		fatal("calloc %zu", datalen);
-	memcpy(msg, imsg->data, datalen);
-	if (datalen == 0 || msg[datalen-1] != '\0')
-		fatalx("malformed error message");
-
-	log_warnx("%s: %s", prfx, msg);
-	free(msg);
-}
-
-static int
-show_add(struct imsg *imsg, int *ret, char ***files)
-{
-	if (**files == NULL) {
-		log_warnx("received more replies than file sent");
-		*ret = 1;
-		return 1;
-	}
-
-	if (imsg->hdr.type == IMSG_CTL_ERR)
-		print_error_message(**files, imsg);
-	else if (imsg->hdr.type == IMSG_CTL_ADD)
-		log_debug("enqueued %s", **files);
-	else
-		fatalx("got invalid message %d", imsg->hdr.type);
-
-	(*files)++;
-	return (**files) == NULL;
-}
-
-static int
-show_complete(struct parse_result *res, struct imsg *imsg, int *ret)
-{
-	struct player_status s;
-	size_t datalen;
-
-	if (imsg->hdr.type == IMSG_CTL_ERR) {
-		print_error_message("show failed", imsg);
-		*ret = 1;
-		return 1;
-	}
-
-	datalen = IMSG_DATA_SIZE(*imsg);
-	if (datalen == 0)
-		return 1;
-
-	if (datalen != sizeof(s))
-		fatalx("%s: data size mismatch", __func__);
-	memcpy(&s, imsg->data, sizeof(s));
-	if (s.path[sizeof(s.path)-1] != '\0')
-		fatalx("%s: data corrupted?", __func__);
-
-	if (res->pretty)
-		printf("%c ", s.status == STATE_PLAYING ? '>' : ' ');
-	printf("%s\n", s.path);
-	return 0;
-}
-
-static int
-show_status(struct imsg *imsg, int *ret)
-{
-	struct player_status s;
-	size_t datalen;
-
-	if (imsg->hdr.type == IMSG_CTL_ERR) {
-		print_error_message("show failed", imsg);
-		*ret = 1;
-		return 1;
-	}
-
-	if (imsg->hdr.type != IMSG_CTL_STATUS)
-		fatalx("%s: got wrong reply", __func__);
-
-	datalen = IMSG_DATA_SIZE(*imsg);
-	if (datalen != sizeof(s))
-		fatalx("%s: data size mismatch", __func__);
-	memcpy(&s, imsg->data, sizeof(s));
-	if (s.path[sizeof(s.path)-1] != '\0')
-		fatalx("%s: data corrupted?", __func__);
-
-	switch (s.status) {
-	case STATE_STOPPED:
-		printf("stopped ");
-		break;
-	case STATE_PLAYING:
-		printf("playing ");
-		break;
-	case STATE_PAUSED:
-		printf("paused ");
-		break;
-	default:
-		printf("unknown ");
-		break;
-	}
-
-	printf("%s\n", s.path);
-	printf("repeat one %s\nrepeat all %s\n",
-	    s.rp.repeat_one ? "on" : "off",
-	    s.rp.repeat_all ? "on" : "off");
-	return 1;
-}
-
-static int
-show_load(struct parse_result *res, struct imsg *imsg, int *ret)
+load_files(struct parse_result *res, int *ret)
 {
 	FILE		*f;
 	const char	*file;
@@ -276,21 +135,6 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 	char		 path[PATH_MAX], cwd[PATH_MAX];
 	size_t		 linesize = 0, i = 0, n;
 	ssize_t		 linelen, curr = -1;
-
-	if (imsg->hdr.type == IMSG_CTL_ERR) {
-		print_error_message("load failed", imsg);
-		*ret = 1;
-		return 1;
-	}
-
-	if (imsg->hdr.type == IMSG_CTL_ADD)
-		return 0;
-
-	if (imsg->hdr.type == IMSG_CTL_COMMIT)
-		return 1;
-
-	if (imsg->hdr.type != IMSG_CTL_BEGIN)
-		fatalx("got unexpected message %d", imsg->hdr.type);
 
 	if (res->file == NULL)
 		f = stdin;
@@ -349,86 +193,62 @@ show_load(struct parse_result *res, struct imsg *imsg, int *ret)
 	return 0;
 }
 
-static int
-show_monitor(struct parse_result *res, struct imsg *imsg, int *ret)
+static const char *
+imsg_strerror(struct imsg *imsg)
 {
-	int type;
+	size_t datalen;
+	const char *msg;
 
-	if (imsg->hdr.type != IMSG_CTL_MONITOR) {
-		log_warnx("wrong message type received: %d",
-		    imsg->hdr.type);
-		*ret = 1;
-		return 1;
-	}
+	datalen = IMSG_DATA_SIZE(*imsg);
+	msg = imsg->data;
+	if (datalen == 0 || msg[datalen-1] != '\0')
+		fatalx("malformed error message");
 
-	if (IMSG_DATA_SIZE(*imsg) != sizeof(type)) {
-		log_warnx("size mismatch");
-		*ret = 1;
-		return 1;
-	}
+	return msg;
+}
 
-	memcpy(&type, imsg->data, sizeof(type));
-	if (type < 0 || type > IMSG__LAST) {
-		log_warnx("wrong monitor type received");
-		*ret = 1;
-		return 1;
-	}
-
-	if (!res->monitor[type])
-		return 0;
-
+static const char *
+imsg_name(int type)
+{
 	switch (type) {
 	case IMSG_CTL_PLAY:
-		puts("play");
-		break;
+		return "play";
 	case IMSG_CTL_TOGGLE_PLAY:
-		puts("toggle");
-		break;
+		return "toggle";
 	case IMSG_CTL_PAUSE:
-		puts("pause");
-		break;
+		return "pause";
 	case IMSG_CTL_STOP:
-		puts("stop");
-		break;
+		return "stop";
 	case IMSG_CTL_RESTART:
-		puts("restart");
-		break;
+		return "restart";
 	case IMSG_CTL_FLUSH:
-		puts("flush");
-		break;
+		return "flush";
 	case IMSG_CTL_NEXT:
-		puts("next");
-		break;
+		return "next";
 	case IMSG_CTL_PREV:
-		puts("prev");
-		break;
+		return "prev";
 	case IMSG_CTL_JUMP:
-		puts("jump");
-		break;
+		return "jump";
 	case IMSG_CTL_REPEAT:
-		puts("repeat");
-		break;
+		return "repeat";
 	case IMSG_CTL_ADD:
-		puts("add");
-		break;
+		return "add";
 	case IMSG_CTL_COMMIT:
-		puts("load");
-		break;
+		return "load";
 	default:
-		puts("unknown");
-		break;
+		return "unknown";
 	}
-
-	fflush(stdout);
-	return 0;
 }
 
 static int
 ctlaction(struct parse_result *res)
 {
+	char path[PATH_MAX];
 	struct imsg imsg;
+	struct player_status ps;
+	size_t datalen;
 	ssize_t n;
-	int ret = 0, done = 1;
+	int i, type, ret = 0, done = 1;
 	char **files;
 
 	switch (res->action) {
@@ -464,8 +284,19 @@ ctlaction(struct parse_result *res)
 		break;
 	case ADD:
 		done = 0;
-		files = res->files;
-		ret = enqueue_tracks(res->files);
+		i = 0;
+		for (files = res->files; *files != NULL; ++files) {
+			memset(&path, 0, sizeof(path));
+			if (realpath(*files, path) == NULL) {
+				log_warn("realpath %s", *files);
+				continue;
+			}
+
+			imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
+			    path, sizeof(path));
+			i++;
+		}
+		ret = i == 0;
 		break;
 	case FLUSH:
 		imsg_compose(ibuf, IMSG_CTL_FLUSH, 0, 0, -1, NULL, 0);
@@ -500,7 +331,10 @@ ctlaction(struct parse_result *res)
 		break;
 	case JUMP:
 		done = 0;
-		ret = jump_req(res->file);
+		memset(path, 0, sizeof(path));
+		strlcpy(path, res->file, sizeof(path));
+		imsg_compose(ibuf, IMSG_CTL_JUMP, 0, 0, -1,
+		    path, sizeof(path));
 		break;
 	case REPEAT:
 		imsg_compose(ibuf, IMSG_CTL_REPEAT, 0, 0, -1,
@@ -522,6 +356,7 @@ ctlaction(struct parse_result *res)
 
 	imsg_flush(ibuf);
 
+	i = 0;
 	while (!done) {
 		if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
 			fatalx("imsg_read error");
@@ -534,12 +369,47 @@ ctlaction(struct parse_result *res)
 			if (n == 0)
 				break;
 
+			if (imsg.hdr.type == IMSG_CTL_ERR) {
+				log_warnx("%s: %s", res->ctl->name,
+				    imsg_strerror(&imsg));
+				ret = 1;
+				done = 1;
+				break;
+			}
+
+			datalen = IMSG_DATA_SIZE(imsg);
+
 			switch (res->action) {
 			case ADD:
-				done = show_add(&imsg, &ret, &files);
+				if (files[i] == NULL)
+					fatalx("received more replies than "
+					    "files enqueued.");
+
+				if (imsg.hdr.type == IMSG_CTL_ADD)
+					log_debug("enqueued %s", files[i]);
+				else
+					fatalx("invalid message %d",
+					    imsg.hdr.type);
+				i++;
+				done = files[i] == NULL;
 				break;
 			case SHOW:
-				done = show_complete(res, &imsg, &ret);
+				if (datalen == 0) {
+					done = 1;
+					break;
+				}
+				if (datalen != sizeof(ps))
+					fatalx("data size mismatch");
+				memcpy(&ps, imsg.data, sizeof(ps));
+				if (ps.path[sizeof(ps.path) - 1] != '\0')
+					fatalx("received corrupted data");
+				if (res->pretty) {
+					char c = ' ';
+					if (ps.status == STATE_PLAYING)
+						c = '>';
+					printf("%c ", c);
+				}
+				puts(ps.path);
 				break;
 			case PLAY:
 			case TOGGLE:
@@ -548,13 +418,63 @@ ctlaction(struct parse_result *res)
 			case NEXT:
 			case PREV:
 			case JUMP:
-				done = show_status(&imsg, &ret);
+				if (imsg.hdr.type != IMSG_CTL_STATUS)
+					fatalx("invalid message %d",
+					    imsg.hdr.type);
+
+				if (datalen != sizeof(ps))
+					fatalx("data size mismatch");
+				memcpy(&ps, imsg.data, sizeof(ps));
+				if (ps.path[sizeof(ps.path) - 1] != '\0')
+					fatalx("received corrupted data");
+
+				if (ps.status == STATE_STOPPED)
+					printf("stopped ");
+				else if (ps.status == STATE_PLAYING)
+					printf("playing ");
+				else if (ps.status == STATE_PAUSED)
+					printf("paused ");
+				else
+					printf("unknown ");
+
+				puts(ps.path);
+				printf("repat one %s\nrepeat all %s\n",
+				    ps.rp.repeat_one ? "on" : "off",
+				    ps.rp.repeat_all ? "on" : "off");
+
+				done = 1;
 				break;
 			case LOAD:
-				done = show_load(res, &imsg, &ret);
+				if (imsg.hdr.type == IMSG_CTL_ADD)
+					break;
+				if (imsg.hdr.type == IMSG_CTL_COMMIT) {
+					done = 1;
+					break;
+				}
+
+				if (imsg.hdr.type != IMSG_CTL_BEGIN)
+					fatalx("invalid message %d",
+					    imsg.hdr.type);
+
+				load_files(res, &ret);
 				break;
 			case MONITOR:
-				done = show_monitor(res, &imsg, &ret);
+				if (imsg.hdr.type != IMSG_CTL_MONITOR)
+					fatalx("invalid message %d",
+					    imsg.hdr.type);
+
+				if (datalen != sizeof(type))
+					fatalx("data size mismatch");
+
+				memcpy(&type, imsg.data, sizeof(type));
+				if (type < 0 || type > IMSG__LAST)
+					fatalx("received corrupted data");
+
+				if (!res->monitor[type])
+					break;
+
+				puts(imsg_name(type));
+				fflush(stdout);
 				break;
 			default:
 				done = 1;
