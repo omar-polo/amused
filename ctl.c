@@ -249,7 +249,6 @@ ctlaction(struct parse_result *res)
 	size_t datalen;
 	ssize_t n;
 	int i, type, ret = 0, done = 1;
-	char **files;
 
 	switch (res->action) {
 	case PLAY:
@@ -284,10 +283,10 @@ ctlaction(struct parse_result *res)
 		break;
 	case ADD:
 		done = 0;
-		for (i = 0, files = res->files; files[i] != NULL; ++i) {
+		for (i = 0; res->files[i] != NULL; ++i) {
 			memset(&path, 0, sizeof(path));
-			if (realpath(files[i], path) == NULL) {
-				log_warn("realpath %s", files[i]);
+			if (realpath(res->files[i], path) == NULL) {
+				log_warn("realpath %s", res->files[i]);
 				continue;
 			}
 
@@ -379,17 +378,17 @@ ctlaction(struct parse_result *res)
 
 			switch (res->action) {
 			case ADD:
-				if (files[i] == NULL)
+				if (res->files[i] == NULL)
 					fatalx("received more replies than "
 					    "files enqueued.");
 
 				if (imsg.hdr.type == IMSG_CTL_ADD)
-					log_debug("enqueued %s", files[i]);
+					log_debug("enqueued %s", res->files[i]);
 				else
 					fatalx("invalid message %d",
 					    imsg.hdr.type);
 				i++;
-				done = files[i] == NULL;
+				done = res->files[i] == NULL;
 				break;
 			case SHOW:
 				if (datalen == 0) {
