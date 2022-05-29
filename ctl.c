@@ -284,17 +284,15 @@ ctlaction(struct parse_result *res)
 		break;
 	case ADD:
 		done = 0;
-		i = 0;
-		for (files = res->files; *files != NULL; ++files) {
+		for (i = 0, files = res->files; files[i] != NULL; ++i) {
 			memset(&path, 0, sizeof(path));
-			if (realpath(*files, path) == NULL) {
-				log_warn("realpath %s", *files);
+			if (realpath(files[i], path) == NULL) {
+				log_warn("realpath %s", files[i]);
 				continue;
 			}
 
 			imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
 			    path, sizeof(path));
-			i++;
 		}
 		ret = i == 0;
 		break;
