@@ -45,14 +45,14 @@ static int nextfd = -1;
 
 volatile sig_atomic_t halted;
 
-static void
+void
 player_signal_handler(int signo)
 {
 	halted = 1;
 }
 
-static void
-audio_init(void)
+void
+player_init(void)
 {
 	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 0)) == NULL)
 		fatal("sio_open");
@@ -277,7 +277,7 @@ player(int debug, int verbose)
 	}
 #endif
 
-	audio_init();
+	player_init();
 
 	ibuf = xmalloc(sizeof(*ibuf));
 	imsg_init(ibuf, 3);
