@@ -158,6 +158,7 @@ again:
 		fatalx("unknown imsg %d", imsg.hdr.type);
 	}
 
+	imsg_free(&imsg);
 	return ret;
 }
 
