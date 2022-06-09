@@ -500,7 +500,7 @@ main_enqueue(int tx, struct playlist *px, struct imsgev *iev,
     struct imsg *imsg)
 {
 	size_t datalen;
-	char path[PATH_MAX] = { 0 };
+	char path[PATH_MAX];
 	const char *err = NULL;
 
 	datalen = IMSG_DATA_SIZE(*imsg);
