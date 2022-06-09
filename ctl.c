@@ -320,9 +320,9 @@ ctlaction(struct parse_result *res)
 	case ADD:
 		done = 0;
 		for (i = 0; res->files[i] != NULL; ++i) {
-			memset(&path, 0, sizeof(path));
-			if (realpath(res->files[i], path) == NULL) {
-				log_warn("realpath %s", res->files[i]);
+			if (canonpath(res->files[i], path, sizeof(path))
+			    == -1) {
+				log_warn("canonpath %s", res->files[i]);
 				continue;
 			}
 
