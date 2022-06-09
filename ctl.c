@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2022 Omar Polo <op@openbsd.org>
+ * Copyright (c) 2015 Theo de Raadt <deraadt@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,7 +38,8 @@
 #include "playlist.h"
 #include "xmalloc.h"
 
-static struct imsgbuf *ibuf;
+static struct imsgbuf	*ibuf;
+char			 cwd[PATH_MAX];
 
 int	ctl_noarg(struct parse_result *, int, char **);
 int	ctl_add(struct parse_result *, int, char **);
@@ -79,6 +81,52 @@ ctl_usage(struct ctl_command *ctl)
 	fprintf(stderr, "usage: %s [-v] [-s socket] %s %s\n", getprogname(),
 	    ctl->name, ctl->usage);
 	exit(1);
+}
+
+/* based on canonpath from kern_pledge.c */
+static int
+canonpath(const char *input, char *buf, size_t bufsize)
+{
+	const char *p;
+	char *q, path[PATH_MAX];
+
+	if (input[0] != '/') {
+		if (snprintf(path, sizeof(path), "%s/%s", cwd, input)
+		    >= sizeof(path)) {
+			errno = ENAMETOOLONG;
+			return -1;
+		}
+		input = path;
+	}
+
+	p = input;
+	q = buf;
+	while (*p && (q - buf < bufsize)) {
+		if (p[0] == '/' && (p[1] == '/' || p[1] == '\0')) {
+			p += 1;
+
+		} else if (p[0] == '/' && p[1] == '.' &&
+		    (p[2] == '/' || p[2] == '\0')) {
+			p += 2;
+
+		} else if (p[0] == '/' && p[1] == '.' && p[2] == '.' &&
+		    (p[3] == '/' || p[3] == '\0')) {
+			p += 3;
+			if (q != buf)	/* "/../" at start of buf */
+				while (*--q != '/')
+					continue;
+
+		} else {
+			*q++ = *p++;
+		}
+	}
+	if ((*p == '\0') && (q - buf < bufsize)) {
+		*q = 0;
+		return 0;
+	} else {
+		errno = ENAMETOOLONG;
+		return -1;
+	}
 }
 
 static int
@@ -132,8 +180,8 @@ load_files(struct parse_result *res, int *ret)
 	FILE		*f;
 	const char	*file;
 	char		*line = NULL;
-	char		 path[PATH_MAX], cwd[PATH_MAX];
-	size_t		 linesize = 0, i = 0, n;
+	char		 path[PATH_MAX];
+	size_t		 linesize = 0, i = 0;
 	ssize_t		 linelen, curr = -1;
 
 	if (res->file == NULL)
@@ -143,9 +191,6 @@ load_files(struct parse_result *res, int *ret)
 		*ret = 1;
 		return 1;
 	}
-
-	if (getcwd(cwd, sizeof(cwd)) == NULL)
-		fatal("getcwd");
 
 	while ((linelen = getline(&line, &linesize, f)) != -1) {
 		if (linelen == 0)
@@ -158,17 +203,8 @@ load_files(struct parse_result *res, int *ret)
 		} else if (!strncmp(file, "  ", 2))
 			file += 2;
 
-		if (!strncmp(file, "./", 2))
-			file += 2;
-
-		memset(path, 0, sizeof(path));
-		if (*file == '/')
-			n = strlcpy(path, file, sizeof(path));
-		else
-			n = snprintf(path, sizeof(path), "%s/%s", cwd, file);
-
-		if (n >= sizeof(path)) {
-			log_warnx("path too long: %s", file);
+		if (canonpath(file, path, sizeof(path)) == -1) {
+			log_warnx("canonpath %s", file);
 			continue;
 		}
 
@@ -776,6 +812,9 @@ ctl(int argc, char **argv)
 
 	log_init(1, LOG_DAEMON);
 	log_setverbose(verbose);
+
+	if (getcwd(cwd, sizeof(cwd)) == NULL)
+		fatal("getcwd");
 
 	if ((ctl_sock = ctl_connect()) == -1)
 		fatal("can't connect");
