@@ -55,7 +55,7 @@ struct ctl_command ctl_commands[] = {
 	{ "toggle",	TOGGLE,		ctl_noarg,	"" },
 	{ "stop",	STOP,		ctl_noarg,	"" },
 	{ "restart",	RESTART,	ctl_noarg,	"" },
-	{ "add",	ADD,		ctl_add,	"files...", 1 },
+	{ "add",	ADD,		ctl_add,	"files..." },
 	{ "flush",	FLUSH,		ctl_noarg,	"" },
 	{ "show",	SHOW,		ctl_show,	"[-p]" },
 	{ "status",	STATUS,		ctl_noarg,	"" },
@@ -551,9 +551,6 @@ ctl_add(struct parse_result *res, int argc, char **argv)
 	if (argc == 0)
 		ctl_usage(res->ctl);
 	res->files = argv;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		fatal("pledge");
 
 	return ctlaction(res);
 }
