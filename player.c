@@ -54,19 +54,9 @@ player_signal_handler(int signo)
 static void
 audio_init(void)
 {
-	struct sio_par par;
-
 	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 0)) == NULL)
 		fatal("sio_open");
 
-	sio_initpar(&par);
-	par.bits = 16;
-	par.appbufsz = 50 * par.rate / 1000;
-	par.pchan = 2;
-	if (!sio_setpar(hdl, &par) || !sio_getpar(hdl, &par))
-		fatal("couldn't set audio params");
-	if (par.bits != 16 || par.le != SIO_LE_NATIVE)
-		fatalx("unsupported audio params");
 	if (!sio_start(hdl))
 		fatal("sio_start");
 }
