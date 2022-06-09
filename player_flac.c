@@ -99,10 +99,11 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
 }
 
 static void
-errcb(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status,
-    void *data)
+errcb(const FLAC__StreamDecoder *decoder,
+    FLAC__StreamDecoderErrorStatus status, void *data)
 {
-	log_warnx("flac error: %s", FLAC__StreamDecoderErrorStatusString[status]);
+	log_warnx("flac error: %s",
+	    FLAC__StreamDecoderErrorStatusString[status]);
 }
 
 int
