@@ -475,13 +475,10 @@ main_playlist_previous(void)
 void
 main_restart_track(void)
 {
-	const char *song;
-
-	song = current_song;
-	if (song == NULL)
+	if (current_song == NULL)
 		return;
 
-	if (main_play_song(song))
+	if (main_play_song(current_song))
 		return;
 
 	playlist_dropcurrent();
