@@ -113,17 +113,6 @@ player_pendingimsg(void)
 	return r;
 }
 
-void
-player_enqueue(struct imsg *imsg)
-{
-	if (nextfd != -1)
-		fatalx("track already enqueued");
-
-	if ((nextfd = imsg->fd) == -1)
-		fatalx("%s: got invalid file descriptor", __func__);
-	log_debug("song enqueued");
-}
-
 /* process only one message */
 int
 player_dispatch(void)
@@ -154,7 +143,11 @@ again:
 	ret = imsg.hdr.type;
 	switch (imsg.hdr.type) {
 	case IMSG_PLAY:
-		player_enqueue(&imsg);
+		if (nextfd != -1)
+			fatalx("track already enqueued");
+		if ((nextfd = imsg.fd) == -1)
+			fatalx("%s: got invalid file descriptor", __func__);
+		log_debug("song enqueued");
 		ret = IMSG_STOP;
 		break;
 	case IMSG_RESUME:
