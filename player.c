@@ -81,7 +81,7 @@ again:
 	par.pchan = channels;
 	if (!sio_setpar(hdl, &par)) {
 		if (errno == EAGAIN) {
-			nfds = sio_pollfd(hdl, player_pfds + 1, POLLIN|POLLOUT);
+			nfds = sio_pollfd(hdl, player_pfds + 1, POLLOUT);
 			if (poll(player_pfds + 1, nfds, INFTIM) == -1)
 				fatal("poll");
 			goto again;
