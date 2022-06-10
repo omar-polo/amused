@@ -56,11 +56,18 @@ player_signal_handler(int signo)
 int
 player_setup(int bits, int rate, int channels)
 {
-	struct sio_par par;
-	int nfds;
+	static struct sio_par par;
+	int nfds, fpct;
 
 	log_debug("%s: bits=%d, rate=%d, channels=%d", __func__,
 	    bits, rate, channels);
+
+	fpct = (rate*5)/100;
+
+	/* don't stop if the parameters are the same */
+	if (bits == par.bits && channels == par.pchan &&
+	    par.rate - fpct <= rate && rate <= par.rate + fpct)
+		goto end;
 
 again:
 	if (!stopped) {
@@ -95,6 +102,7 @@ again:
 
 	/* TODO: check the sample rate? */
 
+end:
 	if (!sio_start(hdl)) {
 		log_warn("sio_start");
 		return -1;
