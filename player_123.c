@@ -43,7 +43,7 @@ setup(mpg123_handle *mh)
 	}
 
 	if (player_setup(mpg123_encsize(enc) * 8, rate, chan) == -1)
-		err(1, "player_setrate");
+		err(1, "player_setup");
 
 	return 1;
 }

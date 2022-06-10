@@ -94,7 +94,7 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
 		channels = meta->data.stream_info.channels;
 
 		if (player_setup(bits, sample_rate, channels) == -1)
-			err(1, "player_setrate");
+			err(1, "player_setup");
 	}
 }
 
