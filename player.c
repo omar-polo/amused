@@ -53,13 +53,6 @@ player_signal_handler(int signo)
 	halted = 1;
 }
 
-void
-player_init(void)
-{
-	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 1)) == NULL)
-		fatal("sio_open");
-}
-
 int
 player_setup(int bits, int rate, int channels)
 {
@@ -289,7 +282,8 @@ player(int debug, int verbose)
 	}
 #endif
 
-	player_init();
+	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 1)) == NULL)
+		fatal("sio_open");
 
 	/* allocate one extra for imsg */
 	player_pfds = calloc(sio_nfds(hdl) + 1, sizeof(*player_pfds));
