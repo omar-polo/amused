@@ -54,7 +54,7 @@ play_opus(int fd)
 
 	of = op_open_callbacks(f, &cb, NULL, 0, &r);
 	if (of == NULL) {
-		close(fd);
+		fclose(f);
 		return -1;
 	}
 
