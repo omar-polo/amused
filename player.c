@@ -39,8 +39,10 @@
 #include "xmalloc.h"
 
 struct sio_hdl		*hdl;
+struct pollfd		*player_pfds;
 static struct imsgbuf	*ibuf;
 
+static int stopped = 1;
 static int nextfd = -1;
 
 volatile sig_atomic_t halted;
@@ -54,30 +56,42 @@ player_signal_handler(int signo)
 void
 player_init(void)
 {
-	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 0)) == NULL)
+	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 1)) == NULL)
 		fatal("sio_open");
-
-	if (!sio_start(hdl))
-		fatal("sio_start");
 }
 
 int
 player_setup(int bits, int rate, int channels)
 {
 	struct sio_par par;
+	int nfds;
 
 	log_debug("%s: bits=%d, rate=%d, channels=%d", __func__,
 	    bits, rate, channels);
 
-	sio_stop(hdl);
+again:
+	if (!stopped) {
+		sio_stop(hdl);
+		stopped = 1;
+	}
 
 	sio_initpar(&par);
 	par.bits = bits;
 	par.rate = rate;
 	par.pchan = channels;
-	if (!sio_setpar(hdl, &par) || !sio_getpar(hdl, &par)) {
+	if (!sio_setpar(hdl, &par)) {
+		if (errno == EAGAIN) {
+			nfds = sio_pollfd(hdl, player_pfds + 1, POLLIN|POLLOUT);
+			if (poll(player_pfds + 1, nfds, INFTIM) == -1)
+				fatal("poll");
+			goto again;
+		}
 		log_warnx("invalid params (bits=%d, rate=%d, channels=%d",
 		    bits, rate, channels);
+		return -1;
+	}
+	if (!sio_getpar(hdl, &par)) {
+		log_warnx("can't get params");
 		return -1;
 	}
 
@@ -92,25 +106,8 @@ player_setup(int bits, int rate, int channels)
 		log_warn("sio_start");
 		return -1;
 	}
+	stopped = 0;
 	return 0;
-}
-
-int
-player_pendingimsg(void)
-{
-	struct pollfd pfd;
-	int r;
-
-	if (halted != 0)
-		return 1;
-
-	pfd.fd = ibuf->fd;
-	pfd.events = POLLIN;
-
-	r = poll(&pfd, 1, 0);
-	if (r == -1)
-		fatal("poll");
-	return r;
 }
 
 /* process only one message */
@@ -227,9 +224,6 @@ player_pause(void)
 int
 player_shouldstop(void)
 {
-	if (!player_pendingimsg())
-		return 0;
-
 	switch (player_dispatch()) {
 	case IMSG_PAUSE:
 		if (player_pause())
@@ -245,9 +239,33 @@ player_shouldstop(void)
 int
 play(const void *buf, size_t len)
 {
-	if (player_shouldstop())
-		return 0;
-	sio_write(hdl, buf, len);
+	size_t w;
+	int nfds, revents, r;
+
+	while (len != 0) {
+		nfds = sio_pollfd(hdl, player_pfds + 1, POLLOUT);
+		r = poll(player_pfds, nfds + 1, INFTIM);
+		if (r == -1)
+			fatal("poll");
+
+		if (player_pfds[0].revents & (POLLHUP|POLLIN)) {
+			if (player_shouldstop()) {
+				sio_flush(hdl);
+				stopped = 1;
+				return 0;
+			}
+		}
+
+		revents = sio_revents(hdl, player_pfds + 1);
+		if (revents & POLLHUP)
+			fatalx("sndio hang-up");
+		if (revents & POLLOUT) {
+			w = sio_write(hdl, buf, len);
+			len -= w;
+			buf += w;
+		}
+	}
+
 	return 1;
 }
 
@@ -272,6 +290,14 @@ player(int debug, int verbose)
 #endif
 
 	player_init();
+
+	/* allocate one extra for imsg */
+	player_pfds = calloc(sio_nfds(hdl) + 1, sizeof(*player_pfds));
+	if (player_pfds == NULL)
+		fatal("calloc");
+
+	player_pfds[0].events = POLLIN;
+	player_pfds[0].fd = 3;
 
 	ibuf = xmalloc(sizeof(*ibuf));
 	imsg_init(ibuf, 3);
