@@ -66,8 +66,11 @@ player_setup(int bits, int rate, int channels)
 
 	/* don't stop if the parameters are the same */
 	if (bits == par.bits && channels == par.pchan &&
-	    par.rate - fpct <= rate && rate <= par.rate + fpct)
-		goto end;
+	    par.rate - fpct <= rate && rate <= par.rate + fpct) {
+		if (stopped)
+			goto start;
+		return 0;
+	}
 
 again:
 	if (!stopped) {
@@ -102,7 +105,7 @@ again:
 
 	/* TODO: check the sample rate? */
 
-end:
+start:
 	if (!sio_start(hdl)) {
 		log_warn("sio_start");
 		return -1;
