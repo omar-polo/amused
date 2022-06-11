@@ -375,8 +375,8 @@ main_play_song(const char *path)
 		return 0;
 	}
 
-	if (S_ISDIR(sb.st_mode)) {
-		log_info("skipping a directory: %s", path);
+	if (!S_ISREG(sb.st_mode)) {
+		log_info("skipping non-regular file: %s", path);
 		close(fd);
 		return 0;
 	}
