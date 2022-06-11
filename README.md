@@ -1,9 +1,9 @@
 # amused
 
-amused is a music player.  It doesn't have any amazing functionalities
-built-in, on the contrary: it's quite minimal (a fancy word to say that
-does very little.)  It composes well, or aims to do so, with other tools
-thought.
+amused is a music player.  It doesn't have any amazing features
+built-in, on the contrary: it's quite minimal (a fancy word to say
+that does very little.)  It composes well, or aims to do so, with
+other tools thought.
 
 The main feature is that audio decoding runs in a sandboxed process
 under `pledge("stdio recvfd audio")`.  Oh, by the way, amused targets
@@ -15,24 +15,25 @@ providing shims for some non-portable functions -- hello libbsd -- and
 assuming that sndio is available.  And bundling a copy of imsg.c too)
 
 
-## building
+## Building
 
 	$ make
+	$ make install # eventually
 
-it needs the following packages from ports:
+Release tarballs installs into `/usr/local/`, git checkouts installs
+into `~/bin` (idea and implementation stolen from got, thanks stsp!)
+
+It needs the following packages from ports:
 
  - flac
  - libmpg123
  - libvorbis
  - opusfile
 
-Release tarballs installs into `/usr/local/`, git checkouts installs
-into `~/bin` (idea and implementation stolen from got, thanks stsp!)
-
-It'll be available on OpenBSD starting with 7.1
+It's available on the OpenBSD port tree starting with 7.1
 
 
-## usage
+## Usage
 
 The fine man page has all nitty gritty details, but the TL;DR is
 
@@ -51,7 +52,7 @@ standard UNIX tools can be used:
 It also doesn't provide any means to manage a music collection.  It
 plays nice with find(1) however:
 
-	find . -type f -iname \*.opus -exec amused add {} +
+	find . | amused load
 
 I wrote a bit more about the background of amused [in a blog
 post](https://www.omarpolo.com/post/amused.html).
