@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 19, 2022
+.Dd June 12, 2022
 .Dt AMUSED 1
 .Os
 .Sh NAME
@@ -147,6 +147,11 @@ $ amused add *.mp3
 Recursively add all opus files:
 .Bd -literal -offset indent
 $ find . -type f -iname \\*.opus -exec amused add {} +
+.Ed
+.Pp
+Load every file under the current directory recursively:
+.Bd -literal -offset indent
+$ find . | amused load
 .Ed
 .Pp
 Save the state of the player to the file
