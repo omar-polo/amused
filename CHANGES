@@ -1,3 +1,13 @@
+* amused 0.8; 2022-06-12
+- try to recover from mp3 decoding errors
+- plug a memory leak in player_dispatch
+- don't use realpath(3) in `amused add'
+- use a strictier pledge for `amused add'
+- use canonpath (from kern_pledge.c) for paths handling
+- non-blocking usage of sndio: avoids artificial gaps between tracks
+- use sio_flush to stop the playback
+- automatically skip all non-regular files, not only directories
+
 * amused 0.7; 2022-05-19
 - amused monitor optionally accepts a list of events to report
 - consume all enqueued messages before calling imsg_read
