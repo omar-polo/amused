@@ -205,7 +205,7 @@ load_files(struct parse_result *res, int *ret)
 
 		memset(path, 0, sizeof(path));
 		if (canonpath(file, path, sizeof(path)) == -1) {
-			log_warnx("canonpath %s", file);
+			log_warn("canonpath %s", file);
 			continue;
 		}
 
