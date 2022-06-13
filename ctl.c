@@ -203,6 +203,7 @@ load_files(struct parse_result *res, int *ret)
 		} else if (!strncmp(file, "  ", 2))
 			file += 2;
 
+		memset(path, 0, sizeof(path));
 		if (canonpath(file, path, sizeof(path)) == -1) {
 			log_warnx("canonpath %s", file);
 			continue;
@@ -320,6 +321,7 @@ ctlaction(struct parse_result *res)
 	case ADD:
 		done = 0;
 		for (i = 0; res->files[i] != NULL; ++i) {
+			memset(path, 0, sizeof(path));
 			if (canonpath(res->files[i], path, sizeof(path))
 			    == -1) {
 				log_warn("canonpath %s", res->files[i]);
