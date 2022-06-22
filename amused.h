@@ -31,7 +31,7 @@ enum imsg_type {
 	IMSG_PAUSE,
 	IMSG_STOP,
 	IMSG_EOF,
-	IMSG_ERR,
+	IMSG_ERR,		/* error string */
 
 	IMSG_CTL_PLAY,		/* with optional filename */
 	IMSG_CTL_TOGGLE_PLAY,
@@ -141,9 +141,9 @@ int	player_setup(int, int, int);
 int	play(const void *, size_t);
 int	player(int, int);
 
-int	play_oggvorbis(int fd);
-int	play_mp3(int fd);
-int	play_flac(int fd);
-int	play_opus(int fd);
+int	play_oggvorbis(int, const char **);
+int	play_mp3(int, const char **);
+int	play_flac(int, const char **);
+int	play_opus(int, const char **);
 
 #endif

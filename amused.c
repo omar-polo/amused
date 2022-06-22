@@ -102,9 +102,11 @@ main_sig_handler(int sig, short event, void *arg)
 static void
 main_dispatch_player(int sig, short event, void *d)
 {
+	char		*errstr;
 	struct imsgev	*iev = d;
 	struct imsgbuf	*ibuf = &iev->ibuf;
 	struct imsg	 imsg;
+	size_t		 datalen;
 	ssize_t		 n;
 	int		 shut = 0;
 
@@ -127,9 +129,16 @@ main_dispatch_player(int sig, short event, void *d)
 		if (n == 0)	/* No more messages. */
 			break;
 
+		datalen = IMSG_DATA_SIZE(imsg);
 		switch (imsg.hdr.type) {
 		case IMSG_ERR:
-			log_warnx("failed to play, skipping %s", current_song);
+			if (datalen == 0)
+				errstr = "unknown error";
+			else {
+				errstr = imsg.data;
+				errstr[datalen-1] = '\0';
+			}
+			log_warnx("%s; skipping %s", errstr, current_song);
 			playlist_dropcurrent();
 			/* fallthrough */
 		case IMSG_EOF:

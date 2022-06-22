@@ -164,9 +164,14 @@ again:
 }
 
 void
-player_senderr(void)
+player_senderr(const char *errstr)
 {
-	imsg_compose(ibuf, IMSG_ERR, 0, 0, -1, NULL, 0);
+	size_t len = 0;
+
+	if (errstr != NULL)
+		len = strlen(errstr) + 1;
+
+	imsg_compose(ibuf, IMSG_ERR, 0, 0, -1, errstr, len);
 	imsg_flush(ibuf);
 }
 
@@ -178,7 +183,7 @@ player_sendeof(void)
 }
 
 int
-player_playnext(void)
+player_playnext(const char **errstr)
 {
 	static char buf[512];
 	ssize_t r;
@@ -191,26 +196,26 @@ player_playnext(void)
 
 	/* 8 byte is the larger magic number */
 	if (r < 8) {
-		log_warn("read failed");
+		*errstr = "read failed";
 		goto err;
 	}
 
 	if (lseek(fd, 0, SEEK_SET) == -1) {
-		log_warn("lseek failed");
+		*errstr = "lseek failed";
 		goto err;
 	}
 
 	if (memcmp(buf, "fLaC", 4) == 0)
-		return play_flac(fd);
+		return play_flac(fd, errstr);
 	if (memcmp(buf, "ID3", 3) == 0 ||
 	    memcmp(buf, "\xFF\xFB", 2) == 0)
-		return play_mp3(fd);
+		return play_mp3(fd, errstr);
 	if (memmem(buf, r, "OpusHead", 8) != NULL)
-		return play_opus(fd);
+		return play_opus(fd, errstr);
 	if (memmem(buf, r, "OggS", 4) != NULL)
-		return play_oggvorbis(fd);
+		return play_oggvorbis(fd, errstr);
 
-	log_warnx("unknown file type");
+	*errstr = "unknown file type";
 err:
 	close(fd);
 	return -1;
@@ -317,12 +322,14 @@ player(int debug, int verbose)
 		fatal("pledge");
 
 	while (!halted) {
+		const char *errstr = NULL;
+
 		while (nextfd == -1)
 			player_dispatch();
 
-		r = player_playnext();
+		r = player_playnext(&errstr);
 		if (r == -1)
-			player_senderr();
+			player_senderr(errstr);
 		if (r == 0)
 			player_sendeof();
 	}

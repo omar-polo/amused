@@ -107,11 +107,10 @@ errcb(const FLAC__StreamDecoder *decoder,
 }
 
 int
-play_flac(int fd)
+play_flac(int fd, const char **errstr)
 {
 	FILE *f;
 	int s, ok = 1;
-	const char *state;
 	FLAC__StreamDecoder *decoder = NULL;
 	FLAC__StreamDecoderInitStatus init_status;
 
@@ -139,8 +138,7 @@ play_flac(int fd)
 	if (s == FLAC__STREAM_DECODER_ABORTED)
 		return 1;
 	else if (!ok) {
-		state = FLAC__StreamDecoderStateString[s];
-		log_warnx("decoding failed; state: %s", state);
+		*errstr = "flac decoding error";
 		return -1;
 	} else
 		return 0;

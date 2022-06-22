@@ -39,7 +39,7 @@
 #endif
 
 int
-play_opus(int fd)
+play_opus(int fd, const char **errstr)
 {
 	static uint16_t pcm[BUFSIZ];
 	static uint8_t out[BUFSIZ * 2];
@@ -64,7 +64,7 @@ play_opus(int fd)
 		if (r == OP_HOLE) /* corrupt file segment? */
 			continue;
 		if (r < 0) {
-			log_warnx("error %d decoding file", ret);
+			*errstr = "opus decoding error";
 			ret = -1;
 			break;
 		}

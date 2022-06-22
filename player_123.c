@@ -49,7 +49,7 @@ setup(mpg123_handle *mh)
 }
 
 int
-play_mp3(int fd)
+play_mp3(int fd, const char **errstr)
 {
 	static char	 buf[4096];
 	size_t		 len;
@@ -60,7 +60,7 @@ play_mp3(int fd)
 		fatal("mpg123_new");
 
 	if (mpg123_open_fd(mh, fd) != MPG123_OK) {
-		log_warnx("mpg123_open_fd failed");
+		*errstr = "mpg123_open_fd failed";
 		close(fd);
 		return -1;
 	}

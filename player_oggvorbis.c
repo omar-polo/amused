@@ -40,7 +40,7 @@
 #endif
 
 int
-play_oggvorbis(int fd)
+play_oggvorbis(int fd, const char **errstr)
 {
 	static uint8_t pcmout[4096];
 	FILE *f;
@@ -52,7 +52,7 @@ play_oggvorbis(int fd)
 		err(1, "fdopen");
 
 	if (ov_open_callbacks(f, &vf, NULL, 0, OV_CALLBACKS_NOCLOSE) < 0) {
-		log_warnx("input is not an Ogg bitstream");
+		*errstr = "input is not an Ogg bitstream";
 		ret = -1;
 		goto end;
 	}
