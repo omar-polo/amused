@@ -131,6 +131,24 @@ main_dispatch_player(int sig, short event, void *d)
 
 		datalen = IMSG_DATA_SIZE(imsg);
 		switch (imsg.hdr.type) {
+		case IMSG_POS:
+			if (datalen != sizeof(current_position))
+				fatalx("IMSG_POS: got wrong size (%zu vs %zu)",
+				    datalen, sizeof(current_position));
+			memcpy(&current_position, imsg.data,
+			    sizeof(current_position));
+			if (current_position < 0)
+				current_position = -1;
+			break;
+		case IMSG_LEN:
+			if (datalen != sizeof(current_duration))
+				fatalx("IMSG_LEN: got wrong size (%zu vs %zu)",
+				    datalen, sizeof(current_duration));
+			memcpy(&current_duration, imsg.data,
+			    sizeof(current_duration));
+			if (current_duration < 0)
+				current_duration = -1;
+			break;
 		case IMSG_ERR:
 			if (datalen == 0)
 				errstr = "unknown error";
@@ -558,6 +576,8 @@ main_send_status(struct imsgev *iev)
 	if (current_song != NULL)
 		strlcpy(s.path, current_song, sizeof(s.path));
 	s.status = play_state;
+	s.position = current_position;
+	s.duration = current_duration;
 	s.rp.repeat_all = repeat_all;
 	s.rp.repeat_one = repeat_one;
 

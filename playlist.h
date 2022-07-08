@@ -36,6 +36,8 @@ extern int		 repeat_one;
 extern int		 repeat_all;
 extern ssize_t		 play_off;
 extern const char	*current_song;
+extern int64_t		 current_position;
+extern int64_t		 current_duration;
 
 void			 playlist_swap(struct playlist *, ssize_t);
 void			 playlist_push(struct playlist *, const char *);

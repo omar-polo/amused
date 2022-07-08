@@ -33,6 +33,8 @@ int		 repeat_one;
 int		 repeat_all = 1;
 ssize_t		 play_off = -1;
 const char	*current_song;
+int64_t		 current_position;
+int64_t		 current_duration;
 
 static void
 setsong(ssize_t i)

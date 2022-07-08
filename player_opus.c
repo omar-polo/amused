@@ -47,7 +47,7 @@ play_opus(int fd, const char **errstr)
 	void *f;
 	int r, ret = 0;
 	OpusFileCallbacks cb = {NULL, NULL, NULL, NULL};
-	int i, li, prev_li = -1;
+	int i, li, prev_li = -1, duration_set = 0;
 
 	if ((f = op_fdopen(&cb, fd, "r")) == NULL)
 		err(1, "fdopen");
@@ -80,6 +80,11 @@ play_opus(int fd, const char **errstr)
 			if (head->input_sample_rate &&
 			    player_setup(16, head->input_sample_rate, 2) == -1)
 				err(1, "player_setup");
+
+			if (!duration_set) {
+				duration_set = 1;
+				player_setduration(op_pcm_total(of, -1));
+			}
 		}
 
 		for (i = 0; i < 2*r; ++i) {

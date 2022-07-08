@@ -66,6 +66,8 @@ play_oggvorbis(int fd, const char **errstr)
 	if (player_setup(16, vi->rate, vi->channels) == -1)
 		err(1, "player_setup");
 
+	player_setduration(ov_time_total(&vf, -1) * vi->rate);
+
 	while (!eof) {
 		long r;
 

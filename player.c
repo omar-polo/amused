@@ -39,11 +39,13 @@
 #include "xmalloc.h"
 
 struct sio_hdl		*hdl;
+struct sio_par		 par;
 struct pollfd		*player_pfds;
 static struct imsgbuf	*ibuf;
 
 static int stopped = 1;
 static int nextfd = -1;
+static int64_t samples;
 
 volatile sig_atomic_t halted;
 
@@ -56,7 +58,6 @@ player_signal_handler(int signo)
 int
 player_setup(int bits, int rate, int channels)
 {
-	static struct sio_par par;
 	int nfds, fpct;
 
 	log_debug("%s: bits=%d, rate=%d, channels=%d", __func__,
@@ -112,6 +113,32 @@ start:
 	}
 	stopped = 0;
 	return 0;
+}
+
+void
+player_setduration(int64_t duration)
+{
+	int64_t seconds;
+
+	seconds = duration / par.rate;
+	imsg_compose(ibuf, IMSG_LEN, 0, 0, -1, &seconds, sizeof(seconds));
+	imsg_flush(ibuf);
+}
+
+void
+player_onmove(void *arg, int delta)
+{
+	static int64_t reported;
+	int64_t sec;
+
+	samples += delta;
+	if (llabs(samples - reported) >= par.rate) {
+		reported = samples;
+		sec = samples / par.rate;
+
+		imsg_compose(ibuf, IMSG_POS, 0, 0, -1, &sec, sizeof(sec));
+		imsg_flush(ibuf);
+	}
 }
 
 /* process only one message */
@@ -191,6 +218,11 @@ player_playnext(const char **errstr)
 
 	assert(nextfd != -1);
 	nextfd = -1;
+
+	/* reset samples and set position to zero */
+	samples = 0;
+	imsg_compose(ibuf, IMSG_POS, 0, 0, -1, &samples, sizeof(samples));
+	imsg_flush(ibuf);
 
 	r = read(fd, buf, sizeof(buf));
 
@@ -300,6 +332,8 @@ player(int debug, int verbose)
 
 	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 1)) == NULL)
 		fatal("sio_open");
+
+	sio_onmove(hdl, player_onmove, NULL);
 
 	/* allocate one extra for imsg */
 	player_pfds = calloc(sio_nfds(hdl) + 1, sizeof(*player_pfds));

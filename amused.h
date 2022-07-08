@@ -30,6 +30,8 @@ enum imsg_type {
 	IMSG_RESUME,
 	IMSG_PAUSE,
 	IMSG_STOP,
+	IMSG_POS,
+	IMSG_LEN,
 	IMSG_EOF,
 	IMSG_ERR,		/* error string */
 
@@ -92,6 +94,8 @@ struct player_repeat {
 struct player_status {
 	char			path[PATH_MAX];
 	int			status;
+	int64_t			position;
+	int64_t			duration;
 	struct player_repeat	rp;
 };
 
@@ -138,6 +142,7 @@ __dead void	ctl(int, char **);
 
 /* player.c */
 int	player_setup(int, int, int);
+void	player_setduration(int64_t);
 int	play(const void *, size_t);
 int	player(int, int);
 
