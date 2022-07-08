@@ -49,7 +49,7 @@ static int64_t samples;
 
 volatile sig_atomic_t halted;
 
-void
+static void
 player_signal_handler(int signo)
 {
 	halted = 1;
@@ -125,7 +125,7 @@ player_setduration(int64_t duration)
 	imsg_flush(ibuf);
 }
 
-void
+static void
 player_onmove(void *arg, int delta)
 {
 	static int64_t reported;
@@ -142,7 +142,7 @@ player_onmove(void *arg, int delta)
 }
 
 /* process only one message */
-int
+static int
 player_dispatch(void)
 {
 	struct pollfd	pfd;
@@ -190,7 +190,7 @@ again:
 	return ret;
 }
 
-void
+static void
 player_senderr(const char *errstr)
 {
 	size_t len = 0;
@@ -202,14 +202,14 @@ player_senderr(const char *errstr)
 	imsg_flush(ibuf);
 }
 
-void
+static void
 player_sendeof(void)
 {
 	imsg_compose(ibuf, IMSG_EOF, 0, 0, -1, NULL, 0);
 	imsg_flush(ibuf);
 }
 
-int
+static int
 player_playnext(const char **errstr)
 {
 	static char buf[512];
@@ -253,7 +253,7 @@ err:
 	return -1;
 }
 
-int
+static int
 player_pause(void)
 {
 	int r;
@@ -262,7 +262,7 @@ player_pause(void)
 	return r == IMSG_RESUME;
 }
 
-int
+static int
 player_shouldstop(void)
 {
 	switch (player_dispatch()) {

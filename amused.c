@@ -55,7 +55,7 @@ enum amused_process {
 	PROC_PLAYER,
 };
 
-__dead void
+static __dead void
 main_shutdown(void)
 {
 	pid_t	pid;
