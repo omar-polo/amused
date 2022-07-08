@@ -141,7 +141,7 @@ __dead void	usage(void);
 __dead void	ctl(int, char **);
 
 /* player.c */
-int	player_setup(int, int, int);
+int	player_setup(unsigned int, unsigned int, unsigned int);
 void	player_setduration(int64_t);
 int	play(const void *, size_t);
 int	player(int, int);

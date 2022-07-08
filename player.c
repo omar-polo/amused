@@ -56,7 +56,7 @@ player_signal_handler(int signo)
 }
 
 int
-player_setup(int bits, int rate, int channels)
+player_setup(unsigned int bits, unsigned int rate, unsigned int channels)
 {
 	int nfds, fpct;
 
