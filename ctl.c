@@ -50,21 +50,21 @@ int	ctl_repeat(struct parse_result *, int, char **);
 int	ctl_monitor(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
-	{ "play",	PLAY,		ctl_noarg,	"", 0 },
-	{ "pause",	PAUSE,		ctl_noarg,	"", 0 },
-	{ "toggle",	TOGGLE,		ctl_noarg,	"", 0 },
-	{ "stop",	STOP,		ctl_noarg,	"", 0 },
-	{ "restart",	RESTART,	ctl_noarg,	"", 0 },
 	{ "add",	ADD,		ctl_add,	"files...", 0 },
 	{ "flush",	FLUSH,		ctl_noarg,	"", 0 },
+	{ "jump",	JUMP,		ctl_jump,	"pattern", 0 },
+	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
+	{ "monitor",	MONITOR,	ctl_monitor,	"[events]", 0 },
+	{ "next",	NEXT,		ctl_noarg,	"", 0 },
+	{ "pause",	PAUSE,		ctl_noarg,	"", 0 },
+	{ "play",	PLAY,		ctl_noarg,	"", 0 },
+	{ "prev",	PREV,		ctl_noarg,	"", 0 },
+	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off", 0 },
+	{ "restart",	RESTART,	ctl_noarg,	"", 0 },
 	{ "show",	SHOW,		ctl_show,	"[-p]", 0 },
 	{ "status",	STATUS,		ctl_noarg,	"", 0 },
-	{ "next",	NEXT,		ctl_noarg,	"", 0 },
-	{ "prev",	PREV,		ctl_noarg,	"", 0 },
-	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
-	{ "jump",	JUMP,		ctl_jump,	"pattern", 0 },
-	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off", 0 },
-	{ "monitor",	MONITOR,	ctl_monitor,	"[events]", 0 },
+	{ "stop",	STOP,		ctl_noarg,	"", 0 },
+	{ "toggle",	TOGGLE,		ctl_noarg,	"", 0 },
 	{ NULL, 0, NULL, NULL, 0 },
 };
 
