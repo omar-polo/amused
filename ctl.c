@@ -41,13 +41,13 @@
 static struct imsgbuf	*ibuf;
 char			 cwd[PATH_MAX];
 
-int	ctl_noarg(struct parse_result *, int, char **);
-int	ctl_add(struct parse_result *, int, char **);
-int	ctl_show(struct parse_result *, int, char **);
-int	ctl_load(struct parse_result *, int, char **);
-int	ctl_jump(struct parse_result *, int, char **);
-int	ctl_repeat(struct parse_result *, int, char **);
-int	ctl_monitor(struct parse_result *, int, char **);
+static int	ctl_noarg(struct parse_result *, int, char **);
+static int	ctl_add(struct parse_result *, int, char **);
+static int	ctl_show(struct parse_result *, int, char **);
+static int	ctl_load(struct parse_result *, int, char **);
+static int	ctl_jump(struct parse_result *, int, char **);
+static int	ctl_repeat(struct parse_result *, int, char **);
+static int	ctl_monitor(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "add",	ADD,		ctl_add,	"files...", 0 },
@@ -548,7 +548,7 @@ end:
 	return ret;
 }
 
-int
+static int
 ctl_noarg(struct parse_result *res, int argc, char **argv)
 {
 	int ch;
@@ -564,7 +564,7 @@ ctl_noarg(struct parse_result *res, int argc, char **argv)
 	return ctlaction(res);
 }
 
-int
+static int
 ctl_add(struct parse_result *res, int argc, char **argv)
 {
 	int ch;
@@ -581,7 +581,7 @@ ctl_add(struct parse_result *res, int argc, char **argv)
 	return ctlaction(res);
 }
 
-int
+static int
 ctl_show(struct parse_result *res, int argc, char **argv)
 {
 	int ch;
@@ -599,7 +599,7 @@ ctl_show(struct parse_result *res, int argc, char **argv)
 	return ctlaction(res);
 }
 
-int
+static int
 ctl_load(struct parse_result *res, int argc, char **argv)
 {
 	int ch;
@@ -622,7 +622,7 @@ ctl_load(struct parse_result *res, int argc, char **argv)
 	return ctlaction(res);
 }
 
-int
+static int
 ctl_jump(struct parse_result *res, int argc, char **argv)
 {
 	int ch;
@@ -639,7 +639,7 @@ ctl_jump(struct parse_result *res, int argc, char **argv)
 	return ctlaction(res);
 }
 
-int
+static int
 ctl_repeat(struct parse_result *res, int argc, char **argv)
 {
 	int ch, b;
@@ -671,7 +671,7 @@ ctl_repeat(struct parse_result *res, int argc, char **argv)
 	return ctlaction(res);
 }
 
-int
+static int
 ctl_monitor(struct parse_result *res, int argc, char **argv)
 {
 	int ch;
