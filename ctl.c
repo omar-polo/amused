@@ -277,6 +277,26 @@ imsg_name(int type)
 	}
 }
 
+static void
+print_time(const char *label, int64_t seconds)
+{
+	int hours, minutes;
+
+	if (seconds < 0)
+		seconds = 0;
+
+	hours = seconds / 3600;
+	seconds -= hours * 3600;
+
+	minutes = seconds / 60;
+	seconds -= minutes * 60;
+
+	printf("%s ", label);
+	if (hours != 0)
+		printf("%02d:", hours);
+	printf("%02d:%02lld\n", minutes, (long long)seconds);
+}
+
 static int
 ctlaction(struct parse_result *res)
 {
@@ -473,6 +493,10 @@ ctlaction(struct parse_result *res)
 					printf("unknown ");
 
 				puts(ps.path);
+
+				print_time("position", ps.position);
+				print_time("duration", ps.duration);
+
 				printf("repat one %s\nrepeat all %s\n",
 				    ps.rp.repeat_one ? "on" : "off",
 				    ps.rp.repeat_all ? "on" : "off");
