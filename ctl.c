@@ -497,7 +497,7 @@ ctlaction(struct parse_result *res)
 				print_time("position", ps.position);
 				print_time("duration", ps.duration);
 
-				printf("repat one %s\nrepeat all %s\n",
+				printf("repeat one %s\nrepeat all %s\n",
 				    ps.rp.repeat_one ? "on" : "off",
 				    ps.rp.repeat_all ? "on" : "off");
 
