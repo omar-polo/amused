@@ -736,6 +736,7 @@ ctl_connect(void)
 	struct sockaddr_un	 sa;
 	size_t			 size;
 	int			 fd, lockfd = -1, locked = 0, spawned = 0;
+	int			 attempt = 0;
 	char			*lockfile = NULL;
 
 	memset(&sa, 0, sizeof(sa));
@@ -753,6 +754,8 @@ retry:
 	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		log_debug("connection failed: %s", strerror(errno));
 		if (errno != ECONNREFUSED && errno != ENOENT)
+			goto failed;
+		if (attempt++ == 100)
 			goto failed;
 		close(fd);
 
