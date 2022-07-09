@@ -54,6 +54,7 @@ play_mp3(int fd, const char **errstr)
 	static char	 buf[4096];
 	size_t		 len;
 	mpg123_handle	*mh;
+	int64_t		 seek = -1;
 	int		 err, ret = -1;
 
 	if ((mh = mpg123_new(NULL, NULL)) == NULL)
@@ -71,6 +72,15 @@ play_mp3(int fd, const char **errstr)
 	player_setduration(mpg123_length(mh));
 
 	for (;;) {
+		if (seek != -1) {
+			seek = mpg123_seek(mh, seek, SEEK_SET);
+			if (seek < 0) {
+				ret = 0;
+				break;
+			}
+			player_setpos(seek);
+		}
+
 		err = mpg123_read(mh, buf, sizeof(buf), &len);
 		switch (err) {
 		case MPG123_DONE:
@@ -81,7 +91,7 @@ play_mp3(int fd, const char **errstr)
 				goto done;
 			break;
 		case MPG123_OK:
-			if (!play(buf, len)) {
+			if (!play(buf, len, &seek)) {
 				ret = 1;
 				goto done;
 			}

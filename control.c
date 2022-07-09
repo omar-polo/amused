@@ -287,7 +287,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				break;
 			case STATE_PAUSED:
 				play_state = STATE_PLAYING;
-				main_send_player(IMSG_RESUME, -1);
+				main_send_player(IMSG_RESUME, -1, NULL ,0);
 				break;
 			}
 			control_notify(&c->iev, imsg.hdr.type);
@@ -299,11 +299,11 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				break;
 			case STATE_PLAYING:
 				play_state = STATE_PAUSED;
-				main_send_player(IMSG_PAUSE, -1);
+				main_send_player(IMSG_PAUSE, -1, NULL, 0);
 				break;
 			case STATE_PAUSED:
 				play_state = STATE_PLAYING;
-				main_send_player(IMSG_RESUME, -1);
+				main_send_player(IMSG_RESUME, -1, NULL, 0);
 				break;
 			}
 			control_notify(&c->iev, imsg.hdr.type);
@@ -312,18 +312,18 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			if (play_state != STATE_PLAYING)
 				break;
 			play_state = STATE_PAUSED;
-			main_send_player(IMSG_PAUSE, -1);
+			main_send_player(IMSG_PAUSE, -1, NULL, 0);
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
 		case IMSG_CTL_STOP:
 			if (play_state == STATE_STOPPED)
 				break;
 			play_state = STATE_STOPPED;
-			main_send_player(IMSG_STOP, -1);
+			main_send_player(IMSG_STOP, -1, NULL, 0);
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
 		case IMSG_CTL_RESTART:
-			main_send_player(IMSG_STOP, -1);
+			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_restart_track();
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
@@ -338,12 +338,12 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			main_send_status(&c->iev);
 			break;
 		case IMSG_CTL_NEXT:
-			main_send_player(IMSG_STOP, -1);
+			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_advance();
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
 		case IMSG_CTL_PREV:
-			main_send_player(IMSG_STOP, -1);
+			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_previous();
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
@@ -403,6 +403,17 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			break;
 		case IMSG_CTL_MONITOR:
 			c->monitor = 1;
+			break;
+		case IMSG_CTL_SEEK:
+			if (IMSG_DATA_SIZE(imsg) !=
+			    sizeof(struct player_seek)) {
+				main_senderr(&c->iev, "wrong size");
+				break;
+			}
+			log_debug("got IMSG_CTL_SEEK, forwarding it");
+			main_send_player(IMSG_CTL_SEEK, -1, imsg.data,
+			    IMSG_DATA_SIZE(imsg));
+			control_notify(&c->iev, imsg.hdr.type);
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,

@@ -141,10 +141,18 @@ player_onmove(void *arg, int delta)
 	}
 }
 
+void
+player_setpos(int64_t pos)
+{
+	samples = pos;
+	player_onmove(NULL, 0);
+}
+
 /* process only one message */
 static int
-player_dispatch(void)
+player_dispatch(int64_t *s)
 {
+	struct player_seek seek;
 	struct pollfd	pfd;
 	struct imsg	imsg;
 	ssize_t		n;
@@ -181,6 +189,20 @@ again:
 	case IMSG_RESUME:
 	case IMSG_PAUSE:
 	case IMSG_STOP:
+		break;
+	case IMSG_CTL_SEEK:
+		if (s == NULL)
+			break;
+		if (IMSG_DATA_SIZE(imsg) != sizeof(seek))
+			fatalx("wrong size for seek ctl");
+		memcpy(&seek, imsg.data, sizeof(seek));
+		log_debug("got to seek: {%lld, %d}", seek.offset,
+		    seek.relative);
+		*s = seek.offset * par.rate;
+		if (seek.relative)
+			*s += samples;
+		if (*s < 0)
+			*s = -1;
 		break;
 	default:
 		fatalx("unknown imsg %d", imsg.hdr.type);
@@ -254,20 +276,20 @@ err:
 }
 
 static int
-player_pause(void)
+player_pause(int64_t *s)
 {
 	int r;
 
-	r = player_dispatch();
+	r = player_dispatch(s);
 	return r == IMSG_RESUME;
 }
 
 static int
-player_shouldstop(void)
+player_shouldstop(int64_t *s)
 {
-	switch (player_dispatch()) {
+	switch (player_dispatch(s)) {
 	case IMSG_PAUSE:
-		if (player_pause())
+		if (player_pause(s))
 			break;
 		/* fallthrough */
 	case IMSG_STOP:
@@ -278,11 +300,12 @@ player_shouldstop(void)
 }
 
 int
-play(const void *buf, size_t len)
+play(const void *buf, size_t len, int64_t *s)
 {
 	size_t w;
 	int nfds, revents, r;
 
+	*s = -1;
 	while (len != 0) {
 		nfds = sio_pollfd(hdl, player_pfds + 1, POLLOUT);
 		r = poll(player_pfds, nfds + 1, INFTIM);
@@ -290,7 +313,7 @@ play(const void *buf, size_t len)
 			fatal("poll");
 
 		if (player_pfds[0].revents & (POLLHUP|POLLIN)) {
-			if (player_shouldstop()) {
+			if (player_shouldstop(s)) {
 				sio_flush(hdl);
 				stopped = 1;
 				return 0;
@@ -359,7 +382,7 @@ player(int debug, int verbose)
 		const char *errstr = NULL;
 
 		while (nextfd == -1)
-			player_dispatch();
+			player_dispatch(NULL);
 
 		r = player_playnext(&errstr);
 		if (r == -1)

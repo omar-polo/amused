@@ -45,6 +45,7 @@ play_opus(int fd, const char **errstr)
 	static uint8_t out[BUFSIZ * 2];
 	OggOpusFile *of;
 	void *f;
+	int64_t seek = -1;
 	int r, ret = 0;
 	OpusFileCallbacks cb = {NULL, NULL, NULL, NULL};
 	int i, li, prev_li = -1, duration_set = 0;
@@ -59,6 +60,13 @@ play_opus(int fd, const char **errstr)
 	}
 
 	for (;;) {
+		if (seek != -1) {
+			r = op_pcm_seek(of, seek);
+			if (r != 0)
+				break;
+			player_setpos(seek);
+		}
+
 		/* NB: will downmix multichannels files into two channels */
 		r = op_read_stereo(of, pcm, nitems(pcm));
 		if (r == OP_HOLE) /* corrupt file segment? */
@@ -92,7 +100,7 @@ play_opus(int fd, const char **errstr)
 			out[2*i+1] = (pcm[i] >> 8) & 0xFF;
 		}
 
-		if (!play(out, 4*r)) {
+		if (!play(out, 4*r, &seek)) {
 			ret = 1;
 			break;
 		}

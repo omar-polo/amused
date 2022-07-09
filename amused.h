@@ -47,6 +47,7 @@ enum imsg_type {
 	IMSG_CTL_PREV,
 	IMSG_CTL_JUMP,
 	IMSG_CTL_REPEAT,	/* struct player_repeat */
+	IMSG_CTL_SEEK,		/* struct player_seek */
 
 	IMSG_CTL_BEGIN,
 	IMSG_CTL_ADD,		/* path to a file */
@@ -82,6 +83,12 @@ enum actions {
 	JUMP,
 	REPEAT,
 	MONITOR,
+	SEEK,
+};
+
+struct player_seek {
+	int64_t	offset;
+	int	relative;
 };
 
 struct ctl_command;
@@ -106,6 +113,7 @@ struct parse_result {
 	int			 pretty;
 	int			 monitor[IMSG__LAST];
 	struct player_repeat	 rep;
+	struct player_seek	 seek;
 	struct ctl_command	*ctl;
 };
 
@@ -124,7 +132,7 @@ void		spawn_daemon(void);
 void		imsg_event_add(struct imsgev *iev);
 int		imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
 		    pid_t, int, const void *, uint16_t);
-int		main_send_player(uint16_t, int);
+int		main_send_player(uint16_t, int, const void *, size_t);
 int		main_play_song(const char *);
 void		main_playlist_jump(struct imsgev *, struct imsg *);
 void		main_playlist_resume(void);
@@ -143,7 +151,8 @@ __dead void	ctl(int, char **);
 /* player.c */
 int	player_setup(unsigned int, unsigned int, unsigned int);
 void	player_setduration(int64_t);
-int	play(const void *, size_t);
+void	player_setpos(int64_t);
+int	play(const void *, size_t, int64_t *);
 int	player(int, int);
 
 int	play_oggvorbis(int, const char **);

@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <imsg.h>
 
 #include <FLAC/stream_decoder.h>
@@ -32,11 +33,31 @@
 #include "amused.h"
 #include "log.h"
 
+struct write_args {
+	FLAC__StreamDecoder *decoder;
+	int seek_failed;
+};
+
+static int
+sample_seek(struct write_args *wa, int64_t seek)
+{
+	int ok;
+
+	ok = FLAC__stream_decoder_seek_absolute(wa->decoder, seek);
+	if (ok)
+		player_setpos(seek);
+	else
+		wa->seek_failed = 1;
+	return ok;
+}
+
 static FLAC__StreamDecoderWriteStatus
 writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
     const int32_t * const *src, void *data)
 {
+	struct write_args *wa = data;
 	static uint8_t buf[BUFSIZ];
+	int64_t seek;
 	int c, i, bps, chans;
 	size_t len;
 
@@ -45,8 +66,14 @@ writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
 
 	for (i = 0, len = 0; i < frame->header.blocksize; ++i) {
 		if (len + 4*chans >= sizeof(buf)) {
-			if (!play(buf, len))
+			if (!play(buf, len, &seek))
 				goto quit;
+			if (seek != -1) {
+				if (sample_seek(wa, seek))
+					break;
+				else
+					goto quit;
+			}
 			len = 0;
 		}
 
@@ -73,7 +100,10 @@ writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
 		}
 	}
 
-	if (len != 0 && !play(buf, len))
+	if (len != 0 && !play(buf, len, &seek))
+		goto quit;
+
+	if (seek != -1 && !sample_seek(wa, seek))
 		goto quit;
 
 	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
@@ -112,6 +142,7 @@ int
 play_flac(int fd, const char **errstr)
 {
 	FILE *f;
+	struct write_args wa;
 	int s, ok = 1;
 	FLAC__StreamDecoder *decoder = NULL;
 	FLAC__StreamDecoderInitStatus init_status;
@@ -125,21 +156,24 @@ play_flac(int fd, const char **errstr)
 
 	FLAC__stream_decoder_set_md5_checking(decoder, 1);
 
+	memset(&wa, 0, sizeof(wa));
+	wa.decoder = decoder;
+
 	init_status = FLAC__stream_decoder_init_FILE(decoder, f, writecb,
-	    metacb, errcb, NULL);
+	    metacb, errcb, &wa);
 	if (init_status != FLAC__STREAM_DECODER_INIT_STATUS_OK)
 		errx(1, "flac decoder: %s",
 		    FLAC__StreamDecoderInitStatusString[init_status]);
 
 	ok = FLAC__stream_decoder_process_until_end_of_stream(decoder);
-	s = FLAC__stream_decoder_get_state(decoder);
 
+	s = FLAC__stream_decoder_get_state(decoder);
 	FLAC__stream_decoder_delete(decoder);
 	fclose(f);
 
-	if (s == FLAC__STREAM_DECODER_ABORTED)
+	if (s == FLAC__STREAM_DECODER_ABORTED && !wa.seek_failed)
 		return 1;
-	else if (!ok) {
+	else if (!ok && !wa.seek_failed) {
 		*errstr = "flac decoding error";
 		return -1;
 	} else

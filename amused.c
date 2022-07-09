@@ -380,9 +380,9 @@ imsg_compose_event(struct imsgev *iev, uint16_t type, uint32_t peerid,
 }
 
 int
-main_send_player(uint16_t type, int fd)
+main_send_player(uint16_t type, int fd, const void *data, size_t len)
 {
-	return imsg_compose_event(iev_player, type, 0, 0, fd, NULL, 0);
+	return imsg_compose_event(iev_player, type, 0, 0, fd, data, len);
 }
 
 int
@@ -409,7 +409,7 @@ main_play_song(const char *path)
 	}
 
 	play_state = STATE_PLAYING;
-	main_send_player(IMSG_PLAY, fd);
+	main_send_player(IMSG_PLAY, fd, NULL, 0);
 	return 1;
 }
 
@@ -438,7 +438,7 @@ main_playlist_jump(struct imsgev *iev, struct imsg *imsg)
 		return;
 	}
 
-	main_send_player(IMSG_STOP, -1);
+	main_send_player(IMSG_STOP, -1, NULL, 0);
 	if (!main_play_song(song)) {
 		main_senderr(iev, "can't play");
 		playlist_dropcurrent();
