@@ -259,7 +259,6 @@ main(void)
 #endif /* TEST_INFTIM */
 #if TEST_LANDLOCK
 #include <linux/landlock.h>
-#include <linux/prctl.h>
 #include <stdlib.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
