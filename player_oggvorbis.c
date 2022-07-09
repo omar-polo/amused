@@ -42,7 +42,7 @@ play_oggvorbis(int fd, const char **errstr)
 	OggVorbis_File vf;
 	vorbis_info *vi;
 	int64_t seek = -1;
-	int current_section, eof = 0, ret = 0;
+	int current_section, ret = 0;
 
 	if ((f = fdopen(fd, "r")) == NULL) {
 		*errstr = "fdopen failed";
@@ -67,7 +67,7 @@ play_oggvorbis(int fd, const char **errstr)
 
 	player_setduration(ov_time_total(&vf, -1) * vi->rate);
 
-	while (!eof) {
+	for (;;) {
 		long r;
 
 		if (seek != -1) {
@@ -80,7 +80,7 @@ play_oggvorbis(int fd, const char **errstr)
 		r = ov_read(&vf, pcmout, sizeof(pcmout), 0, 2, 1,
 		    &current_section);
 		if (r == 0)
-			eof = 1;
+			break;
 		else if (r > 0) {
 			/* TODO: deal with sample rate changes */
 			if (!play(pcmout, r, &seek)) {
