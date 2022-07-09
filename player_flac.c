@@ -142,12 +142,18 @@ play_flac(int fd, const char **errstr)
 	FLAC__StreamDecoder *decoder = NULL;
 	FLAC__StreamDecoderInitStatus init_status;
 
-	if ((f = fdopen(fd, "r")) == NULL)
-		err(1, "fdopen");
+	if ((f = fdopen(fd, "r")) == NULL) {
+		*errstr = "fdopen failed";
+		close(fd);
+		return -1;
+	}
 
 	decoder = FLAC__stream_decoder_new();
-	if (decoder == NULL)
-		err(1, "flac stream decoder");
+	if (decoder == NULL) {
+		*errstr = "FLAC__stream_decoder_new() failed";
+		fclose(f);
+		return -1;
+	}
 
 	FLAC__stream_decoder_set_md5_checking(decoder, 1);
 

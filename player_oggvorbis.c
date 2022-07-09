@@ -44,8 +44,11 @@ play_oggvorbis(int fd, const char **errstr)
 	int64_t seek = -1;
 	int current_section, eof = 0, ret = 0;
 
-	if ((f = fdopen(fd, "r")) == NULL)
-		err(1, "fdopen");
+	if ((f = fdopen(fd, "r")) == NULL) {
+		*errstr = "fdopen failed";
+		close(fd);
+		return -1;
+	}
 
 	if (ov_open_callbacks(f, &vf, NULL, 0, OV_CALLBACKS_NOCLOSE) < 0) {
 		*errstr = "input is not an Ogg bitstream";

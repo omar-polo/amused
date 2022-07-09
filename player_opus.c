@@ -45,8 +45,11 @@ play_opus(int fd, const char **errstr)
 	OpusFileCallbacks cb = {NULL, NULL, NULL, NULL};
 	int i, li, prev_li = -1, duration_set = 0;
 
-	if ((f = op_fdopen(&cb, fd, "r")) == NULL)
-		err(1, "fdopen");
+	if ((f = op_fdopen(&cb, fd, "r")) == NULL) {
+		*errstr = "fdopen failed";
+		close(fd);
+		return -1;
+	}
 
 	of = op_open_callbacks(f, &cb, NULL, 0, &r);
 	if (of == NULL) {
