@@ -14,16 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "config.h"
+
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/queue.h>
-#include <sys/uio.h>
 
-#include <err.h>
-#include <event.h>
 #include <limits.h>
-#include <imsg.h>
 #include <unistd.h>
 
 #include <mpg123.h>

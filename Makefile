@@ -1,47 +1,104 @@
-PROG=	amused
-SRCS=	amused.c control.c log.c xmalloc.c player.c ctl.c playlist.c \
-	player_flac.c player_123.c player_opus.c player_oggvorbis.c
+.PHONY: all clean distclean install
 
-.include "amused-version.mk"
+VERSION =	0.10
 
-CPPFLAGS += -I/usr/local/include -I/usr/local/include/opus
+PROG =		amused
 
-LDADD =	-levent -lm -lsndio -lutil \
-	-L/usr/local/lib -lmpg123 -lvorbisfile -lopusfile -lFLAC
-DPADD =	${LIBEVENT} ${LIBM} ${LIBSNDIO} ${LIBUTIL}
+SOURCES =	amused.c \
+		compats.c \
+		control.c \
+		ctl.c \
+		log.c \
+		player.c \
+		player_123.c \
+		player_flac.c \
+		player_oggvorbis.c \
+		player_opus.c \
+		playlist.c \
+		xmalloc.c
 
-.if "${AMUSED_RELEASE}" == "Yes"
-PREFIX ?= /usr/local
-BINDIR ?= ${PREFIX}/bin
-MANDIR ?= ${PREFIX}/man/man
-.else
-NOMAN = Yes
-CFLAGS += -Werror -Wall -Wstrict-prototypes -Wunused-variable
-PREFIX ?= ${HOME}
-BINDIR ?= ${PREFIX}/bin
-BINOWN ?= ${USER}
-.if !defined(BINGRP)
-BINGRP != id -g -n
-.endif
-DEBUG = -O0 -g
-.endif
+OBJS =		${SOURCES:.c=.o}
 
-release: clean
-	sed -i -e 's/_RELEASE=No/_RELEASE=Yes/' amused-version.mk
-	${MAKE} dist
-	sed -i -e 's/_RELEASE=Yes/_RELEASE=No/' amused-version.mk
+HEADERS =	amused.h \
+		control.h \
+		log.h \
+		playlist.h \
+		xmalloc.h
 
-dist: clean
-	mkdir /tmp/amused-${AMUSED_VERSION}
-	pax -rw * /tmp/amused-${AMUSED_VERSION}
-	find /tmp/amused-${AMUSED_VERSION} -type d -name obj -delete
-	rm /tmp/amused-${AMUSED_VERSION}/amused-dist.txt
-	tar -C /tmp -zcf amused-${AMUSED_VERSION}.tar.gz amused-${AMUSED_VERSION}
-	rm -rf /tmp/amused-${AMUSED_VERSION}
-	tar -ztf amused-${AMUSED_VERSION}.tar.gz | \
-		sed -e 's/^amused-${AMUSED_VERSION}//' | \
-		sort > amused-dist.txt.new
-	diff -u amused-dist.txt{,.new}
-	rm amused-dist.txt.new
+DISTFILES =	CHANGES \
+		LICENSE \
+		Makefile \
+		README.md \
+		amused.1 \
+		configure \
+		configure.local.example \
+		imsg.h \
+		queue.h \
+		tests.c \
+		${HEADERS} \
+		${SOURCES}
 
-.include <bsd.prog.mk>
+all: ${PROG}
+
+Makefile.configure config.h: configure tests.c
+	@echo "$@ is out of date; please run ./configure"
+	@exit 1
+
+include Makefile.configure
+
+# -- targets --
+
+${PROG}: ${OBJS}
+	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD}
+
+clean:
+	rm -f ${OBJS} ${PROG}
+
+distclean: clean
+	rm -f Makefile.configure config.h config.h.old config.log config.log.old
+
+install:
+	mkdir -p ${DESTDIR}${BINDIR}
+	mkdir -p ${DESTDIR}${MANDIR}/man1
+	${INSTALL_PROGRAM} ${PROG} ${DESTDIR}${BINDIR}
+	${INSTALL_MAN} amused.1 ${DESTDIR}${MANDIR}/man1/${PROG}.1
+
+install-local:
+	mkdir -p ${HOME}/bin
+	${INSTALL_PROGRAM} ${PROG} ${HOME}/bin
+
+uninstall:
+	rm ${DESTDIR}${BINDIR}/${PROG}
+	rm ${DESTDIR}${MANDIR}/man1/${PROG}.1
+
+# --- maintainer targets ---
+
+dist: ${PROG}-${VERSION}.sha256
+
+${PROG}-${VERSION}.sha256: ${PROG}-${VERSION}.tar.gz
+	sha256 ${PROG}-${VERSION}.tar.gz > $@
+
+${PROG}-${VERSION}.tar.gz: ${DISTFILES}
+	mkdir -p .dist/${PROG}-${VERSION}
+	${INSTALL} -m 0644 ${DISTFILES} .dist/${PROG}-${VERSION}
+	cd .dist/${PROG}-${VERSION} && chmod 755 configure
+	cd .dist && tar zcf ../$@ ${PROG}-${VERSION}
+	rm -rf .dist/
+
+# --- dependency management ---
+
+# these .d files are produced during the first build if the compiler
+# supports it.
+
+-include amused.d
+-include compats.d
+-include control.d
+-include ctl.d
+-include log.d
+-include player.d
+-include player_123.d
+-include player_flac.d
+-include player_oggvorbis.d
+-include player_opus.d
+-include playlist.d
+-include xmalloc.d

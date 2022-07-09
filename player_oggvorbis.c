@@ -14,19 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
-#include <sys/queue.h>
-#include <sys/uio.h>
+#include "config.h"
 
-#include <err.h>
-#include <event.h>
 #include <fcntl.h>
 #include <math.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <imsg.h>
 #include <unistd.h>
 
 #include <vorbis/codec.h>

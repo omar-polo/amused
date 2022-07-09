@@ -1,2 +1,10 @@
+Makefile.configure
+amused
+config.h
+config.h.old
+config.log
+config.log.old
+**/*.d
+**/*.o
 **/obj
 **/tags

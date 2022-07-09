@@ -1,0 +1,941 @@
+#! /bin/sh
+#
+# Copyright (c) 2014, 2015, 2016 Ingo Schwarze <schwarze@openbsd.org>
+# Copyright (c) 2017, 2018 Kristaps Dzonsons <kristaps@bsd.lv>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+OCONFIGURE_VERSION="0.3.8"
+
+#
+# This script outputs two files: config.h and Makefile.configure.
+# It tries to read from configure.local, which contains predefined
+# values we won't autoconfigure.
+#
+# If you want to use configure with your project, have your GNUmakefile
+# or BSDmakefile---whichever---try to import/include Makefile.configure
+# at the beginning of the file.
+#
+# Like so (note no quotes, no period, etc.):
+#
+#   include Makefile.configure
+#
+# If it exists, configure was run; otherwise, it wasn't.
+#
+# You'll probably want to change parts of this file.  I've noted the
+# parts that you'll probably change in the section documentation.
+#
+# See https://github.com/kristapsdz/oconfigure for more.
+
+set -e
+
+# try to be helpful
+case "$1" in
+--help|-h)
+	cat <<EOF
+\`configure' configures amused to adapt to many kinds of systems.
+
+Usage: $0 [-h] [--prefix=path] [VAR=VALUE]...
+
+The options are as follows:
+
+    -h, --help     print this help message
+
+    --prefix=path  equivalent to specifying the PREFIX variable, supported
+                   for compatibility with other common "configure" scripts.
+
+Variables available:
+
+    LDADD                  generic linker flags
+    LDADD_IMSG             linker flags for libimsg
+    LDADD_LIBEVENT         linker flags for libevent
+    LDADD_LIBEVENT2        linker flags for libevent2
+    LDADD_LIBFLAC          linker flags for libflac
+    LDADD_LIBMPG123        linker flags for libmpg123
+    LDADD_LIBOPUSFILE      linker flags for libopusfile
+    LDADD_LIBVORBISFILE    linker flags for libvorbisfile
+    LDADD_SNDIO            linker flags for libsndio
+    LDADD_LIBSOCKET        linker flags for libsocket
+    LDFLAGS                extra linker flags
+    CPPFLAGS               C preprocessors flags
+    DESTDIR                destination directory
+    PREFIX                 where to install files
+    MANDIR                 where to install man pages (PREFIX/man)
+    LIBDIR                 where to install libraries (PREFIX/lib)
+    BINDIR                 where to install executables (PREFIX/bin)
+    SHAREDIR               where to install misc files (PREFIX/share)
+    SBINDIR                where to install system executables (PREFIX/sbin)
+    INCLUDEDIR             where to install header files (PREFIX/include)
+    PKG_CONFIG             path to the pkg-config program or empty to disable
+
+EOF
+	exit 0 ;;
+esac
+
+#----------------------------------------------------------------------
+# Prepare for running: move aside previous configure runs.
+# Output file descriptor usage:
+#  1 (stdout): config.h or Makefile.configure
+#  2 (stderr): original stderr, usually to the console
+#  3: config.log
+# You DO NOT want to change this.
+#----------------------------------------------------------------------
+
+[ -w config.log ] && mv config.log config.log.old
+[ -w config.h   ] && mv config.h config.h.old
+
+exec 3> config.log
+echo "config.log: writing..."
+
+# GNU submake prints different output if invoked recursively, which
+# messes up CC and CFLAGS detection.  Pass --no-print-directory if
+# we have a MAKELEVEL (GNU and FreeBSD make) and the argument is
+# allowed.
+
+MAKE_FLAGS=""
+
+if [ -n "${MAKELEVEL}" ]; then
+	if [ "${MAKELEVEL}" -gt 0 ] ; then
+		MAKE_FLAGS="--no-print-directory"
+		echo "all:" | make ${MAKE_FLAGS} -sf - 2>/dev/null || MAKE_FLAGS=""
+	fi
+fi
+
+if [ -n "$MAKE_FLAGS" ]; then
+	echo "GNU submake detected: using --no-print-directory" 1>&2
+	echo "GNU submake detected: using --no-print-directory" 1>&3
+fi
+
+#----------------------------------------------------------------------
+# Initialize all variables here such that nothing can leak in from the
+# environment except for CC and CFLAGS, which we might have passed in.
+#----------------------------------------------------------------------
+
+CC=`printf "all:\\n\\t@echo \\\$(CC)\\n" | make ${MAKE_FLAGS} -sf -`
+CFLAGS=`printf "all:\\n\\t@echo \\\$(CFLAGS)\\n" | make ${MAKE_FLAGS} -sf -`
+CFLAGS="${CFLAGS} -g -W -Wall -Wmissing-prototypes -Wstrict-prototypes"
+CFLAGS="${CFLAGS} -Wmissing-declarations -Wno-unused-parameter"
+CFLAGS="${CFLAGS} -Wno-sign-compare"
+LDADD=
+LDADD_IMSG=
+LDADD_LIBEVENT=
+LDADD_LIBEVENT2=
+LDADD_LIB_FLAC=
+LDADD_LIB_MPG123=
+LDADD_LIB_VORBISFILE=
+LDADD_LIB_SNDIO=
+LDADD_LIB_SOCKET=
+LDADD_STATIC=
+CPPFLAGS=
+LDFLAGS=
+DESTDIR=
+PREFIX="/usr/local"
+BINDIR=
+SBINDIR=
+INCLUDEDIR=
+LIBDIR=
+MANDIR=
+SHAREDIR=
+INSTALL="install"
+INSTALL_PROGRAM=
+INSTALL_LIB=
+INSTALL_MAN=
+INSTALL_DATA=
+PKG_CONFIG=
+
+# SunOS sets "cc", but this doesn't exist.
+# It does have gcc, so try that instead.
+# Prefer clang, though.
+
+command -v ${CC} 2>/dev/null 1>&2 || {
+	echo "${CC} not found: trying clang" 1>&2
+	echo "${CC} not found: trying clang" 1>&3
+	CC=clang
+	command -v ${CC} 2>/dev/null 1>&2 || {
+		echo "${CC} not found: trying gcc" 1>&2
+		echo "${CC} not found: trying gcc" 1>&3
+		CC=gcc
+		command -v ${CC} 2>/dev/null 1>&2 || {
+			echo "gcc not found: giving up" 1>&2
+			echo "gcc not found: giving up" 1>&3
+			exit 1
+		}
+	}
+}
+
+command -v pkg-config 2>/dev/null 1>&2 && {
+	PKG_CONFIG=pkg-config
+	echo "pkg-config found" 1>&2
+	echo "pkg-config found" 1>&3
+} || {
+	echo "pkg-config not found" 1>&2
+	echo "pkg-config not found" 1>&3
+}
+
+#----------------------------------------------------------------------
+# Allow certain variables to be overriden on the command line.
+#----------------------------------------------------------------------
+
+while [ $# -gt 0 ]; do
+	key=${1%%=*}
+	val=${1#*=}
+
+	if [ "$key" = "--prefix" ]; then
+		key=PREFIX
+		if [ "$1" = "--prefix" ]; then
+			if ! shift 2>&1 >/dev/null; then
+				echo "$0: missing value for --prefix" 1>&2
+				exit 1
+			fi
+			val="$1"
+		fi
+	fi
+
+	if [ "$1" = "$key" ]; then
+		echo "$0: invalid key-value: $1" 1>&2
+		exit 1
+	fi
+
+	shift
+
+	case "$key" in
+	LDADD)
+		LDADD="$val" ;;
+	LDADD_IMSG)
+		LDADD_IMSG="$val" ;;
+	LDADD_LIBEVENT)
+		LDADD_LIBEVENT="$val" ;;
+	LDADD_LIBEVENT2)
+		LDADD_LIBEVENT2="$val" ;;
+	LDADD_LIBFLAC)
+		LDADD_LIBFLAC="$val" ;;
+	LDADD_LIBMPG123)
+		LDADD_LIBMPG123="$val" ;;
+	LDADD_LIBOPUSFILE)
+		LDADD_LIBOPUSFILE="$val" ;;
+	LDADD_LIBVORBISFILE)
+		LDADD_LIBVORBISFILE="$val" ;;
+	LDADD_SNDIO)
+		LDADD_SNDIO="$val" ;;
+	LDADD_LIBSOCKET)
+		LDADD_LIBSOCKET="$val" ;;
+	LDFLAGS)
+		LDFLAGS="$val" ;;
+	CPPFLAGS)
+		CPPFLAGS="$val" ;;
+	DESTDIR)
+		DESTDIR="$val" ;;
+	PREFIX)
+		PREFIX="$val" ;;
+	MANDIR)
+		MANDIR="$val" ;;
+	LIBDIR)
+		LIBDIR="$val" ;;
+	BINDIR)
+		BINDIR="$val" ;;
+	SHAREDIR)
+		SHAREDIR="$val" ;;
+	SBINDIR)
+		SBINDIR="$val" ;;
+	INCLUDEDIR)
+		INCLUDEDIR="$val" ;;
+	PKG_CONFIG)
+		PKG_CONFIG="$val" ;;
+	*)
+		echo "$0: invalid key: $key" 1>&2
+		exit 1
+	esac
+done
+
+
+#----------------------------------------------------------------------
+# These are the values that will be pushed into config.h after we test
+# for whether they're supported or not.
+# Each of these must have a runtest(), below.
+# Please sort by alpha, for clarity.
+# You WANT to change this.
+#----------------------------------------------------------------------
+
+HAVE_CAPSICUM=
+HAVE_ERR=
+HAVE_EXPLICIT_BZERO=
+HAVE_FLOCK=
+HAVE_FREEZERO=
+HAVE_GETDTABLECOUNT=
+HAVE_GETEXECNAME=
+HAVE_GETPROGNAME=
+HAVE_INFTIM=
+HAVE_IMSG=
+HAVE_LANDLOCK=
+HAVE_LIBEVENT=
+HAVE_LIBEVENT2=0		# may not be checked, set to zero
+HAVE_LIB_FLAC=
+HAVE_LIB_MPG123=
+HAVE_LIB_OPUSFILE=
+HAVE_LIB_VORBISFILE=
+HAVE_LIB_SNDIO=
+HAVE_LIB_SOCKET=
+HAVE_MEMMEM=
+HAVE_MEMRCHR=
+HAVE_MEMSET_S=
+HAVE_OPTRESET=
+HAVE_PATH_MAX=
+HAVE_PLEDGE=
+HAVE_PROGRAM_INVOCATION_SHORT_NAME=
+HAVE_PR_SET_NAME=
+HAVE_REALLOCARRAY=
+HAVE_RECALLOCARRAY=
+HAVE_SANDBOX_INIT=
+HAVE_SETPROCTITLE=
+HAVE_SIO_FLUSH=
+HAVE_SOCK_NONBLOCK=
+HAVE_STRLCAT=
+HAVE_STRLCPY=
+HAVE_STRNDUP=
+HAVE_STRNLEN=
+HAVE_STRTONUM=
+HAVE_SYS_FILE=
+HAVE_SYS_QUEUE=
+HAVE_SYSTRACE=0
+HAVE_UNVEIL=
+HAVE___PROGNAME=
+
+#----------------------------------------------------------------------
+# Allow configure.local to override all variables, default settings,
+# command-line arguments, and tested features, above.
+# You PROBABLY DO NOT want to change this.
+#----------------------------------------------------------------------
+
+if [ -r ./configure.local ]; then
+	echo "configure.local: reading..." 1>&2
+	echo "configure.local: reading..." 1>&3
+	cat ./configure.local 1>&3
+	. ./configure.local
+else
+	echo "configure.local: no (fully automatic configuration)" 1>&2
+	echo "configure.local: no (fully automatic configuration)" 1>&3
+fi
+
+echo 1>&3
+
+#----------------------------------------------------------------------
+# Infrastructure for running tests.
+# These consists of a series of functions that will attempt to run the
+# given test file and record its exit into a HAVE_xxx variable.
+# You DO NOT want to change this.
+#----------------------------------------------------------------------
+
+COMP="${CC} ${CFLAGS} ${CPPFLAGS} -Wno-unused -Werror"
+
+# Check whether this HAVE_ setting is manually overridden.
+# If yes, use the override, if no, do not decide anything yet.
+# Arguments: lower-case test name, manual value
+
+ismanual() {
+	[ -z "${3}" ] && return 1
+	echo "${1}: manual (HAVE_${2}=${3})" 1>&2
+	echo "${1}: manual (HAVE_${2}=${3})" 1>&3
+	echo 1>&3
+	return 0
+}
+
+# Run a single autoconfiguration test.
+# In case of success, enable the feature.
+# In case of failure, do not decide anything yet.
+# Arguments: lower-case test name, upper-case test name, additional
+# CFLAGS, additional LIBS.
+
+singletest() {
+	extralib=""
+	pkgcfs=""
+	pkglib=""
+
+	cat 1>&3 << __HEREDOC__
+${1}: testing...
+${COMP} -DTEST_${2} ${3} -o test-${1} tests.c ${LDFLAGS} ${4}
+__HEREDOC__
+	if ${COMP} -DTEST_${2} ${3} -o "test-${1}" tests.c ${LDFLAGS} ${4} 1>&3 2>&3; then
+		echo "${1}: ${CC} succeeded" 1>&3
+	else
+		if [ -n "${5}" ] ; then
+			echo "${1}: ${CC} failed with $? (retrying)" 1>&3
+			cat 1>&3 << __HEREDOC__
+${1}: testing...
+${COMP} -DTEST_${2} ${3} -o test-${1} tests.c ${LDFLAGS} ${5}
+__HEREDOC__
+			if ${COMP} -DTEST_${2} ${3} -o "test-${1}" tests.c ${LDFLAGS} ${5} 1>&3 2>&3; then
+				echo "${1}: ${CC} succeeded" 1>&3
+				extralib="(with ${5})"
+			else
+				test -n "${PKG_CONFIG}" -a -n "${6}" && ${PKG_CONFIG} "$6"
+				if [ $? -eq 0 ]; then
+					echo "${1}: ${CC} failed with $? (retrying)" 1>&3
+					pkgcfs=$($PKG_CONFIG --cflags "${6}")
+					pkglib=$($PKG_CONFIG --libs "${6}")
+					cat 1>&3 << __HEREDOC__
+${1}: testing...
+${COMP} -DTEST_${2} ${3} ${pkgcfs} -o test-${1} tests.c ${LDFLAGS} ${pkglib}
+__HEREDOC__
+					if ${COMP} -DTEST_${2} ${3} ${pkgcfs} -o test-${1} tests.c ${LDFLAGS} ${pkglib} 1>&3 2>&3; then
+						echo "${1}: ${CC} succeeded" 1>&3
+						extralib="(with ${pkgcfs} ${pkglib})"
+					else
+						echo "${1}: ${CC} failed with $?" 1>&3
+						echo 1>&3
+						return 1
+					fi
+				else
+					echo "${1}: ${CC} failed with $?" 1>&3
+					echo 1>&3
+					return 1
+				fi
+			fi
+		else
+			echo "${1}: ${CC} failed with $?" 1>&3
+			echo 1>&3
+			return 1
+		fi
+	fi
+
+	if [ -n "${pkgcfs}" -o -n "${pkglib}" ]
+	then
+		CFLAGS="${CFLAGS} ${pkgcfs}"
+		eval "LDADD_${2}=\"${pkglib}\""
+	elif [ -n "${extralib}" ]
+	then
+		eval "LDADD_${2}=\"${5}\""
+	elif [ -n "${4}" ]
+	then
+		eval "LDADD_${2}=\"${4}\""
+	fi
+
+	echo "${1}: yes ${extralib}" 1>&2
+	echo "${1}: yes ${extralib}" 1>&3
+	echo 1>&3
+	eval HAVE_${2}=1
+	rm "test-${1}"
+	return 0
+}
+
+# Run a complete autoconfiguration test, including the check for
+# a manual override and disabling the feature on failure.
+# Arguments: lower case name, upper case name, additional CFLAGS,
+# additional LDADD, alternative LDADD, pkg-config name.
+
+runtest() {
+	eval _manual=\${HAVE_${2}}
+	ismanual "${1}" "${2}" "${_manual}" && return 0
+	singletest "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" && return 0
+	echo "${1}: no" 1>&2
+	eval HAVE_${2}=0
+	return 1
+}
+
+#----------------------------------------------------------------------
+# Begin running the tests themselves.
+# All of your tests must be defined here.
+# Please sort as the HAVE_xxxx values were defined.
+# You WANT to change this.
+# It consists of the following columns:
+#    runtest
+#    (1) test file
+#    (2) macro to set
+#    (3) argument to cc *before* -o
+#    (4) argument to cc *after*
+#    (5) alternative argument to cc *after*
+#    (6) name for pkg-config auto-discovery
+#----------------------------------------------------------------------
+
+if runtest -MMD _MMD -MMD; then
+	CFLAGS="${CFLAGS} -MMD"
+	echo "adding -MMD to CFLAGS" 1>&2
+	echo "adding -MMD to CFLAGS" 1>&3
+fi
+
+runtest capsicum	CAPSICUM			  || true
+runtest err		ERR				  || true
+runtest explicit_bzero	EXPLICIT_BZERO			  || true
+runtest flock		FLOCK				  || true
+runtest freezero	FREEZERO			  || true
+runtest getdtablecount	GETDTABLECOUNT			  || true
+runtest getexecname	GETEXECNAME			  || true
+runtest getprogname	GETPROGNAME			  || true
+runtest imsg		IMSG "" "" "-lutil"		  || true
+runtest INFTIM		INFTIM				  || true
+runtest landlock	LANDLOCK			  || true
+
+runtest libevent	LIBEVENT "" "" "-levent"	  || \
+runtest libevent2	LIBEVENT2 "" "" "-levent_extra -levent_core" "libevent" || true
+
+runtest lib_flac	LIB_FLAC "" "" "-lFLAC" "flac"	  || true
+runtest lib_mpg123	LIB_MPG123 "" "" "-lmpg123" "libmpg123" || true
+runtest lib_opusfile	LIB_OPUSFILE "" "" "-lopusfile"	"opusfile"  || true
+runtest lib_vorbisfile	LIB_VORBISFILE "" "" "-lvorbisfile" "vorbisfile" || true
+
+runtest lib_sndio	LIB_SNDIO "" "" "-lsndio" "sndio" || true
+runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
+runtest memmem		MEMMEM			  	  || true
+runtest memrchr		MEMRCHR			  	  || true
+runtest memset_s	MEMSET_S			  || true
+runtest optreset	OPTRESET			  || true
+runtest PATH_MAX	PATH_MAX			  || true
+runtest pledge		PLEDGE				  || true
+runtest program_invocation_short_name	PROGRAM_INVOCATION_SHORT_NAME || true
+runtest PR_SET_NAME	PR_SET_NAME			  || true
+runtest reallocarray	REALLOCARRAY			  || true
+runtest recallocarray	RECALLOCARRAY			  || true
+runtest sandbox_init	SANDBOX_INIT	"-Wno-deprecated" || true
+runtest setproctitle	SETPROCTITLE			  || true
+runtest sio_flush	SIO_FLUSH "" "" "${LDADD_LIB_SNDIO}" || true
+runtest SOCK_NONBLOCK	SOCK_NONBLOCK			  || true
+runtest static		STATIC "" "-static"		  || true
+runtest strlcat		STRLCAT				  || true
+runtest strlcpy		STRLCPY				  || true
+runtest strndup		STRNDUP				  || true
+runtest strnlen		STRNLEN				  || true
+runtest strtonum	STRTONUM			  || true
+runtest sys_queue	SYS_QUEUE			  || true
+runtest sys_file	SYS_FILE			  || true
+runtest unveil		UNVEIL				  || true
+runtest __progname	__PROGNAME			  || true
+
+if [ "${HAVE_LIBEVENT}" -eq 0 -a "${HAVE_LIBEVENT2}" -eq 0 ]; then
+	echo "Fatal: missing libevent" 1>&2
+	echo "Fatal: missing libevent" 1>&3
+	exit 1
+fi
+
+if [ "${HAVE_LIB_FLAC}" -eq 0 -o \
+     "${HAVE_LIB_MPG123}" -eq 0 -o \
+     "${HAVE_LIB_OPUSFILE}" -eq 0 -o \
+     "${HAVE_LIB_VORBISFILE}" -eq 0 ]; then
+	echo "Fatal: missing required audio libraries" 1>&2
+	echo "Fatal: missing required audio libraries" 1>&3
+	exit 1
+fi
+
+if [ "${HAVE_LIB_SNDIO}" -eq 0 ]; then
+	echo "Fatal: missing libsndio" 1>&2
+	echo "Fatal: missing libsndio" 1>&3
+	exit 1
+fi
+
+#----------------------------------------------------------------------
+# Output writing: generate the config.h file.
+# This file contains all of the HAVE_xxxx variables necessary for
+# compiling your source.
+# You must include "config.h" BEFORE any other variables.
+# You WANT to change this.
+#----------------------------------------------------------------------
+
+exec > config.h
+
+# Start with prologue.
+
+cat << __HEREDOC__
+#ifndef OCONFIGURE_CONFIG_H
+#define OCONFIGURE_CONFIG_H
+
+#ifdef __cplusplus
+# error "Do not use C++: this is a C application."
+#endif
+#if !defined(__GNUC__) || (__GNUC__ < 4)
+# define __attribute__(x)
+#endif
+#if defined(__linux__) || defined(__MINT__)
+# define _GNU_SOURCE /* memmem, memrchr, setresuid... */
+# define _DEFAULT_SOURCE /* le32toh, crypt, ... */
+#endif
+#if defined(__NetBSD__)
+# define _OPENBSD_SOURCE /* reallocarray, etc. */
+#endif
+#if defined(__sun)
+# ifndef _XOPEN_SOURCE /* SunOS already defines */
+#  define _XOPEN_SOURCE /* XPGx */
+# endif
+# define _XOPEN_SOURCE_EXTENDED 1 /* XPG4v2 */
+# ifndef __EXTENSIONS__ /* SunOS already defines */
+#  define __EXTENSIONS__ /* reallocarray, etc. */
+# endif
+#endif
+#if !defined(__BEGIN_DECLS)
+# define __BEGIN_DECLS
+#endif
+#if !defined(__END_DECLS)
+# define __END_DECLS
+#endif
+
+__HEREDOC__
+
+# This is just for size_t, mode_t, and dev_t.
+# Most of these functions, in the real world, pull in <string.h> or
+# someting that pulls in support for size_t.
+# Our function declarations are standalone, so specify them here.
+
+if [ ${HAVE_IMSG} -eq 0 -o \
+     ${HAVE_MEMMEM} -eq 0 -o \
+     ${HAVE_MEMRCHR} -eq 0 -o \
+     ${HAVE_REALLOCARRAY} -eq 0 -o \
+     ${HAVE_RECALLOCARRAY} -eq 0 -o \
+     ${HAVE_STRLCAT} -eq 0 -o \
+     ${HAVE_STRLCPY} -eq 0 -o \
+     ${HAVE_STRNDUP} -eq 0 -o \
+     ${HAVE_STRNLEN} -eq 0 ]
+then
+	echo "#include <sys/types.h> /* size_t, mode_t, dev_t */ "
+	echo
+fi
+
+if [ ${HAVE_FLOCK} -eq 0 ]; then
+	if [ ${HAVE_SYS_FILE} -eq 0 ]; then
+		HAVE_FLOCK=1
+		echo "#include <sys/file.h>"
+		echo
+	else
+		echo "int flock(int, int);"
+		echo "#define LOCK_SH 0x1"
+		echo "#define LOCK_EX 0x2"
+		echo "#define LOCK_NB 0x4"
+		echo
+	fi
+fi
+
+if [ ${HAVE_ERR} -eq 0 ]; then
+	echo "#include <stdarg.h> /* err(3) */"
+	echo
+else
+	echo "#include <err.h>"
+	echo
+fi
+
+if [ ${HAVE_PLEDGE} -eq 0 ]; then
+	echo "#define pledge(p, e) (0)"
+	echo
+else
+	echo "#include <unistd.h>"
+	echo
+fi
+
+# Now we handle our HAVE_xxxx values.
+# Most will just be defined as 0 or 1.
+
+if [ ${HAVE_PATH_MAX} -eq 0 ]
+then
+	echo "#define PATH_MAX 4096"
+	echo
+fi
+
+if [ ${HAVE_INFTIM} -eq 0 ]
+then
+	echo "#define INFTIM (-1) /* poll.h */"
+	echo
+fi
+
+cat << __HEREDOC__
+/*
+ * Results of configuration feature-testing.
+ */
+#define HAVE_CAPSICUM ${HAVE_CAPSICUM}
+#define HAVE_ERR ${HAVE_ERR}
+#define HAVE_EXPLICIT_BZERO ${HAVE_EXPLICIT_BZERO}
+#define HAVE_FLOCK ${HAVE_FLOCK}
+#define HAVE_FREEZERO ${HAVE_FREEZERO}
+#define HAVE_GETDTABLECOUNT ${HAVE_GETDTABLECOUNT}
+#define HAVE_GETEXECNAME ${HAVE_GETEXECNAME}
+#define HAVE_GETPROGNAME ${HAVE_GETPROGNAME}
+#define HAVE_INFTIM ${HAVE_INFTIM}
+#define HAVE_LANDLOCK ${HAVE_LANDLOCK}
+#define HAVE_MEMMEM ${HAVE_MEMMEM}
+#define HAVE_MEMRCHR ${HAVE_MEMRCHR}
+#define HAVE_MEMSET_S ${HAVE_MEMSET_S}
+#define HAVE_OPTRESET ${HAVE_OPTRESET}
+#define HAVE_PATH_MAX ${HAVE_PATH_MAX}
+#define HAVE_PLEDGE ${HAVE_PLEDGE}
+#define HAVE_PROGRAM_INVOCATION_SHORT_NAME ${HAVE_PROGRAM_INVOCATION_SHORT_NAME}
+#define HAVE_PR_SET_NAME ${HAVE_PR_SET_NAME}
+#define HAVE_REALLOCARRAY ${HAVE_REALLOCARRAY}
+#define HAVE_RECALLOCARRAY ${HAVE_RECALLOCARRAY}
+#define HAVE_SANDBOX_INIT ${HAVE_SANDBOX_INIT}
+#define HAVE_SETPROCTITLE ${HAVE_SETPROCTITLE}
+#define HAVE_SIO_FLUSH ${HAVE_SIO_FLUSH}
+#define HAVE_SOCK_NONBLOCK ${HAVE_SOCK_NONBLOCK}
+#define HAVE_STRLCAT ${HAVE_STRLCAT}
+#define HAVE_STRLCPY ${HAVE_STRLCPY}
+#define HAVE_STRNDUP ${HAVE_STRNDUP}
+#define HAVE_STRNLEN ${HAVE_STRNLEN}
+#define HAVE_STRTONUM ${HAVE_STRTONUM}
+#define HAVE_SYS_FILE ${HAVE_SYS_FILE}
+#define HAVE_SYS_QUEUE ${HAVE_SYS_QUEUE}
+#define HAVE_SYSTRACE ${HAVE_SYSTRACE}
+#define HAVE_UNVEIL ${HAVE_UNVEIL}
+#define HAVE___PROGNAME ${HAVE___PROGNAME}
+
+__HEREDOC__
+
+# Now we do our function declarations for missing functions.
+
+[ ${HAVE_ERR} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility functions for err(3).
+ */
+extern void err(int, const char *, ...) __attribute__((noreturn));
+extern void errc(int, int, const char *, ...) __attribute__((noreturn));
+extern void errx(int, const char *, ...) __attribute__((noreturn));
+extern void verr(int, const char *, va_list) __attribute__((noreturn));
+extern void verrc(int, int, const char *, va_list) __attribute__((noreturn));
+extern void verrx(int, const char *, va_list) __attribute__((noreturn));
+extern void warn(const char *, ...);
+extern void warnx(const char *, ...);
+extern void warnc(int, const char *, ...);
+extern void vwarn(const char *, va_list);
+extern void vwarnc(int, const char *, va_list);
+extern void vwarnx(const char *, va_list);
+__HEREDOC__
+
+[ ${HAVE_EXPLICIT_BZERO} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for explicit_bzero(3).
+ */
+extern void explicit_bzero(void *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_FREEZERO} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for freezero(3).
+ */
+extern void freezero(void *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_MEMMEM} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for memmem(3).
+ */
+void *memmem(const void *, size_t, const void *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_MEMRCHR} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for memrchr(3).
+ */
+void *memrchr(const void *b, int, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_GETPROGNAME} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for getprogname(3).
+ */
+extern const char *getprogname(void);
+
+__HEREDOC__
+
+[ ${HAVE_REALLOCARRAY} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for reallocarray(3).
+ */
+extern void *reallocarray(void *, size_t, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_RECALLOCARRAY} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for recallocarray(3).
+ */
+extern void *recallocarray(void *, size_t, size_t, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_SETPROCTITLE} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for setproctitle(3).
+ */
+extern void setproctitle(const char *, ...);
+
+__HEREDOC__
+
+[ ${HAVE_STRLCAT} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strlcat(3).
+ */
+extern size_t strlcat(char *, const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRLCPY} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strlcpy(3).
+ */
+extern size_t strlcpy(char *, const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRNDUP} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strndup(3).
+ */
+extern char *strndup(const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRNLEN} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strnlen(3).
+ */
+extern size_t strnlen(const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRTONUM} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strotnum(3).
+ */
+extern long long strtonum(const char *, long long, long long, const char **);
+
+__HEREDOC__
+
+if [ ${HAVE_SYS_QUEUE} -eq 0 ]; then
+	cat << __HEREDOC__
+#include "queue.h"
+__HEREDOC__
+else
+	echo "#include <sys/queue.h>"
+	echo
+fi
+
+echo "#include <sys/uio.h>"
+echo "#include <stdint.h>"
+if [ ${HAVE_IMSG} -eq 0 ]; then
+	echo "#include \"imsg.h\""
+else
+	echo "#include <imsg.h>"
+fi
+echo
+
+if [ "${HAVE_LIBEVENT2}" -eq 1 ]; then
+	cat << __HEREDOC__
+#include <event2/event.h>
+#include <event2/event_compat.h>
+#include <event2/event_struct.h>
+#include <event2/buffer.h>
+#include <event2/buffer_compat.h>
+#include <event2/bufferevent.h>
+#include <event2/bufferevent_struct.h>
+#include <event2/bufferevent_compat.h>
+
+__HEREDOC__
+elif [ "${HAVE_LIBEVENT}" -eq 1 ]; then
+	cat << __HEREDOC__
+#include <event.h>
+
+__HEREDOC__
+fi
+
+cat << __HEREDOC__
+#ifndef __dead
+# define __dead __attribute__((noreturn))
+#endif
+
+#if !HAVE_SIO_FLUSH
+#define sio_flush(hdl) (sio_stop(hdl))
+#endif
+
+#if !HAVE_GETDTABLECOUNT
+/* XXX: on linux it should be possible to inspect /proc/self/fd/ */
+#define getdtablecount() (0)
+#endif
+
+#if !HAVE_OPTRESET
+/* replace host' getopt with OpenBSD' one */
+#define opterr		BSDopterr
+#define optind		BSDoptind
+#define optopt		BSDoptopt
+#define optreset	BSDoptreset
+#define optarg		BSDoptarg
+#define getopt		BSDgetopt
+
+extern int BSDopterr, BSDoptind, BSDoptopt, BSDoptreset;
+extern char *BSDoptarg;
+#endif
+
+#endif /*!OCONFIGURE_CONFIG_H*/
+__HEREDOC__
+
+echo "config.h: written" 1>&2
+echo "config.h: written" 1>&3
+
+#----------------------------------------------------------------------
+# Now we go to generate our Makefile.configure.
+# This file is simply a bunch of Makefile variables.
+# They'll work in both GNUmakefile and BSDmakefile.
+# You MIGHT want to change this.
+#----------------------------------------------------------------------
+
+exec > Makefile.configure
+
+[ -z "${BINDIR}"     ] && BINDIR="${PREFIX}/bin"
+[ -z "${SBINDIR}"    ] && SBINDIR="${PREFIX}/sbin"
+[ -z "${INCLUDEDIR}" ] && INCLUDEDIR="${PREFIX}/include"
+[ -z "${LIBDIR}"     ] && LIBDIR="${PREFIX}/lib"
+[ -z "${MANDIR}"     ] && MANDIR="${PREFIX}/man"
+[ -z "${SHAREDIR}"   ] && SHAREDIR="${PREFIX}/share"
+
+[ -z "${INSTALL_PROGRAM}" ] && INSTALL_PROGRAM="${INSTALL} -m 0555"
+[ -z "${INSTALL_LIB}"     ] && INSTALL_LIB="${INSTALL} -m 0444"
+[ -z "${INSTALL_MAN}"     ] && INSTALL_MAN="${INSTALL} -m 0444"
+[ -z "${INSTALL_DATA}"    ] && INSTALL_DATA="${INSTALL} -m 0444"
+
+cat << __HEREDOC__
+CC		 = ${CC}
+CFLAGS		 = ${CFLAGS}
+CPPFLAGS	 = ${CPPFLAGS}
+LDADD		 = ${LDADD} ${LDADD_IMSG} ${LDADD_LIB_FLAC} ${LDADD_LIB_MPG123} \
+		   ${LDADD_LIB_OPUSFILE} ${LDADD_LIB_VORBISFILE} ${LDADD_LIB_SOCKET} \
+		   ${LDADD_LIBEVENT} ${LDADD_LIBEVENT2} ${LDADD_LIB_SNDIO}
+LDADD_STATIC	 = ${LDADD_STATIC}
+LDFLAGS		 = ${LDFLAGS}
+STATIC		 = ${STATIC}
+PREFIX		 = ${PREFIX}
+BINDIR		 = ${BINDIR}
+SHAREDIR	 = ${SHAREDIR}
+SBINDIR		 = ${SBINDIR}
+INCLUDEDIR	 = ${INCLUDEDIR}
+LIBDIR		 = ${LIBDIR}
+MANDIR		 = ${MANDIR}
+INSTALL		 = ${INSTALL}
+INSTALL_PROGRAM	 = ${INSTALL_PROGRAM}
+INSTALL_LIB	 = ${INSTALL_LIB}
+INSTALL_MAN	 = ${INSTALL_MAN}
+INSTALL_DATA	 = ${INSTALL_DATA}
+__HEREDOC__
+
+echo "Makefile.configure: written" 1>&2
+echo "Makefile.configure: written" 1>&3
+
+exit 0

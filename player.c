@@ -14,22 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
-#include <sys/queue.h>
-#include <sys/uio.h>
+#include "config.h"
 
 #include <limits.h>
 
 #include <assert.h>
 #include <errno.h>
-#include <event.h>
 #include <poll.h>
 #include <signal.h>
 #include <sndio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <imsg.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>

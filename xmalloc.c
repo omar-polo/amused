@@ -13,6 +13,8 @@
  * called by a name other than "ssh" or "Secure Shell".
  */
 
+#include "config.h"
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

@@ -1,0 +1,91 @@
+#
+# Copyright (c) 2022 Omar Polo <op@openbsd.org>
+# Copyright (c) 2014-2022 Ingo Schwarze <schwarze@openbsd.org>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# For all settings documented in this file, there are reasonable
+# defaults and/or the ./configure script attempts autodetection.
+# Consequently, you only need to create a file ./configure.local
+# and put any of these settings into it if ./configure autodetection
+# fails or if you want to make different choices for other reasons.
+
+# If autodetection fails, please tell <op@omarpolo.com>.
+
+# We recommend that you write ./configure.local from scratch and
+# only put the lines there you need.  This file contains examples.
+# It is not intended as a template to be copied as a whole.
+
+# Some systems may want to set additional linker flags for all the
+# binaries, for example for hardening options.
+
+LDFLAGS="-Wl,-z,relro"
+
+# It may be needed to change the flags for the individual libraries.
+
+LDADD_IMSG="-limsg"
+LDADD_LIBEVENT2="-L/opt/lib/ -levent_extra -levent_core"
+LDADD_LIB_FLAC=
+LDADD_LIB_MPG123=
+LDADD_LIB_VORBISFILE=
+LDADD_LIB_SNDIO=
+LDADD_LIB_SOCKET=
+
+# To disable the autoconfiguration via pkg-config set PKG_CONFIG to
+# the empty string:
+
+PKG_CONFIG=
+
+# It is possible to change the utility program used for installation
+# and the modes files are installed with.  The defaults are:
+
+INSTALL="install"
+INSTALL_PROGRAM="${INSTALL} -m 0555"
+INSTALL_LIB="${INSTALL} -m 0444"
+INSTALL_MAN="${INSTALL} -m 0444"
+INSTALL_DATA="${INSTALL} -m 0444"
+
+# In rare cases, it may be required to skip individual automatic tests.
+# Each of the following variables can be set to 0 (test will not be run
+# and will be regarded as failed) or 1 (test will not be run and will
+# be regarded as successful).
+
+HAVE_CAPSICUM=0
+HAVE_ERR=0
+HAVE_EXPLICIT_BZERO=0
+HAVE_GETEXECNAME=0
+HAVE_GETPROGNAME=0
+HAVE_IMSG=0
+HAVE_LANDLOCK=0
+HAVE_LIBEVENT=0
+HAVE_LIBEVENT2=0
+HAVE_LIB_FLAC=0
+HAVE_LIB_MPG123=0
+HAVE_LIB_OPUSFILE=0
+HAVE_LIB_VORBISFILE=0
+HAVE_MEMMEM=0
+HAVE_MEMRCHR=0
+HAVE_PATH_MAX=0
+HAVE_PLEDGE=0
+HAVE_PROGRAM_INVOCATION_SHORT_NAME=0
+HAVE_REALLOCARRAY=0
+HAVE_RECALLOCARRAY=0
+HAVE_SANDBOX_INIT=0
+HAVE_STRLCAT=0
+HAVE_STRLCPY=0
+HAVE_STRNDUP=0
+HAVE_STRNLEN=0
+HAVE_STRTONUM=0
+HAVE_SYS_QUEUE=0
+HAVE_UNVEIL=0
+HAVE___PROGNAME=0

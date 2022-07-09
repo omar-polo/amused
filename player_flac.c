@@ -14,19 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
-#include <sys/queue.h>
-#include <sys/uio.h>
+#include "config.h"
 
-#include <err.h>
-#include <event.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <imsg.h>
 
 #include <FLAC/stream_decoder.h>
 
