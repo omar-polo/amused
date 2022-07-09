@@ -48,6 +48,7 @@ static int	ctl_load(struct parse_result *, int, char **);
 static int	ctl_jump(struct parse_result *, int, char **);
 static int	ctl_repeat(struct parse_result *, int, char **);
 static int	ctl_monitor(struct parse_result *, int, char **);
+static int	ctl_seek(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "add",	ADD,		ctl_add,	"files...", 0 },
@@ -61,6 +62,7 @@ struct ctl_command ctl_commands[] = {
 	{ "prev",	PREV,		ctl_noarg,	"", 0 },
 	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off", 0 },
 	{ "restart",	RESTART,	ctl_noarg,	"", 0 },
+	{ "seek",	SEEK,		ctl_seek,	"[+-]time", 0 },
 	{ "show",	SHOW,		ctl_show,	"[-p]", 0 },
 	{ "status",	STATUS,		ctl_noarg,	"", 0 },
 	{ "stop",	STOP,		ctl_noarg,	"", 0 },
@@ -400,6 +402,10 @@ ctlaction(struct parse_result *res)
 		imsg_compose(ibuf, IMSG_CTL_MONITOR, 0, 0, -1,
 		    NULL, 0);
 		break;
+	case SEEK:
+		imsg_compose(ibuf, IMSG_CTL_SEEK, 0, 0, -1, &res->seek,
+		    sizeof(res->seek));
+		break;
 	case NONE:
 		/* action not expected */
 		fatalx("invalid action %u", res->action);
@@ -726,6 +732,36 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 	}
 
 	free(dup);
+	return ctlaction(res);
+}
+
+static int
+ctl_seek(struct parse_result *res, int argc, char **argv)
+{
+	const char *n, *errstr;
+
+	if (argc > 0) {
+		/* skip the command name */
+		argc--;
+		argv++;
+	}
+
+	if (argc > 0 && !strcmp(*argv, "--")) {
+		argc--;
+		argv++;
+	}
+
+	if (argc != 1)
+		ctl_usage(res->ctl);
+
+	n = *argv;
+	if (*n == '-' || *n == '+')
+		res->seek.relative = 1;
+
+	res->seek.offset = strtonum(n, INT64_MIN, INT64_MAX, &errstr);
+	if (errstr != NULL)
+		fatalx("offset is %s: %s", errstr, n);
+
 	return ctlaction(res);
 }
 
