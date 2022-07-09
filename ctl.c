@@ -717,6 +717,8 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 			res->monitor[IMSG_CTL_ADD] = 1;
 		else if (!strcmp(tok, "load"))
 			res->monitor[IMSG_CTL_COMMIT] = 1;
+		else if (!strcmp(tok, "seek"))
+			res->monitor[IMSG_CTL_SEEK] = 1;
 		else
 			fatalx("unknown event \"%s\"", tok);
 	}
