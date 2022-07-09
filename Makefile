@@ -52,7 +52,7 @@ ${PROG}: ${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD}
 
 clean:
-	rm -f ${OBJS} ${PROG}
+	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}
 
 distclean: clean
 	rm -f Makefile.configure config.h config.h.old config.log config.log.old
