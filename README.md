@@ -6,31 +6,37 @@ that does very little.)  It composes well, or aims to do so, with
 other tools thought.
 
 The main feature is that audio decoding runs in a sandboxed process
-under `pledge("stdio recvfd audio")`.  Oh, by the way, amused targets
-OpenBSD only: it relies its make infrastructure to build, uses various
-cool stuff from its libc and can output only to sndio.
+under `pledge("stdio recvfd audio")` (on OpenBSD at least.)
 
-(I *think* it's possible to compile it on other UNIX-like systems too by
-providing shims for some non-portable functions -- hello libbsd -- and
-assuming that sndio is available.  And bundling a copy of imsg.c too)
+It's available on the OpenBSD port tree starting with 7.1
 
 
 ## Building
 
-	$ make
-	$ make install # eventually
-
-Release tarballs installs into `/usr/local/`, git checkouts installs
-into `~/bin` (idea and implementation stolen from got, thanks stsp!)
-
-It needs the following packages from ports:
+The dependencies are:
 
  - flac
  - libmpg123
  - libvorbis
  - opusfile
+ - libsndio
 
-It's available on the OpenBSD port tree starting with 7.1
+Then, to build:
+
+	$ ./configure
+	$ make
+	# make install # eventually
+
+The build can be customized by passing arguments to the configure
+script or by using a `configure.local` file; see `./configure -h`
+and [`configure.local.example`](configure.local.example) for more
+information.
+
+For each library the `configure` script first tries to see if they're
+available without any extra flags, then tries again with some
+hard-coded flags (e.g. `-lflac` for flac) and finally resorts to
+pkg-config if available.  pkg-config auto-detection can be disable by
+passing `PKG_CONFIG=false` (or the empty string)
 
 
 ## Usage
