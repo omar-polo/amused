@@ -59,7 +59,7 @@ struct ctl_command ctl_commands[] = {
 	{ "prev",	PREV,		ctl_noarg,	"", 0 },
 	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off", 0 },
 	{ "restart",	RESTART,	ctl_noarg,	"", 0 },
-	{ "seek",	SEEK,		ctl_seek,	"[+-]time", 0 },
+	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]", 0 },
 	{ "show",	SHOW,		ctl_show,	"[-p]", 0 },
 	{ "status",	STATUS,		ctl_noarg,	"", 0 },
 	{ "stop",	STOP,		ctl_noarg,	"", 0 },
@@ -730,7 +730,10 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 static int
 ctl_seek(struct parse_result *res, int argc, char **argv)
 {
-	const char *n, *errstr;
+	const char *n;
+	char *ep;
+	int hours = 0, minutes = 0, seconds = 0;
+	int sign = 1;
 
 	if (argc > 0) {
 		/* skip the command name */
@@ -749,11 +752,38 @@ ctl_seek(struct parse_result *res, int argc, char **argv)
 	n = *argv;
 	if (*n == '-' || *n == '+')
 		res->seek.relative = 1;
+	if (*n == '-') {
+		n++;
+		sign = -1;
+	}
 
-	res->seek.offset = strtonum(n, INT64_MIN, INT64_MAX, &errstr);
-	if (errstr != NULL)
-		fatalx("offset is %s: %s", errstr, n);
+	seconds = strtol(n, &ep, 10);
+	if (n[0] == '\0' ||
+	    (*ep != '\0' && *ep != ':' && *ep != '%') ||
+	    (*ep == '%' && ep[1] != '\0'))
+		fatalx("invalid offset: %s", argv[0]);
+	if (*ep == '\0' || *ep == '%') {
+		res->seek.percent = *ep == '%';
+		goto done;
+	}
 
+	n = ++ep;
+	minutes = seconds;
+	seconds = strtol(n, &ep, 10);
+	if (n[0] == '\0' || (*ep != '\0' && *ep != ':'))
+		fatalx("invalid offset: %s", argv[0]);
+	if (*ep == '\0')
+		goto done;
+
+	n = ++ep;
+	hours = minutes;
+	minutes = seconds;
+	seconds = strtol(n, &ep, 10);
+	if (n[0] == '\0' || *ep != '\0')
+		fatalx("invalid offset: %s", argv[0]);
+
+done:
+	res->seek.offset = sign * (hours * 3600 + minutes * 60 + seconds);
 	return ctlaction(res);
 }
 
