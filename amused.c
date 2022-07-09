@@ -497,19 +497,6 @@ main_playlist_previous(void)
 }
 
 void
-main_restart_track(void)
-{
-	if (current_song == NULL)
-		return;
-
-	if (main_play_song(current_song))
-		return;
-
-	playlist_dropcurrent();
-	main_playlist_advance();
-}
-
-void
 main_senderr(struct imsgev *iev, const char *msg)
 {
 	imsg_compose_event(iev, IMSG_CTL_ERR, 0, 0, -1,

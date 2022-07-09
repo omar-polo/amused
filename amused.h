@@ -39,7 +39,6 @@ enum imsg_type {
 	IMSG_CTL_TOGGLE_PLAY,
 	IMSG_CTL_PAUSE,
 	IMSG_CTL_STOP,
-	IMSG_CTL_RESTART,
 	IMSG_CTL_FLUSH,
 	IMSG_CTL_SHOW,
 	IMSG_CTL_STATUS,
@@ -72,7 +71,7 @@ enum actions {
 	PAUSE,
 	TOGGLE,
 	STOP,
-	RESTART,
+	RESTART,		/* seek to zero */
 	ADD,
 	FLUSH,
 	SHOW,
@@ -138,7 +137,6 @@ void		main_playlist_jump(struct imsgev *, struct imsg *);
 void		main_playlist_resume(void);
 void		main_playlist_advance(void);
 void		main_playlist_previous(void);
-void		main_restart_track(void);
 void		main_senderr(struct imsgev *, const char *);
 void		main_enqueue(int, struct playlist *, struct imsgev *, struct imsg *);
 void		main_send_playlist(struct imsgev *);

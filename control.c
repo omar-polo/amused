@@ -320,11 +320,6 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			control_notify(&c->iev, imsg.hdr.type);
 			break;
-		case IMSG_CTL_RESTART:
-			main_send_player(IMSG_STOP, -1, NULL, 0);
-			main_restart_track();
-			control_notify(&c->iev, imsg.hdr.type);
-			break;
 		case IMSG_CTL_FLUSH:
 			playlist_truncate();
 			control_notify(&c->iev, imsg.hdr.type);

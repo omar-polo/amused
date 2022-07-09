@@ -255,8 +255,6 @@ imsg_name(int type)
 		return "pause";
 	case IMSG_CTL_STOP:
 		return "stop";
-	case IMSG_CTL_RESTART:
-		return "restart";
 	case IMSG_CTL_FLUSH:
 		return "flush";
 	case IMSG_CTL_NEXT:
@@ -329,14 +327,6 @@ ctlaction(struct parse_result *res)
 	case STOP:
 		imsg_compose(ibuf, IMSG_CTL_STOP, 0, 0, -1, NULL, 0);
 		break;
-	case RESTART:
-		imsg_compose(ibuf, IMSG_CTL_RESTART, 0, 0, -1, NULL, 0);
-		if (verbose) {
-			imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1,
-			    NULL, 0);
-			done = 0;
-		}
-		break;
 	case ADD:
 		done = 0;
 		for (i = 0; res->files[i] != NULL; ++i) {
@@ -399,6 +389,9 @@ ctlaction(struct parse_result *res)
 		imsg_compose(ibuf, IMSG_CTL_MONITOR, 0, 0, -1,
 		    NULL, 0);
 		break;
+	case RESTART:
+		memset(&res->seek, 0, sizeof(res->seek));
+		/* fallthrough */
 	case SEEK:
 		imsg_compose(ibuf, IMSG_CTL_SEEK, 0, 0, -1, &res->seek,
 		    sizeof(res->seek));
@@ -708,8 +701,8 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 			res->monitor[IMSG_CTL_PAUSE] = 1;
 		else if (!strcmp(tok, "stop"))
 			res->monitor[IMSG_CTL_STOP] = 1;
-		else if (!strcmp(tok, "restart"))
-			res->monitor[IMSG_CTL_RESTART] = 1;
+		else if (!strcmp(tok, "restart")) /* compat */
+			res->monitor[IMSG_CTL_SEEK] = 1;
 		else if (!strcmp(tok, "flush"))
 			res->monitor[IMSG_CTL_FLUSH] = 1;
 		else if (!strcmp(tok, "next"))
