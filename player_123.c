@@ -93,8 +93,7 @@ play_mp3(int fd, const char **errstr)
 			}
 			break;
 		default:
-			log_warnx("error decoding mp3, "
-			    "continuing nevertheless");
+			log_warnx("skipping mp3 decoding error");
 			break;
 		}
 	}
