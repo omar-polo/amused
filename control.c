@@ -410,6 +410,16 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				main_senderr(&c->iev, "wrong size");
 				break;
 			}
+			switch (play_state) {
+			case STATE_STOPPED:
+				main_playlist_resume();
+				break;
+			case STATE_PLAYING:
+				break;
+			case STATE_PAUSED:
+				play_state = STATE_PLAYING;
+				break;
+			}
 			main_send_player(IMSG_CTL_SEEK, -1, imsg.data,
 			    IMSG_DATA_SIZE(imsg));
 			control_notify(&c->iev, imsg.hdr.type);

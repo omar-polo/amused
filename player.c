@@ -279,7 +279,7 @@ player_pause(int64_t *s)
 	int r;
 
 	r = player_dispatch(s);
-	return r == IMSG_RESUME;
+	return r == IMSG_RESUME || r == IMSG_CTL_SEEK;
 }
 
 static int
