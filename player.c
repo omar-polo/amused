@@ -199,7 +199,7 @@ again:
 		if (seek.relative)
 			*s += samples;
 		if (*s < 0)
-			*s = -1;
+			*s = 0;
 		break;
 	default:
 		fatalx("unknown imsg %d", imsg.hdr.type);
