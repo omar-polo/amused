@@ -150,7 +150,7 @@ player_setpos(int64_t pos)
 
 /* process only one message */
 static int
-player_dispatch(int64_t *s)
+player_dispatch(int64_t *s, int wait)
 {
 	struct player_seek seek;
 	struct pollfd	pfd;
@@ -165,6 +165,9 @@ again:
 	if ((n = imsg_get(ibuf, &imsg)) == -1)
 		fatal("imsg_get");
 	if (n == 0) {
+		if (!wait)
+			return -1;
+
 		pfd.fd = ibuf->fd;
 		pfd.events = POLLIN;
 		if (poll(&pfd, 1, INFTIM) == -1)
@@ -278,14 +281,14 @@ player_pause(int64_t *s)
 {
 	int r;
 
-	r = player_dispatch(s);
+	r = player_dispatch(s, 1);
 	return r == IMSG_RESUME || r == IMSG_CTL_SEEK;
 }
 
 static int
-player_shouldstop(int64_t *s)
+player_shouldstop(int64_t *s, int wait)
 {
-	switch (player_dispatch(s)) {
+	switch (player_dispatch(s, wait)) {
 	case IMSG_PAUSE:
 		if (player_pause(s))
 			break;
@@ -301,7 +304,7 @@ int
 play(const void *buf, size_t len, int64_t *s)
 {
 	size_t w;
-	int nfds, revents, r;
+	int nfds, revents, r, wait;
 
 	*s = -1;
 	while (len != 0) {
@@ -310,12 +313,11 @@ play(const void *buf, size_t len, int64_t *s)
 		if (r == -1)
 			fatal("poll");
 
-		if (player_pfds[0].revents & (POLLHUP|POLLIN)) {
-			if (player_shouldstop(s)) {
-				sio_flush(hdl);
-				stopped = 1;
-				return 0;
-			}
+		wait = player_pfds[0].revents & (POLLHUP|POLLIN);
+		if (player_shouldstop(s, wait)) {
+			sio_flush(hdl);
+			stopped = 1;
+			return 0;
 		}
 
 		revents = sio_revents(hdl, player_pfds + 1);
@@ -380,7 +382,7 @@ player(int debug, int verbose)
 		const char *errstr = NULL;
 
 		while (nextfd == -1)
-			player_dispatch(NULL);
+			player_dispatch(NULL, 1);
 
 		r = player_playnext(&errstr);
 		if (r == -1)
