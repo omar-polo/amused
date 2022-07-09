@@ -52,8 +52,8 @@ play_oggvorbis(int fd, const char **errstr)
 
 	if (ov_open_callbacks(f, &vf, NULL, 0, OV_CALLBACKS_NOCLOSE) < 0) {
 		*errstr = "input is not an Ogg bitstream";
-		ret = -1;
-		goto end;
+		fclose(f);
+		return -1;
 	}
 
 	/*
@@ -91,8 +91,6 @@ play_oggvorbis(int fd, const char **errstr)
 	}
 
 	ov_clear(&vf);
-
-end:
 	fclose(f);
 	return ret;
 }
