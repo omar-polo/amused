@@ -37,7 +37,7 @@
 int
 play_oggvorbis(int fd, const char **errstr)
 {
-	static uint8_t pcmout[4096];
+	static char pcmout[4096];
 	FILE *f;
 	OggVorbis_File vf;
 	vorbis_info *vi;
