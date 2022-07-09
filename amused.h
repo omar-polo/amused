@@ -88,6 +88,7 @@ enum actions {
 struct player_seek {
 	int64_t	offset;
 	int	relative;
+	int	percent;
 };
 
 struct ctl_command;

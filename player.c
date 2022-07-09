@@ -42,6 +42,7 @@ static struct imsgbuf	*ibuf;
 static int stopped = 1;
 static int nextfd = -1;
 static int64_t samples;
+static int64_t duration;
 
 volatile sig_atomic_t halted;
 
@@ -112,10 +113,11 @@ start:
 }
 
 void
-player_setduration(int64_t duration)
+player_setduration(int64_t d)
 {
 	int64_t seconds;
 
+	duration = d;
 	seconds = duration / par.rate;
 	imsg_compose(ibuf, IMSG_LEN, 0, 0, -1, &seconds, sizeof(seconds));
 	imsg_flush(ibuf);
@@ -195,9 +197,13 @@ again:
 		if (IMSG_DATA_SIZE(imsg) != sizeof(seek))
 			fatalx("wrong size for seek ctl");
 		memcpy(&seek, imsg.data, sizeof(seek));
-		*s = seek.offset * par.rate;
-		if (seek.relative)
-			*s += samples;
+		if (seek.percent) {
+			*s = (double)seek.offset * (double)duration / 100.0;
+		} else {
+			*s = seek.offset * par.rate;
+			if (seek.relative)
+				*s += samples;
+		}
 		if (*s < 0)
 			*s = 0;
 		break;
