@@ -196,8 +196,6 @@ again:
 		if (IMSG_DATA_SIZE(imsg) != sizeof(seek))
 			fatalx("wrong size for seek ctl");
 		memcpy(&seek, imsg.data, sizeof(seek));
-		log_debug("got to seek: {%lld, %d}", seek.offset,
-		    seek.relative);
 		*s = seek.offset * par.rate;
 		if (seek.relative)
 			*s += samples;

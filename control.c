@@ -410,7 +410,6 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				main_senderr(&c->iev, "wrong size");
 				break;
 			}
-			log_debug("got IMSG_CTL_SEEK, forwarding it");
 			main_send_player(IMSG_CTL_SEEK, -1, imsg.data,
 			    IMSG_DATA_SIZE(imsg));
 			control_notify(&c->iev, imsg.hdr.type);
