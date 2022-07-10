@@ -1,0 +1,417 @@
+#!/usr/bin/env perl
+#
+# Copyright (c) 2022 Omar Polo <op@omarpolo.com>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+use strict;
+use warnings;
+use v5.12;
+
+use Curses;
+use POSIX ":sys_wait_h";
+use Text::CharWidth qw(mbswidth);
+use IO::Poll qw(POLLIN);
+use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
+use Getopt::Long qw(:config bundling);
+use Pod::Usage;
+
+my $pfile;
+my $trim = "";
+
+my $pair_n = 1;
+
+my @songs;
+my $playlist_cur;
+my $playlist_max;
+my $time_cur;
+my $time_dur;
+my $status;
+my $repeat;
+
+my $last_lines;
+
+sub min {
+	my ($a, $b) = @_;
+	return $a < $b ? $a : $b;
+}
+
+sub max {
+	my ($a, $b) = @_;
+	return $a > $b ? $a : $b;
+}
+
+sub excerpt {
+	my $lines = int(shift);
+	my $ctx = $lines * 2 + 1;
+	my @tmp;
+
+	open (my $fh, "-|", "amused show -p | grep -C$ctx '^>'");
+	my $x = 0;
+	my $cur = 0;
+	while (<$fh>) {
+		chomp;
+		s,$trim,,;
+		push @tmp, $_;
+		$cur = $x if m/^>/;
+		$x++;
+	}
+	close($fh);
+
+	my $from;
+	if ($cur - $lines < 0) {
+		$from = max($cur - $lines, 0);
+	} elsif ($cur + $lines >= $#tmp) {
+		$from = max($#tmp - $lines * 2 - 1, 0);
+	} else {
+		$from = $cur - $lines;
+	}
+
+	my $len = min($lines * 2 + 1, $#tmp);
+	my @x = splice @tmp, $from, $len + 1;
+	return @x;
+}
+
+sub playlist_numbers {
+	my ($cur, $tot, $found) = (0, 0, 0);
+	open (my $fh, "-|", "amused", "show", "-p");
+	while (<$fh>) {
+		$tot++;
+		$cur++ unless $found;
+		$found = 1 if m/^>/;
+	}
+	close($fh);
+	return ($cur, $tot);
+}
+
+sub status {
+	my ($pos, $dur, $repeat);
+
+	open (my $fh, "-|", "amused", "status", "-f",
+	      "status,time:raw,repeat:oneline");
+	my $status = <$fh>;
+	chomp $status;
+	while (<$fh>) {
+		chomp;
+		$pos = s/position //r if m/^position /;
+		$dur = s/duration //r if m/^duration /;
+		$repeat = $_ if m/^repeat/;
+	}
+	close($fh);
+	return ($status, $pos, $dur, $repeat);
+}
+
+sub showtime {
+	my $seconds = shift;
+	my $str = "";
+
+	if ($seconds > 3600) {
+		my $hours = int($seconds / 3600);
+		$seconds -= $hours * 3600;
+		$str = sprintf("%02:", $hours);
+	}
+
+	my $minutes = int($seconds / 60);
+	$seconds -= $minutes * 60;
+	$str .= sprintf "%02d:%02d", $minutes, $seconds;
+	return $str;
+}
+
+sub center {
+	my ($str, $pstr) = @_;
+	my $width = mbswidth($str);
+	return $str if $width > $COLS;
+	my $pre = ($COLS - $width) / 2;
+	my $lpad = $pstr x $pre;
+	my $rpad = $pstr x ($COLS - $width - $pre + 1);
+	return ($lpad, $str, $rpad);
+}
+
+sub offsets {
+	my ($y, $x, $cur, $max) = @_;
+	my ($pre, $c, $post) = center(" $cur / $max ", '-');
+	addstring $y, $x, "";
+
+	my $p = COLOR_PAIR($pair_n);
+
+	attron $p;
+	addstring $pre;
+	attroff $p;
+
+	addstring $c;
+
+	attron $p;
+	addstring $post;
+	attroff $p;
+}
+
+sub progress {
+	my ($y, $x, $pos, $dur) = @_;
+
+	my $pstr = showtime $pos;
+	my $dstr = showtime $dur;
+
+	my $len = $COLS - length($pstr) - length($dstr) - 4;
+	return if $len <= 0;
+	my $filled = int($pos * $len / $dur);
+
+	addstring $y, $x, "$pstr [";
+	addstring "#" x $filled;
+	addstring " " x max($len - $filled, 0);
+	addstring "] $dstr";
+}
+
+sub show_status {
+	my ($y, $x, $status) = @_;
+	my ($pre, $c, $post) = center($status, ' ');
+	addstring $y, $x, $pre;
+	addstring $c;
+	addstring $post;
+}
+
+sub show_repeat {
+	my ($y, $x, $repeat) = @_;
+	my ($pre, $c, $post) = center($repeat, ' ');
+	addstring $y, $x, $pre;
+	addstring $c;
+	addstring $post;
+}
+
+sub render {
+	erase;
+	if ($LINES < 4 || $COLS < 20) {
+		addstring "window too small";
+		refresh;
+		return;
+	}
+
+	my $song_pad = "";
+	my $longest = 0;
+	$longest = max $longest, length($_) foreach @songs;
+	if ($longest < $COLS) {
+		$song_pad = " " x (($COLS - $longest)/2);
+	}
+
+	my $line = 0;
+	map {
+		attron(A_BOLD) if m/^>/;
+		addstring $line++, 0, $song_pad . $_;
+		standend;
+	} @songs;
+
+	offsets $LINES - 4, 0, $playlist_cur, $playlist_max;
+	progress $LINES - 3, 0, $time_cur, $time_dur;
+	show_status $LINES - 2, 0, $status;
+	show_repeat $LINES - 1, 0, $repeat;
+
+	refresh;
+}
+
+sub getsongs {
+	$last_lines = $LINES;
+	@songs = excerpt($LINES / 2 - 3);
+}
+
+sub getnums {
+	($playlist_cur, $playlist_max) = playlist_numbers;
+}
+
+sub getstatus {
+	($status, $time_cur, $time_dur, $repeat) = status;
+}
+
+sub save {
+	return unless defined $pfile;
+
+	open(my $fh, ">", $pfile);
+	open(my $ph, "-|", "amused", "show", "-p");
+
+	print $fh $_ while (<$ph>);
+}
+
+sub hevent {
+	my $fh = shift;
+	my $l = <$fh>;
+	die "monitor quit" unless defined($l);
+	getstatus;
+	getnums if $l =~ m/load|jump|next|prev/;
+	getsongs if $l =~ m/load|jump|next|prev/;
+}
+
+sub hinput {
+	my ($ch, $key) = getchar;
+	if (defined $ch) {
+		if ($ch eq " ") {
+			system "amused", "toggle";
+		} elsif ($ch eq "<" or $ch eq "p") {
+			system "amused", "prev";
+		} elsif ($ch eq ">" or $ch eq "n") {
+			system "amused", "next";
+		} elsif ($ch eq ",") {
+			system "amused", "seek", "-5";
+		} elsif ($ch eq ".") {
+			system "amused", "seek", "+5";
+		} elsif ($ch eq "S") {
+			system "amused show | sort -u | amused load";
+		} elsif ($ch eq "R") {
+			system "amused show | sort -R | amused load";
+		} elsif ($ch eq "s") {
+			save;
+		} elsif ($ch eq "q") {
+			last;
+		}
+	} elsif (defined $key) {
+		# todo?
+	}
+}
+
+GetOptions(
+	"p:s" => \$pfile,
+	"t:s" => \$trim,
+    ) or pod2usage(1);
+
+my $mpid = open(my $monitor, "-|", "amused", "monitor",
+     "load,jump,seek,next,prev,play,pause,toggle,stop,repeat")
+    or die "can't spawn amused monitor";
+
+initscr;
+start_color;
+use_default_colors;
+init_pair $pair_n, 250, -1;
+
+timeout 1000;
+scrollok 0;
+curs_set 0;
+
+my $poll = IO::Poll->new();
+$poll->mask(\*STDIN => POLLIN);
+$poll->mask($monitor => POLLIN);
+
+my $tick = 0;
+my $tbefore = clock_gettime(CLOCK_MONOTONIC);
+
+getsongs;
+getnums;
+getstatus;
+render;
+
+while (1) {
+	$poll->poll(0.25);
+	my $now = clock_gettime(CLOCK_MONOTONIC);
+	my $elapsed = $now - $tbefore;
+	if ($elapsed > 1) {
+		$tbefore = $now;
+		$time_cur += int($elapsed + 0.5)
+		    if $status =~ m/^playing/;
+	}
+
+	($status, $time_cur, $time_dur, $repeat) = status
+	    unless $tick++ % 8;
+
+	hinput if $poll->events(\*STDIN) & POLLIN;
+	hevent $monitor if $poll->events($monitor) & POLLIN;
+
+	getsongs if $LINES != $last_lines;
+
+	render;
+}
+
+endwin;
+save;
+
+# my $kid;
+# do {
+# 	$kid = waitpid(-1, WNOHANG);
+# 	say "kid is $kid";
+# } while $kid > 0;
+kill 'INT', $mpid;
+wait;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+amused-monitor - curses interface for amused(1)
+
+=head1 SYNOPSIS
+
+B<amused-monitor> [B<-p> I<playlist>] [B<-t> I<string>]
+
+=head1 DESCRIPTION
+
+amused-monitor is a simple curses interface for amused(1).
+
+The following options are available:
+
+=over 12
+
+=item B<-p> I<playlist>
+
+Save the current playling queue to the file I<playlist> upon exit or
+I<s> key.
+
+=item B<-t> I<string>
+
+Trim out the given I<string> from every song in the playlist view.
+
+=back
+
+The following key-bindings are available:
+
+=over 8
+
+=item space
+
+Toggle play/pause.
+
+=item < or p
+
+Play previous song.
+
+=item > or n
+
+Play next song.
+
+=item ,
+
+Seek backward by five seconds.
+
+=item .
+
+Seek forward by five seconds.
+
+=item R
+
+Randomize the playlist.
+
+=item S
+
+Sort the playlist.
+
+=item s
+
+Save the status to the file given with the B<-p> flag.
+
+=item q
+
+Quit.
+
+=back
+
+=head1 SEE ALSO
+
+amused(1)
+
+=cut
