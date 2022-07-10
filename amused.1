@@ -141,8 +141,10 @@ can be given instead of
 .Sq repeat .
 .Pp
 .Nm
-skips non-regular or not supported audio file found in the playing
-queue implicitly and advances to the next item.
+automatically skips and removes from the playlist non-regular files by
+default.
+Files with non recognized audio format are skippend and removed from
+the playlist too.
 .Sh FILES
 .Bl -tag -width "/tmp/amused-$UID" -compact
 .It Pa /tmp/amused-$UID
