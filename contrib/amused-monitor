@@ -26,6 +26,8 @@ use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use Getopt::Long qw(:config bundling);
 use Pod::Usage;
 
+my $run = 1;
+
 my $pfile;
 my $trim = "";
 
@@ -268,7 +270,7 @@ sub hinput {
 		} elsif ($ch eq "s") {
 			save;
 		} elsif ($ch eq "q") {
-			last;
+			$run = 0;
 		}
 	} elsif (defined $key) {
 		# todo?
@@ -305,7 +307,7 @@ getnums;
 getstatus;
 render;
 
-while (1) {
+while ($run) {
 	$poll->poll(0.25);
 	my $now = clock_gettime(CLOCK_MONOTONIC);
 	my $elapsed = $now - $tbefore;
@@ -329,11 +331,6 @@ while (1) {
 endwin;
 save;
 
-# my $kid;
-# do {
-# 	$kid = waitpid(-1, WNOHANG);
-# 	say "kid is $kid";
-# } while $kid > 0;
 kill 'INT', $mpid;
 wait;
 
