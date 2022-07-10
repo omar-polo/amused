@@ -114,6 +114,7 @@ struct parse_result {
 	int			 monitor[IMSG__LAST];
 	struct player_repeat	 rep;
 	struct player_seek	 seek;
+	const char		*status_format;
 	struct ctl_command	*ctl;
 };
 

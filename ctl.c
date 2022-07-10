@@ -46,6 +46,7 @@ static int	ctl_jump(struct parse_result *, int, char **);
 static int	ctl_repeat(struct parse_result *, int, char **);
 static int	ctl_monitor(struct parse_result *, int, char **);
 static int	ctl_seek(struct parse_result *, int, char **);
+static int	ctl_status(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "add",	ADD,		ctl_add,	"files...", 0 },
@@ -61,7 +62,7 @@ struct ctl_command ctl_commands[] = {
 	{ "restart",	RESTART,	ctl_noarg,	"", 0 },
 	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]", 0 },
 	{ "show",	SHOW,		ctl_show,	"[-p]", 0 },
-	{ "status",	STATUS,		ctl_noarg,	"", 0 },
+	{ "status",	STATUS,		ctl_status,	"[-f fmt]", 0 },
 	{ "stop",	STOP,		ctl_noarg,	"", 0 },
 	{ "toggle",	TOGGLE,		ctl_noarg,	"", 0 },
 	{ NULL, 0, NULL, NULL, 0 },
@@ -275,7 +276,7 @@ imsg_name(int type)
 }
 
 static void
-print_time(const char *label, int64_t seconds)
+print_time(const char *label, int64_t seconds, const char *suffx)
 {
 	int hours, minutes;
 
@@ -288,10 +289,63 @@ print_time(const char *label, int64_t seconds)
 	minutes = seconds / 60;
 	seconds -= minutes * 60;
 
-	printf("%s ", label);
+	printf("%s", label);
 	if (hours != 0)
 		printf("%02d:", hours);
-	printf("%02d:%02lld\n", minutes, (long long)seconds);
+	printf("%02d:%02lld%s", minutes, (long long)seconds, suffx);
+}
+
+static void
+print_status(struct player_status *ps, const char *spec)
+{
+	const char *status;
+	double percent;
+	char *dup, *tmp, *tok;
+
+	if (ps->status == STATE_STOPPED)
+		status = "stopped";
+	else if (ps->status == STATE_PLAYING)
+		status = "playing";
+	else if (ps->status == STATE_PAUSED)
+		status = "paused";
+	else
+		status = "unknown";
+
+	percent = 100.0 * (double)ps->position / (double)ps->duration;
+
+	tmp = dup = xstrdup(spec);
+	while ((tok = strsep(&tmp, ",")) != NULL) {
+		if (*tok == '\0')
+			continue;
+
+		if (!strcmp(tok, "path")) {
+			puts(ps->path);
+		} else if (!strcmp(tok, "repeat:oneline")) {
+			printf("repeat one:%s ",
+			    ps->rp.repeat_one ? "on" : "off");
+			printf("all:%s\n", ps->rp.repeat_all ? "on" : "off");
+		} else if (!strcmp(tok, "repeat")) {
+			printf("repeat one %s\n",
+			    ps->rp.repeat_one ? "on" : "off");
+			printf("repeat all %s\n",
+			    ps->rp.repeat_all ? "on" : "off");
+		} else if (!strcmp(tok, "status")) {
+			printf("%s %s\n", status, ps->path);
+		} else if (!strcmp(tok, "time:oneline")) {
+			print_time("time ", ps->position, " / ");
+			print_time("", ps->duration, "\n");
+		} else if (!strcmp(tok, "time:percentage")) {
+			printf("position %.2f%%\n", percent);
+		} else if (!strcmp(tok, "time:raw")) {
+			printf("position %lld\n", (long long)ps->position);
+			printf("duration %lld\n", (long long)ps->duration);
+		} else if (!strcmp(tok, "time")) {
+			print_time("position ", ps->position, "\n");
+			print_time("duration ", ps->duration, "\n");
+		}
+	}
+
+	free(dup);
 }
 
 static int
@@ -479,24 +533,7 @@ ctlaction(struct parse_result *res)
 				if (ps.path[sizeof(ps.path) - 1] != '\0')
 					fatalx("received corrupted data");
 
-				if (ps.status == STATE_STOPPED)
-					printf("stopped ");
-				else if (ps.status == STATE_PLAYING)
-					printf("playing ");
-				else if (ps.status == STATE_PAUSED)
-					printf("paused ");
-				else
-					printf("unknown ");
-
-				puts(ps.path);
-
-				print_time("position", ps.position);
-				print_time("duration", ps.duration);
-
-				printf("repeat one %s\nrepeat all %s\n",
-				    ps.rp.repeat_one ? "on" : "off",
-				    ps.rp.repeat_all ? "on" : "off");
-
+				print_status(&ps, res->status_format);
 				done = 1;
 				break;
 			case LOAD:
@@ -784,6 +821,33 @@ ctl_seek(struct parse_result *res, int argc, char **argv)
 
 done:
 	res->seek.offset = sign * (hours * 3600 + minutes * 60 + seconds);
+	return ctlaction(res);
+}
+
+static int
+ctl_status(struct parse_result *res, int argc, char **argv)
+{
+	const char *fmt = NULL;
+	int ch;
+
+	while ((ch = getopt(argc, argv, "f:")) != -1) {
+		switch (ch) {
+		case 'f':
+			fmt = optarg;
+			break;
+		default:
+			ctl_usage(res->ctl);
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if (argc > 0)
+		ctl_usage(res->ctl);
+
+	if (fmt == NULL && (fmt = getenv("AMUSED_STATUS_FORMAT")) == NULL)
+		fmt = "status,time,repeat";
+	res->status_format = fmt;
 	return ctlaction(res);
 }
 
