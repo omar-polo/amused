@@ -127,8 +127,37 @@ it prints a
 .Dq pretty
 list with the current playing song prefixed by
 .Sq > \& .
-.It Cm status
+.It Cm status Op Fl f Ar format
 Print playback status and current song.
+The
+.Ar format
+is a comma-separated list of words that select the information to
+print, in order.
+It defaults to
+.Ev AMUSED_STATUS_FORMAT
+or to
+.Dq status,time,repeat
+if not defined.
+The format available are:
+.Pp
+.Bl -tag -compact -width time:percentage
+.It path
+Path of the current song
+.It repeat:oneline
+Repeat status in a single line.
+.It repeat
+Repeat all and repeat one status, one per line.
+.It status
+Playback status by the path to the current song.
+.It time:oneline
+Position and duration in a single line.
+.It time:percentage
+Percentage of the current position.
+.It time:raw
+Current position and duration in seconds.
+.It time
+Current position and duration in a human-readable format.
+.El
 .It Cm stop
 Stop the music player.
 .It Cm toggle
@@ -145,6 +174,13 @@ automatically skips and removes from the playlist non-regular files by
 default.
 Files with non recognized audio format are skippend and removed from
 the playlist too.
+.Sh ENVIRONMENT
+.Bl -tag -width AMUSED_STATUS_FORMAT
+.It Ev AMUSED_STATUS_FORMAT
+The default format used by
+.Nm
+.Cm status .
+.El
 .Sh FILES
 .Bl -tag -width "/tmp/amused-$UID" -compact
 .It Pa /tmp/amused-$UID
