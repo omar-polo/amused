@@ -164,7 +164,7 @@ sub progress {
 	my $dstr = showtime $dur;
 
 	my $len = $COLS - length($pstr) - length($dstr) - 4;
-	return if $len <= 0;
+	return if $len <= 0 or $dur <= 0;
 	my $filled = int($pos * $len / $dur);
 
 	addstring $y, $x, "$pstr [";
