@@ -130,14 +130,11 @@ canonpath(const char *input, char *buf, size_t bufsize)
 }
 
 static int
-parse(int argc, char **argv)
+parse(struct parse_result *res, int argc, char **argv)
 {
 	struct ctl_command	*ctl = NULL;
-	struct parse_result	 res;
 	const char		*argv0;
 	int			 i, status;
-
-	memset(&res, 0, sizeof(res));
 
 	if ((argv0 = argv[0]) == NULL)
 		argv0 = "status";
@@ -159,8 +156,8 @@ parse(int argc, char **argv)
 		usage();
 	}
 
-	res.action = ctl->action;
-	res.ctl = ctl;
+	res->action = ctl->action;
+	res->ctl = ctl;
 
 	if (!ctl->has_pledge) {
 		/* pledge(2) default if command doesn't have its own */
@@ -168,7 +165,7 @@ parse(int argc, char **argv)
 			fatal("pledge");
 	}
 
-	status = ctl->main(&res, argc, argv);
+	status = ctl->main(res, argc, argv);
 	close(ibuf->fd);
 	free(ibuf);
 	return status;
@@ -827,13 +824,12 @@ done:
 static int
 ctl_status(struct parse_result *res, int argc, char **argv)
 {
-	const char *fmt = NULL;
 	int ch;
 
 	while ((ch = getopt(argc, argv, "f:")) != -1) {
 		switch (ch) {
 		case 'f':
-			fmt = optarg;
+			res->status_format = optarg;
 			break;
 		default:
 			ctl_usage(res->ctl);
@@ -845,9 +841,6 @@ ctl_status(struct parse_result *res, int argc, char **argv)
 	if (argc > 0)
 		ctl_usage(res->ctl);
 
-	if (fmt == NULL && (fmt = getenv("AMUSED_STATUS_FORMAT")) == NULL)
-		fmt = "status,time,repeat";
-	res->status_format = fmt;
 	return ctlaction(res);
 }
 
@@ -956,7 +949,14 @@ failed:
 __dead void
 ctl(int argc, char **argv)
 {
+	struct parse_result res;
+	const char *fmt;
 	int ctl_sock;
+
+	memset(&res, 0, sizeof(res));
+	if ((fmt = getenv("AMUSED_STATUS_FORMAT")) == NULL)
+		fmt = "status,time,repeat";
+	res.status_format = fmt;
 
 	log_init(1, LOG_DAEMON);
 	log_setverbose(verbose);
@@ -976,5 +976,5 @@ ctl(int argc, char **argv)
 	optreset = 1;
 	optind = 1;
 
-	exit(parse(argc, argv));
+	exit(parse(&res, argc, argv));
 }
