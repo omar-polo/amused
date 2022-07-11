@@ -55,33 +55,33 @@ sub max {
 
 sub excerpt {
 	my $lines = int(shift);
-	my $ctx = $lines * 2 + 1;
 	my @tmp;
+	my ($n, $idx, $cur) = (0, 0, -1);
 
-	open (my $fh, "-|", "amused show -p | grep -C$ctx '^>'");
-	my $x = 0;
-	my $cur = 0;
+	open (my $fh, "-|", "amused", "show", "-p");
 	while (<$fh>) {
 		chomp;
 		s,$trim,,;
-		push @tmp, $_;
-		$cur = $x if m/^>/;
-		$x++;
+		$tmp[$idx] = $_;
+		$cur = $n if m/^>/;
+		$n++;
+		$idx = ++$idx % $lines;
+
+		last if $cur != -1 && $n - $cur > $lines/2 &&
+		    $#tmp == $lines-1;
 	}
 	close($fh);
 
-	my $from;
-	if ($cur - $lines < 0) {
-		$from = max($cur - $lines, 0);
-	} elsif ($cur + $lines >= $#tmp) {
-		$from = max($#tmp - $lines * 2 - 1, 0);
-	} else {
-		$from = $cur - $lines;
-	}
+	return ("Empty playlist.") unless @tmp;
 
-	my $len = min($lines * 2 + 1, $#tmp);
-	my @x = splice @tmp, $from, $len + 1;
-	return @x;
+	# reorder the entries
+	my @r;
+	my $len = $#tmp + 1;
+	for (1..$len) {
+		push @r, $tmp[$idx];
+		$idx = ++$idx % $len;
+	}
+	return @r;
 }
 
 sub playlist_numbers {
@@ -221,7 +221,7 @@ sub render {
 
 sub getsongs {
 	$last_lines = $LINES;
-	@songs = excerpt($LINES / 2 - 3);
+	@songs = excerpt $LINES - 4;
 }
 
 sub getnums {
