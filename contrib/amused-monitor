@@ -43,13 +43,17 @@ my $repeat;
 
 my $last_lines;
 
+sub round {
+	return int(0.5 + shift);
+}
+
 sub max {
 	my ($a, $b) = @_;
 	return $a > $b ? $a : $b;
 }
 
 sub excerpt {
-	my $lines = int(shift);
+	my $lines = shift;
 	my @tmp;
 	my ($n, $idx, $cur) = (0, 0, -1);
 
@@ -62,7 +66,7 @@ sub excerpt {
 		$n++;
 		$idx = ++$idx % $lines;
 
-		last if $cur != -1 && $n - $cur > $lines/2 &&
+		last if $cur != -1 && $n - $cur > round($lines/2) &&
 		    $#tmp == $lines-1;
 	}
 	close($fh);
@@ -160,7 +164,7 @@ sub progress {
 
 	my $len = $COLS - length($pstr) - length($dstr) - 4;
 	return if $len <= 0 or $dur <= 0;
-	my $filled = int($pos * $len / $dur);
+	my $filled = round($pos * $len / $dur);
 
 	addstring $y, $x, "$pstr [";
 	addstring "#" x $filled;
@@ -308,7 +312,7 @@ while ($run) {
 	my $elapsed = $now - $tbefore;
 	if ($elapsed > 1) {
 		$tbefore = $now;
-		$time_cur += int($elapsed + 0.5)
+		$time_cur += round($elapsed)
 		    if $status =~ m/^playing/;
 	}
 
