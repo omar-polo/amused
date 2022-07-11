@@ -43,11 +43,6 @@ my $repeat;
 
 my $last_lines;
 
-sub min {
-	my ($a, $b) = @_;
-	return $a < $b ? $a : $b;
-}
-
 sub max {
 	my ($a, $b) = @_;
 	return $a > $b ? $a : $b;
