@@ -247,26 +247,22 @@ imsg_name(int type)
 	switch (type) {
 	case IMSG_CTL_PLAY:
 		return "play";
-	case IMSG_CTL_TOGGLE_PLAY:
-		return "toggle";
 	case IMSG_CTL_PAUSE:
 		return "pause";
 	case IMSG_CTL_STOP:
 		return "stop";
-	case IMSG_CTL_FLUSH:
-		return "flush";
 	case IMSG_CTL_NEXT:
 		return "next";
 	case IMSG_CTL_PREV:
 		return "prev";
 	case IMSG_CTL_JUMP:
 		return "jump";
-	case IMSG_CTL_REPEAT:
-		return "repeat";
 	case IMSG_CTL_ADD:
 		return "add";
 	case IMSG_CTL_COMMIT:
 		return "load";
+	case IMSG_CTL_SEEK:
+		return "seek";
 	default:
 		return "unknown";
 	}
@@ -704,7 +700,7 @@ ctl_repeat(struct parse_result *res, int argc, char **argv)
 static int
 ctl_monitor(struct parse_result *res, int argc, char **argv)
 {
-	int ch;
+	int ch, n = 0;
 	const char *events;
 	char *dup, *tmp, *tok;
 
@@ -716,29 +712,22 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 	if (argc > 1)
 		ctl_usage(res->ctl);
 
+	events = "play,pause,stop,next,prev,jump,repeat,add,load,seek";
 	if (argc == 1)
 		events = *argv;
-	else
-		events = "play,toggle,pause,stop,restart,flush,next,prev,"
-			"jump,repeat,add,load";
 
 	tmp = dup = xstrdup(events);
 	while ((tok = strsep(&tmp, ",")) != NULL) {
 		if (*tok == '\0')
 			continue;
 
+		n++;
 		if (!strcmp(tok, "play"))
 			res->monitor[IMSG_CTL_PLAY] = 1;
-		else if (!strcmp(tok, "toggle"))
-			res->monitor[IMSG_CTL_TOGGLE_PLAY] = 1;
 		else if (!strcmp(tok, "pause"))
 			res->monitor[IMSG_CTL_PAUSE] = 1;
 		else if (!strcmp(tok, "stop"))
 			res->monitor[IMSG_CTL_STOP] = 1;
-		else if (!strcmp(tok, "restart")) /* compat */
-			res->monitor[IMSG_CTL_SEEK] = 1;
-		else if (!strcmp(tok, "flush"))
-			res->monitor[IMSG_CTL_FLUSH] = 1;
 		else if (!strcmp(tok, "next"))
 			res->monitor[IMSG_CTL_NEXT] = 1;
 		else if (!strcmp(tok, "prev"))
@@ -753,11 +742,15 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 			res->monitor[IMSG_CTL_COMMIT] = 1;
 		else if (!strcmp(tok, "seek"))
 			res->monitor[IMSG_CTL_SEEK] = 1;
-		else
-			fatalx("unknown event \"%s\"", tok);
+		else {
+			log_warnx("unknown event \"%s\"", tok);
+			n--;
+		}
 	}
 
 	free(dup);
+	if (n == 0)
+		ctl_usage(res->ctl);
 	return ctlaction(res);
 }
 

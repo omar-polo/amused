@@ -246,6 +246,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 	struct ctl_conn		*c;
 	struct imsg		 imsg;
 	struct player_repeat	 rp;
+	struct player_seek	 seek;
 	ssize_t		 	 n, off;
 
 	if ((c = control_connbyfd(fd)) == NULL) {
@@ -294,18 +295,20 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_TOGGLE_PLAY:
 			switch (play_state) {
 			case STATE_STOPPED:
+				control_notify(IMSG_CTL_PLAY);
 				main_playlist_resume();
 				break;
 			case STATE_PLAYING:
+				control_notify(IMSG_CTL_PAUSE);
 				play_state = STATE_PAUSED;
 				main_send_player(IMSG_PAUSE, -1, NULL, 0);
 				break;
 			case STATE_PAUSED:
+				control_notify(IMSG_CTL_PLAY);
 				play_state = STATE_PLAYING;
 				main_send_player(IMSG_RESUME, -1, NULL, 0);
 				break;
 			}
-			control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_PAUSE:
 			if (play_state != STATE_PLAYING)
@@ -323,7 +326,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			break;
 		case IMSG_CTL_FLUSH:
 			playlist_truncate();
-			control_notify(imsg.hdr.type);
+			control_notify(IMSG_CTL_COMMIT);
 			break;
 		case IMSG_CTL_SHOW:
 			main_send_playlist(&c->iev);
@@ -332,18 +335,17 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			main_send_status(&c->iev);
 			break;
 		case IMSG_CTL_NEXT:
+			control_notify(imsg.hdr.type);
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_advance();
-			control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_PREV:
+			control_notify(imsg.hdr.type);
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_previous();
-			control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_JUMP:
 			main_playlist_jump(&c->iev, &imsg);
-			control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_REPEAT:
 			if (IMSG_DATA_SIZE(imsg) != sizeof(rp)) {
@@ -399,24 +401,12 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			c->monitor = 1;
 			break;
 		case IMSG_CTL_SEEK:
-			if (IMSG_DATA_SIZE(imsg) !=
-			    sizeof(struct player_seek)) {
+			if (IMSG_DATA_SIZE(imsg) != sizeof(seek)) {
 				main_senderr(&c->iev, "wrong size");
 				break;
 			}
-			switch (play_state) {
-			case STATE_STOPPED:
-				main_playlist_resume();
-				break;
-			case STATE_PLAYING:
-				break;
-			case STATE_PAUSED:
-				play_state = STATE_PLAYING;
-				break;
-			}
-			main_send_player(IMSG_CTL_SEEK, -1, imsg.data,
-			    IMSG_DATA_SIZE(imsg));
-			control_notify(imsg.hdr.type);
+			memcpy(&seek, imsg.data, sizeof(seek));
+			main_seek(&seek);
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,

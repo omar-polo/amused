@@ -47,6 +47,8 @@ pid_t		 player_pid;
 struct event	 ev_sigint;
 struct event	 ev_sigterm;
 
+static int	 notify_seek;
+
 enum amused_process {
 	PROC_MAIN,
 	PROC_PLAYER,
@@ -136,6 +138,10 @@ main_dispatch_player(int sig, short event, void *d)
 			    sizeof(current_position));
 			if (current_position < 0)
 				current_position = -1;
+			if (notify_seek) {
+				notify_seek = 0;
+				control_notify(IMSG_CTL_SEEK);
+			}
 			break;
 		case IMSG_LEN:
 			if (datalen != sizeof(current_duration))
@@ -435,6 +441,8 @@ main_playlist_jump(struct imsgev *iev, struct imsg *imsg)
 		return;
 	}
 
+	control_notify(IMSG_CTL_JUMP);
+
 	main_send_player(IMSG_STOP, -1, NULL, 0);
 	if (!main_play_song(song)) {
 		main_senderr(iev, "can't play");
@@ -566,4 +574,22 @@ main_send_status(struct imsgev *iev)
 	s.rp.repeat_one = repeat_one;
 
 	imsg_compose_event(iev, IMSG_CTL_STATUS, 0, 0, -1, &s, sizeof(s));
+}
+
+void
+main_seek(struct player_seek *s)
+{
+	switch (play_state) {
+	case STATE_STOPPED:
+		main_playlist_resume();
+		break;
+	case STATE_PLAYING:
+		break;
+	case STATE_PAUSED:
+		play_state = STATE_PLAYING;
+		break;
+	}
+
+	notify_seek = 1;
+	main_send_player(IMSG_CTL_SEEK, -1, s, sizeof(*s));
 }

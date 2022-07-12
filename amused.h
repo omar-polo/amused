@@ -143,6 +143,7 @@ void		main_senderr(struct imsgev *, const char *);
 void		main_enqueue(int, struct playlist *, struct imsgev *, struct imsg *);
 void		main_send_playlist(struct imsgev *);
 void		main_send_status(struct imsgev *);
+void		main_seek(struct player_seek *);
 
 /* ctl.c */
 __dead void	usage(void);
