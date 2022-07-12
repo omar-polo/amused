@@ -81,18 +81,33 @@ Failing that, the playlist will be played from the first track onwards.
 .It Cm monitor Op Ar events
 Stop indefinitely and print when an event in the comma-separated list of
 .Ar events
-happen.
-By default logs every event.
-The
+happened, or all if not given.
+The available
 .Ar events
-are triggered either by other instances of
-.Nm
-issuing commands or the player itself anvancing through the playing
-queue.
-The events name take after the command name that generates it, e.g.\&
-.Ar play ,
-.Ar toggle ,
-.Ar ...
+are:
+.Pp
+.Bl -tag -compact -width unknown
+.It play
+Playing or resuming a song.
+.It pause
+Paused.
+.It stop
+Stopped.
+.It next
+Advanced to next song.
+.It prev
+Gone back to previous song.
+.It jump
+Jumped to a different song in the playlist.
+.It add
+Added a song to the playlist.
+.It load
+Loaded a new playlist.
+.It seek
+Seeked in the current track.
+.It unknown
+An unknown event.
+.El
 .It Cm next
 Play the next song.
 .It Cm pause
