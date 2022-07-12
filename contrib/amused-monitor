@@ -281,8 +281,7 @@ GetOptions(
 	"t:s" => \$trim,
     ) or pod2usage(1);
 
-my $mpid = open(my $monitor, "-|", "amused", "monitor",
-     "load,jump,seek,next,prev,play,pause,toggle,stop,repeat")
+my $mpid = open(my $monitor, "-|", "amused", "monitor")
     or die "can't spawn amused monitor";
 
 initscr;
