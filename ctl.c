@@ -242,7 +242,7 @@ imsg_strerror(struct imsg *imsg)
 }
 
 static const char *
-imsg_name(int type)
+event_name(int type)
 {
 	switch (type) {
 	case IMSG_CTL_PLAY:
@@ -558,7 +558,7 @@ ctlaction(struct parse_result *res)
 				if (!res->monitor[type])
 					break;
 
-				puts(imsg_name(type));
+				puts(event_name(type));
 				fflush(stdout);
 				break;
 			default:
