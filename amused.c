@@ -164,9 +164,9 @@ main_dispatch_player(int sig, short event, void *d)
 			}
 			main_playlist_advance();
 			if (play_state == STATE_PLAYING)
-				control_notify(NULL, IMSG_CTL_NEXT);
+				control_notify(IMSG_CTL_NEXT);
 			else
-				control_notify(NULL, IMSG_CTL_STOP);
+				control_notify(IMSG_CTL_STOP);
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
