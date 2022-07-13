@@ -500,7 +500,6 @@ ctlaction(struct parse_result *res)
 				break;
 			case PLAY:
 			case TOGGLE:
-			case RESTART:
 			case STATUS:
 			case NEXT:
 			case PREV:
