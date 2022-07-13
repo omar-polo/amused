@@ -93,6 +93,10 @@ struct player_seek {
 
 struct ctl_command;
 
+#define MODE_ON		+1
+#define MODE_OFF	 0
+#define MODE_UNDEF	-1
+#define MODE_TOGGLE	-2
 struct player_mode {
 	int	repeat_one;
 	int	repeat_all;

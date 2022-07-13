@@ -240,6 +240,16 @@ control_notify(int type)
 	}
 }
 
+static int
+new_mode(int val, int newval)
+{
+	if (newval == MODE_UNDEF)
+		return val;
+	if (newval == MODE_TOGGLE)
+		return !val;
+	return !!newval;
+}
+
 void
 control_dispatch_imsg(int fd, short event, void *bula)
 {
@@ -353,12 +363,9 @@ control_dispatch_imsg(int fd, short event, void *bula)
 				break;
 			}
 			memcpy(&mode, imsg.data, sizeof(mode));
-			if (mode.repeat_all != -1)
-				repeat_all = mode.repeat_all;
-			if (mode.repeat_one != -1)
-				repeat_one = mode.repeat_one;
-			if (mode.consume != -1)
-				consume = mode.consume;
+			consume = new_mode(consume, mode.consume);
+			repeat_all = new_mode(repeat_all, mode.repeat_all);
+			repeat_one = new_mode(repeat_one, mode.repeat_one);
 			control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_BEGIN:
