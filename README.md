@@ -38,6 +38,15 @@ hard-coded flags (e.g. `-lflac` for flac) and finally resorts to
 pkg-config if available.  pkg-config auto-detection can be disable by
 passing `PKG_CONFIG=false` (or the empty string)
 
+For Linux users with libbsd installed, the configure script can be
+instructed to use libbsd exclusively as follows:
+
+	CFLAGS="$(pkg-config --cflags libbsd-overlay)" \
+		./configure LDFLAGS="$(pkg-config --libs libbsd-overlay)"
+
+For new versions of libbsd, this will pull in the library for all
+compatibility replacements instead of those within `compats.c`.
+
 
 ## Usage
 
