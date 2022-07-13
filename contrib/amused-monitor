@@ -76,6 +76,7 @@ sub excerpt {
 	# reorder the entries
 	my @r;
 	my $len = $#tmp + 1;
+	$idx = $idx % $len;
 	for (1..$len) {
 		push @r, $tmp[$idx];
 		$idx = ++$idx % $len;
