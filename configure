@@ -407,6 +407,8 @@ __HEREDOC__
 		fi
 	fi
 
+	rm -f test-${1}.d
+
 	if [ -n "${pkgcfs}" -o -n "${pkglib}" ]
 	then
 		CFLAGS="${CFLAGS} ${pkgcfs}"
