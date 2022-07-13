@@ -66,6 +66,9 @@ play_mp3(int fd, const char **errstr)
 	if (!setup(mh))
 		goto done;
 
+	if (mpg123_scan(mh) != MPG123_OK)
+		goto done;
+
 	player_setduration(mpg123_length(mh));
 
 	for (;;) {
