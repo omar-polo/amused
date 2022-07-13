@@ -66,7 +66,7 @@ sub excerpt {
 		$n++;
 		$idx = ++$idx % $lines;
 
-		last if $cur != -1 && $n - $cur > round($lines/2) &&
+		last if $cur != -1 && $n - $cur > int($lines/2) &&
 		    $#tmp == $lines-1;
 	}
 	close($fh);
