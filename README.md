@@ -44,9 +44,6 @@ instructed to use libbsd exclusively as follows:
 	CFLAGS="$(pkg-config --cflags libbsd-overlay)" \
 		./configure LDFLAGS="$(pkg-config --libs libbsd-overlay)"
 
-For new versions of libbsd, this will pull in the library for all
-compatibility replacements instead of those within `compats.c`.
-
 
 ## Usage
 
