@@ -1,3 +1,21 @@
+* amused 0.10; 2022-07-13
+- changed the default output of 'amused status'
+- print the status after 'amused consume' or 'amused repeat'
+- fixed 'amused load' with an empty playlist
+- the on|off argument to 'amused consume/repeat' is now optional
+- added a consume mode
+- pledge earlier
+- rework (and document) the events reported by "amused monitor" (some were added/removed)
+- added contrib/amused-monitor: ncurses tui written in perl (not installed by default)
+- added 'amused status -f <fmt>' to customize the output format
+- clarify how non-regular or non-supported files in the playlist are treated
+- handle fdopen failures gracefully
+- use (a modified version of) kristaps' oconfigure; amused is portable now!
+- added ability to seek
+- keep track of current position and total duration of the track
+- don't get stuck if the server fails to start
+- improved error reporting when failing to play a song
+
 * amused 0.9; 2022-06-12
 - reset the path buffer; fixes the "malformed data" error during `load'
 
