@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 
 #include <limits.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <mpg123.h>

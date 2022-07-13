@@ -109,7 +109,7 @@ struct player_status {
 struct parse_result {
 	enum actions		 action;
 	char			**files;
-	const char		*file;
+	FILE			*fp;
 	int			 pretty;
 	int			 monitor[IMSG__LAST];
 	struct player_repeat	 rep;
@@ -123,7 +123,6 @@ struct ctl_command {
 	enum actions		 action;
 	int			(*main)(struct parse_result *, int, char **);
 	const char		*usage;
-	int			 has_pledge;
 };
 
 struct playlist;

@@ -49,23 +49,23 @@ static int	ctl_seek(struct parse_result *, int, char **);
 static int	ctl_status(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
-	{ "add",	ADD,		ctl_add,	"files...", 0 },
-	{ "flush",	FLUSH,		ctl_noarg,	"", 0 },
-	{ "jump",	JUMP,		ctl_jump,	"pattern", 0 },
-	{ "load",	LOAD,		ctl_load,	"[file]", 1 },
-	{ "monitor",	MONITOR,	ctl_monitor,	"[events]", 0 },
-	{ "next",	NEXT,		ctl_noarg,	"", 0 },
-	{ "pause",	PAUSE,		ctl_noarg,	"", 0 },
-	{ "play",	PLAY,		ctl_noarg,	"", 0 },
-	{ "prev",	PREV,		ctl_noarg,	"", 0 },
-	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off", 0 },
-	{ "restart",	RESTART,	ctl_noarg,	"", 0 },
-	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]", 0 },
-	{ "show",	SHOW,		ctl_show,	"[-p]", 0 },
-	{ "status",	STATUS,		ctl_status,	"[-f fmt]", 0 },
-	{ "stop",	STOP,		ctl_noarg,	"", 0 },
-	{ "toggle",	TOGGLE,		ctl_noarg,	"", 0 },
-	{ NULL, 0, NULL, NULL, 0 },
+	{ "add",	ADD,		ctl_add,	"files..."},
+	{ "flush",	FLUSH,		ctl_noarg,	""},
+	{ "jump",	JUMP,		ctl_jump,	"pattern"},
+	{ "load",	LOAD,		ctl_load,	"[file]"},
+	{ "monitor",	MONITOR,	ctl_monitor,	"[events]"},
+	{ "next",	NEXT,		ctl_noarg,	""},
+	{ "pause",	PAUSE,		ctl_noarg,	""},
+	{ "play",	PLAY,		ctl_noarg,	""},
+	{ "prev",	PREV,		ctl_noarg,	""},
+	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off"},
+	{ "restart",	RESTART,	ctl_noarg,	""},
+	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]"},
+	{ "show",	SHOW,		ctl_show,	"[-p]"},
+	{ "status",	STATUS,		ctl_status,	"[-f fmt]"},
+	{ "stop",	STOP,		ctl_noarg,	""},
+	{ "toggle",	TOGGLE,		ctl_noarg,	""},
+	{ NULL, 0, NULL, NULL},
 };
 
 __dead void
@@ -159,12 +159,6 @@ parse(struct parse_result *res, int argc, char **argv)
 	res->action = ctl->action;
 	res->ctl = ctl;
 
-	if (!ctl->has_pledge) {
-		/* pledge(2) default if command doesn't have its own */
-		if (pledge("stdio", NULL) == -1)
-			fatal("pledge");
-	}
-
 	status = ctl->main(res, argc, argv);
 	close(ibuf->fd);
 	free(ibuf);
@@ -174,22 +168,13 @@ parse(struct parse_result *res, int argc, char **argv)
 static int
 load_files(struct parse_result *res, int *ret)
 {
-	FILE		*f;
 	const char	*file;
 	char		*line = NULL;
 	char		 path[PATH_MAX];
 	size_t		 linesize = 0, i = 0;
 	ssize_t		 linelen, curr = -1;
 
-	if (res->file == NULL)
-		f = stdin;
-	else if ((f = fopen(res->file, "r")) == NULL) {
-		log_warn("can't open %s", res->file);
-		*ret = 1;
-		return 1;
-	}
-
-	while ((linelen = getline(&line, &linesize, f)) != -1) {
+	while ((linelen = getline(&line, &linesize, res->fp)) != -1) {
 		if (linelen == 0)
 			continue;
 		line[linelen-1] = '\0';
@@ -212,9 +197,10 @@ load_files(struct parse_result *res, int *ret)
 	}
 
 	free(line);
-	if (ferror(f))
+	if (ferror(res->fp))
 		fatal("getline");
-	fclose(f);
+	fclose(res->fp);
+	res->fp = NULL;
 
 	if (i == 0) {
 		*ret = 1;
@@ -351,6 +337,9 @@ ctlaction(struct parse_result *res)
 	ssize_t n;
 	int i, type, ret = 0, done = 1;
 
+	if (pledge("stdio", NULL) == -1)
+		fatal("pledge");
+
 	switch (res->action) {
 	case PLAY:
 		imsg_compose(ibuf, IMSG_CTL_PLAY, 0, 0, -1, NULL, 0);
@@ -423,7 +412,7 @@ ctlaction(struct parse_result *res)
 	case JUMP:
 		done = 0;
 		memset(path, 0, sizeof(path));
-		strlcpy(path, res->file, sizeof(path));
+		strlcpy(path, res->files[0], sizeof(path));
 		imsg_compose(ibuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
 		break;
@@ -635,15 +624,14 @@ ctl_load(struct parse_result *res, int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0)
-		res->file = NULL;
-	else if (argc == 1)
-		res->file = argv[0];
-	else
+	if (argc > 1)
 		ctl_usage(res->ctl);
 
-	if (pledge("stdio rpath", NULL) == -1)
-		fatal("pledge");
+	res->fp = stdin;
+	if (argc == 1) {
+		if ((res->fp = fopen(argv[0], "r")) == NULL)
+			fatal("can't open %s", argv[0]);
+	}
 
 	return ctlaction(res);
 }
@@ -661,7 +649,7 @@ ctl_jump(struct parse_result *res, int argc, char **argv)
 	if (argc != 1)
 		ctl_usage(res->ctl);
 
-	res->file = argv[0];
+	res->files = argv;
 	return ctlaction(res);
 }
 
@@ -968,6 +956,10 @@ ctl(int argc, char **argv)
 
 	optreset = 1;
 	optind = 1;
+
+	/* we'll drop rpath too later in ctlaction */
+	if (pledge("stdio rpath", NULL) == -1)
+		fatal("pledge");
 
 	exit(parse(&res, argc, argv));
 }
