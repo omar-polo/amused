@@ -39,7 +39,7 @@ my $playlist_max;
 my $time_cur;
 my $time_dur;
 my $status;
-my $repeat;
+my $mode;
 
 my $last_lines;
 
@@ -96,20 +96,20 @@ sub playlist_numbers {
 }
 
 sub status {
-	my ($pos, $dur, $repeat);
+	my ($pos, $dur, $mode);
 
 	open (my $fh, "-|", "amused", "status", "-f",
-	      "status,time:raw,repeat:oneline");
+	      "status,time:raw,mode:oneline");
 	my $status = <$fh>;
 	chomp $status;
 	while (<$fh>) {
 		chomp;
 		$pos = s/position //r if m/^position /;
 		$dur = s/duration //r if m/^duration /;
-		$repeat = $_ if m/^repeat/;
+		$mode = $_ if m/^repeat/;
 	}
 	close($fh);
-	return ($status, $pos, $dur, $repeat);
+	return ($status, $pos, $dur, $mode);
 }
 
 sub showtime {
@@ -180,9 +180,9 @@ sub show_status {
 	addstring $post;
 }
 
-sub show_repeat {
-	my ($y, $x, $repeat) = @_;
-	my ($pre, $c, $post) = center($repeat, ' ');
+sub show_mode {
+	my ($y, $x, $mode) = @_;
+	my ($pre, $c, $post) = center($mode, ' ');
 	addstring $y, $x, $pre;
 	addstring $c;
 	addstring $post;
@@ -213,7 +213,7 @@ sub render {
 	offsets $LINES - 4, 0, $playlist_cur, $playlist_max;
 	progress $LINES - 3, 0, $time_cur, $time_dur;
 	show_status $LINES - 2, 0, $status;
-	show_repeat $LINES - 1, 0, $repeat;
+	show_mode $LINES - 1, 0, $mode;
 
 	refresh;
 }
@@ -228,7 +228,7 @@ sub getnums {
 }
 
 sub getstatus {
-	($status, $time_cur, $time_dur, $repeat) = status;
+	($status, $time_cur, $time_dur, $mode) = status;
 }
 
 sub save {
@@ -315,8 +315,7 @@ while ($run) {
 		    if $status =~ m/^playing/;
 	}
 
-	($status, $time_cur, $time_dur, $repeat) = status
-	    unless $tick++ % 8;
+	getstatus unless $tick++ % 8;
 
 	hinput if $poll->events(\*STDIN) & POLLIN;
 	hevent $monitor if $poll->events($monitor) & POLLIN;
