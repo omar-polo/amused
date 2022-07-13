@@ -304,10 +304,10 @@ print_status(struct player_status *ps, const char *spec)
 			printf("all:%s ", ps->mode.repeat_all ? "on" : "off");
 			printf("consume:%s\n", ps->mode.consume ? "on" : "off");
 		} else if (!strcmp(tok, "mode")) {
-			printf("repeat one %s\n",
-			    ps->mode.repeat_one ? "on" : "off");
 			printf("repeat all %s\n",
 			    ps->mode.repeat_all ? "on" : "off");
+			printf("repeat one %s\n",
+			    ps->mode.repeat_one ? "on" : "off");
 			printf("consume %s\n",
 			    ps->mode.consume ? "on" : "off");
 		} else if (!strcmp(tok, "status")) {
