@@ -161,17 +161,17 @@ print, in order.
 It defaults to
 .Ev AMUSED_STATUS_FORMAT
 or to
-.Dq status,time,repeat
+.Dq status,time,mode
 if not defined.
 The format available are:
 .Pp
 .Bl -tag -compact -width time:percentage
 .It path
 Path of the current song
-.It repeat:oneline
-Repeat status in a single line.
-.It repeat
-Repeat all and repeat one status, one per line.
+.It mode:oneline
+Mode status in a single line.
+.It mode
+Repeat all, one and consume, one per line.
 .It status
 Playback status by the path to the current song.
 .It time:oneline
