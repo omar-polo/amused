@@ -82,6 +82,8 @@ ${PROG}-${VERSION}.tar.gz: ${DISTFILES}
 	mkdir -p .dist/${PROG}-${VERSION}
 	${INSTALL} -m 0644 ${DISTFILES} .dist/${PROG}-${VERSION}
 	cd .dist/${PROG}-${VERSION} && chmod 755 configure
+	cd .dist/${PROG}-${VERSION} && cp -R ../../contrib . && \
+		chmod 755 contrib/amused-monitor
 	cd .dist && tar zcf ../$@ ${PROG}-${VERSION}
 	rm -rf .dist/
 
