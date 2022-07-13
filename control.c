@@ -366,6 +366,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 			consume = new_mode(consume, mode.consume);
 			repeat_all = new_mode(repeat_all, mode.repeat_all);
 			repeat_one = new_mode(repeat_one, mode.repeat_one);
+			main_send_status(&c->iev);
 			control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_BEGIN:

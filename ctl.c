@@ -419,8 +419,12 @@ ctlaction(struct parse_result *res)
 		    path, sizeof(path));
 		break;
 	case MODE:
+		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_MODE, 0, 0, -1,
 		    &res->mode, sizeof(res->mode));
+		res->status_format = "mode:oneline";
+		if (verbose)
+			res->status_format = "mode";
 		break;
 	case MONITOR:
 		done = 0;
@@ -506,6 +510,7 @@ ctlaction(struct parse_result *res)
 			case NEXT:
 			case PREV:
 			case JUMP:
+			case MODE:
 				if (imsg.hdr.type != IMSG_CTL_STATUS)
 					fatalx("invalid message %d",
 					    imsg.hdr.type);
