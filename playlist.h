@@ -34,6 +34,7 @@ extern struct playlist	playlist;
 extern enum play_state	 play_state;
 extern int		 repeat_one;
 extern int		 repeat_all;
+extern int		 consume;
 extern ssize_t		 play_off;
 extern const char	*current_song;
 extern int64_t		 current_position;

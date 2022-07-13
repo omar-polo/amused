@@ -245,7 +245,7 @@ control_dispatch_imsg(int fd, short event, void *bula)
 {
 	struct ctl_conn		*c;
 	struct imsg		 imsg;
-	struct player_repeat	 rp;
+	struct player_mode	 mode;
 	struct player_seek	 seek;
 	ssize_t		 	 n, off;
 
@@ -347,16 +347,18 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		case IMSG_CTL_JUMP:
 			main_playlist_jump(&c->iev, &imsg);
 			break;
-		case IMSG_CTL_REPEAT:
-			if (IMSG_DATA_SIZE(imsg) != sizeof(rp)) {
+		case IMSG_CTL_MODE:
+			if (IMSG_DATA_SIZE(imsg) != sizeof(mode)) {
 				log_warnx("%s: got wrong size", __func__);
 				break;
 			}
-			memcpy(&rp, imsg.data, sizeof(rp));
-			if (rp.repeat_all != -1)
-				repeat_all = rp.repeat_all;
-			if (rp.repeat_one != -1)
-				repeat_one = rp.repeat_one;
+			memcpy(&mode, imsg.data, sizeof(mode));
+			if (mode.repeat_all != -1)
+				repeat_all = mode.repeat_all;
+			if (mode.repeat_one != -1)
+				repeat_one = mode.repeat_one;
+			if (mode.consume != -1)
+				consume = mode.consume;
 			control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_BEGIN:

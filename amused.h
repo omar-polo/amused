@@ -45,7 +45,7 @@ enum imsg_type {
 	IMSG_CTL_NEXT,
 	IMSG_CTL_PREV,
 	IMSG_CTL_JUMP,
-	IMSG_CTL_REPEAT,	/* struct player_repeat */
+	IMSG_CTL_MODE,		/* struct player_mode */
 	IMSG_CTL_SEEK,		/* struct player_seek */
 
 	IMSG_CTL_BEGIN,
@@ -80,7 +80,7 @@ enum actions {
 	NEXT,
 	LOAD,
 	JUMP,
-	REPEAT,
+	MODE,
 	MONITOR,
 	SEEK,
 };
@@ -93,9 +93,10 @@ struct player_seek {
 
 struct ctl_command;
 
-struct player_repeat {
+struct player_mode {
 	int	repeat_one;
 	int	repeat_all;
+	int	consume;
 };
 
 struct player_status {
@@ -103,7 +104,7 @@ struct player_status {
 	int			status;
 	int64_t			position;
 	int64_t			duration;
-	struct player_repeat	rp;
+	struct player_mode	mode;
 };
 
 struct parse_result {
@@ -112,7 +113,7 @@ struct parse_result {
 	FILE			*fp;
 	int			 pretty;
 	int			 monitor[IMSG__LAST];
-	struct player_repeat	 rep;
+	struct player_mode	 mode;
 	struct player_seek	 seek;
 	const char		*status_format;
 	struct ctl_command	*ctl;

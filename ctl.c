@@ -44,12 +44,14 @@ static int	ctl_show(struct parse_result *, int, char **);
 static int	ctl_load(struct parse_result *, int, char **);
 static int	ctl_jump(struct parse_result *, int, char **);
 static int	ctl_repeat(struct parse_result *, int, char **);
+static int	ctl_consume(struct parse_result *, int, char **);
 static int	ctl_monitor(struct parse_result *, int, char **);
 static int	ctl_seek(struct parse_result *, int, char **);
 static int	ctl_status(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
 	{ "add",	ADD,		ctl_add,	"files..."},
+	{ "consume",	MODE,		ctl_consume,	"one|all"},
 	{ "flush",	FLUSH,		ctl_noarg,	""},
 	{ "jump",	JUMP,		ctl_jump,	"pattern"},
 	{ "load",	LOAD,		ctl_load,	"[file]"},
@@ -58,7 +60,7 @@ struct ctl_command ctl_commands[] = {
 	{ "pause",	PAUSE,		ctl_noarg,	""},
 	{ "play",	PLAY,		ctl_noarg,	""},
 	{ "prev",	PREV,		ctl_noarg,	""},
-	{ "repeat",	REPEAT,		ctl_repeat,	"one|all on|off"},
+	{ "repeat",	MODE,		ctl_repeat,	"one|all on|off"},
 	{ "restart",	RESTART,	ctl_noarg,	""},
 	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]"},
 	{ "show",	SHOW,		ctl_show,	"[-p]"},
@@ -247,6 +249,8 @@ event_name(int type)
 		return "add";
 	case IMSG_CTL_COMMIT:
 		return "load";
+	case IMSG_CTL_MODE:
+		return "mode";
 	case IMSG_CTL_SEEK:
 		return "seek";
 	default:
@@ -299,15 +303,18 @@ print_status(struct player_status *ps, const char *spec)
 
 		if (!strcmp(tok, "path")) {
 			puts(ps->path);
-		} else if (!strcmp(tok, "repeat:oneline")) {
+		} else if (!strcmp(tok, "mode:oneline")) {
 			printf("repeat one:%s ",
-			    ps->rp.repeat_one ? "on" : "off");
-			printf("all:%s\n", ps->rp.repeat_all ? "on" : "off");
+			    ps->mode.repeat_one ? "on" : "off");
+			printf("all:%s ", ps->mode.repeat_all ? "on" : "off");
+			printf("consume:%s\n", ps->mode.consume ? "on" : "off");
 		} else if (!strcmp(tok, "repeat")) {
 			printf("repeat one %s\n",
-			    ps->rp.repeat_one ? "on" : "off");
+			    ps->mode.repeat_one ? "on" : "off");
 			printf("repeat all %s\n",
-			    ps->rp.repeat_all ? "on" : "off");
+			    ps->mode.repeat_all ? "on" : "off");
+			printf("consume %s\n",
+			    ps->mode.consume ? "on" : "off");
 		} else if (!strcmp(tok, "status")) {
 			printf("%s %s\n", status, ps->path);
 		} else if (!strcmp(tok, "time:oneline")) {
@@ -416,9 +423,9 @@ ctlaction(struct parse_result *res)
 		imsg_compose(ibuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
 		break;
-	case REPEAT:
-		imsg_compose(ibuf, IMSG_CTL_REPEAT, 0, 0, -1,
-		    &res->rep, sizeof(res->rep));
+	case MODE:
+		imsg_compose(ibuf, IMSG_CTL_MODE, 0, 0, -1,
+		    &res->mode, sizeof(res->mode));
 		break;
 	case MONITOR:
 		done = 0;
@@ -672,15 +679,35 @@ ctl_repeat(struct parse_result *res, int argc, char **argv)
 	else
 		ctl_usage(res->ctl);
 
-	res->rep.repeat_one = -1;
-	res->rep.repeat_all = -1;
+	res->mode.repeat_one = -1;
+	res->mode.repeat_all = -1;
+	res->mode.consume = -1;
 	if (!strcmp(argv[0], "one"))
-		res->rep.repeat_one = b;
+		res->mode.repeat_one = b;
 	else if (!strcmp(argv[0], "all"))
-		res->rep.repeat_all = b;
+		res->mode.repeat_all = b;
 	else
 		ctl_usage(res->ctl);
 
+	return ctlaction(res);
+}
+
+static int
+ctl_consume(struct parse_result *res, int argc, char **argv)
+{
+	int ch;
+
+	while ((ch = getopt(argc, argv, "")) != -1)
+		ctl_usage(res->ctl);
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 1)
+		ctl_usage(res->ctl);
+
+	res->mode.repeat_one = -1;
+	res->mode.repeat_all = -1;
+	res->mode.consume = !strcmp(argv[0], "on");
 	return ctlaction(res);
 }
 
@@ -699,7 +726,7 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 	if (argc > 1)
 		ctl_usage(res->ctl);
 
-	events = "play,pause,stop,next,prev,jump,repeat,add,load,seek";
+	events = "play,pause,stop,next,prev,jump,mode,add,load,seek";
 	if (argc == 1)
 		events = *argv;
 
@@ -721,8 +748,8 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 			res->monitor[IMSG_CTL_PREV] = 1;
 		else if (!strcmp(tok, "jump"))
 			res->monitor[IMSG_CTL_JUMP] = 1;
-		else if (!strcmp(tok, "repeat"))
-			res->monitor[IMSG_CTL_REPEAT] = 1;
+		else if (!strcmp(tok, "mode"))
+			res->monitor[IMSG_CTL_MODE] = 1;
 		else if (!strcmp(tok, "add"))
 			res->monitor[IMSG_CTL_ADD] = 1;
 		else if (!strcmp(tok, "load"))

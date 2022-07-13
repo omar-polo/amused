@@ -33,6 +33,7 @@ struct playlist	 playlist;
 enum play_state	 play_state;
 int		 repeat_one;
 int		 repeat_all = 1;
+int		 consume;
 ssize_t		 play_off = -1;
 const char	*current_song;
 int64_t		 current_position;

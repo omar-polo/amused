@@ -58,6 +58,9 @@ The following commands are available:
 .Bl -tag -width Ds
 .It Cm add Ar
 Enqueue the given files.
+.It Cm consume on|off
+When consume mode is enabled the tracks are removed from the playlist
+once played til the end.
 .It Cm flush
 Erase the playlist.
 .It Cm jump Ar pattern
@@ -106,6 +109,9 @@ Jumped to a different song in the playlist.
 Added a song to the playlist.
 .It load
 Loaded a new playlist.
+.It mode
+Changed mode
+.Pq repeat or consume .
 .It seek
 Seeked in the current track.
 .It unknown

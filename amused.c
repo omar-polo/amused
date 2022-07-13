@@ -161,13 +161,17 @@ main_dispatch_player(int sig, short event, void *d)
 			}
 			log_warnx("%s; skipping %s", errstr, current_song);
 			playlist_dropcurrent();
-			/* fallthrough */
+			main_playlist_advance();
+			if (play_state == STATE_PLAYING)
+				control_notify(IMSG_CTL_NEXT);
+			else
+				control_notify(IMSG_CTL_STOP);
+			break;
 		case IMSG_EOF:
-			if (repeat_one && current_song != NULL) {
-				if (main_play_song(current_song))
-					break;
+			if (repeat_one && main_play_song(current_song))
+				break;
+			else if (repeat_one || consume)
 				playlist_dropcurrent();
-			}
 			main_playlist_advance();
 			if (play_state == STATE_PLAYING)
 				control_notify(IMSG_CTL_NEXT);
@@ -570,8 +574,9 @@ main_send_status(struct imsgev *iev)
 	s.status = play_state;
 	s.position = current_position;
 	s.duration = current_duration;
-	s.rp.repeat_all = repeat_all;
-	s.rp.repeat_one = repeat_one;
+	s.mode.repeat_all = repeat_all;
+	s.mode.repeat_one = repeat_one;
+	s.mode.consume = consume;
 
 	imsg_compose_event(iev, IMSG_CTL_STATUS, 0, 0, -1, &s, sizeof(s));
 }
