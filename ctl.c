@@ -962,7 +962,7 @@ ctl(int argc, char **argv)
 
 	memset(&res, 0, sizeof(res));
 	if ((fmt = getenv("AMUSED_STATUS_FORMAT")) == NULL)
-		fmt = "status,time,repeat";
+		fmt = "status,time:oneline,mode:oneline";
 	res.status_format = fmt;
 
 	res.mode.consume = MODE_UNDEF;
