@@ -1,8 +1,8 @@
 .PHONY: all clean distclean install
 
 VERSION =	0.10
-
 PROG =		amused
+DISTNAME =	${PROG}-${VERSION}
 
 SOURCES =	amused.c \
 		compats.c \
@@ -73,18 +73,18 @@ uninstall:
 
 # --- maintainer targets ---
 
-dist: ${PROG}-${VERSION}.sha256
+dist: ${DISTNAME}.sha256
 
-${PROG}-${VERSION}.sha256: ${PROG}-${VERSION}.tar.gz
-	sha256 ${PROG}-${VERSION}.tar.gz > $@
+${DISTNAME}.sha256: ${DISTNAME}.tar.gz
+	sha256 ${DISTNAME}.tar.gz > $@
 
-${PROG}-${VERSION}.tar.gz: ${DISTFILES}
-	mkdir -p .dist/${PROG}-${VERSION}
-	${INSTALL} -m 0644 ${DISTFILES} .dist/${PROG}-${VERSION}
-	cd .dist/${PROG}-${VERSION} && chmod 755 configure
-	cd .dist/${PROG}-${VERSION} && cp -R ../../contrib . && \
+${DISTNAME}.tar.gz: ${DISTFILES}
+	mkdir -p .dist/${DISTNAME}
+	${INSTALL} -m 0644 ${DISTFILES} .dist/${DISTNAME}
+	cd .dist/${DISTNAME} && chmod 755 configure
+	cd .dist/${DISTNAME} && cp -R ../../contrib . && \
 		chmod 755 contrib/amused-monitor
-	cd .dist && tar zcf ../$@ ${PROG}-${VERSION}
+	cd .dist && tar zcf ../$@ ${DISTNAME}
 	rm -rf .dist/
 
 # --- dependency management ---
