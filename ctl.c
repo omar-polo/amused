@@ -204,11 +204,6 @@ load_files(struct parse_result *res, int *ret)
 	fclose(res->fp);
 	res->fp = NULL;
 
-	if (i == 0) {
-		*ret = 1;
-		return 1;
-	}
-
 	imsg_compose(ibuf, IMSG_CTL_COMMIT, 0, 0, -1,
 	    &curr, sizeof(curr));
 	imsg_flush(ibuf);
