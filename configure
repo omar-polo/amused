@@ -78,6 +78,11 @@ Variables available:
     INCLUDEDIR             where to install header files (PREFIX/include)
     PKG_CONFIG             path to the pkg-config program or empty to disable
 
+Additionally, the following environment variables are used if set:
+
+    CC        the C compiler to use (defaults to cc, clang or gcc)
+    CFLAGS    generic C compiler flags
+
 EOF
 	exit 0 ;;
 esac
