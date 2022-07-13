@@ -252,7 +252,11 @@ sub hevent {
 
 sub hinput {
 	my ($ch, $key) = getchar;
-	if (defined $ch) {
+	if (defined $key) {
+		if ($key == KEY_BACKSPACE) {
+			system "amused", " seek", "0";
+		}
+	} elsif (defined $ch) {
 		if ($ch eq " ") {
 			system "amused", "toggle";
 		} elsif ($ch eq "<" or $ch eq "p") {
@@ -271,9 +275,9 @@ sub hinput {
 			save;
 		} elsif ($ch eq "q") {
 			$run = 0;
+		} elsif ($ch eq "\cH") {
+			system "amused", " seek", "0"
 		}
-	} elsif (defined $key) {
-		# todo?
 	}
 }
 
@@ -293,6 +297,7 @@ init_pair $pair_n, 250, -1;
 timeout 1000;
 scrollok 0;
 curs_set 0;
+keypad 1;
 
 my $poll = IO::Poll->new();
 $poll->mask(\*STDIN => POLLIN);
@@ -366,6 +371,10 @@ Trim out the given I<string> from every song in the playlist view.
 The following key-bindings are available:
 
 =over 8
+
+=item backspace or C-h
+
+Seek back to the beginning of the track.
 
 =item space
 
