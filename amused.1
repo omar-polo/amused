@@ -59,8 +59,10 @@ The following commands are available:
 .It Cm add Ar
 Enqueue the given files.
 .It Cm consume Op Cm on|off
+Enable or disable the consume mode.
 When consume mode is enabled the tracks are removed from the playlist
-once played til the end.
+once played until the end.
+Without arguments toggle the current status.
 .It Cm flush
 Erase the playlist.
 .It Cm jump Ar pattern
@@ -128,6 +130,7 @@ Enable or disable the automatic repetition of the current track
 .Pq Cm one
 or of the whole playing queue
 .Pq Cm all .
+Without arguments toggle the given repeat mode.
 .It Cm restart
 Rewind the current song to the beginning.
 It's a shorthand for
