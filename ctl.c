@@ -660,32 +660,34 @@ ctl_jump(struct parse_result *res, int argc, char **argv)
 }
 
 static int
+parse_mode(struct parse_result *res, const char *v)
+{
+	if (v == NULL)
+		return MODE_TOGGLE;
+	if (!strcmp(v, "on"))
+		return MODE_ON;
+	if (!strcmp(v, "off"))
+		return MODE_OFF;
+	ctl_usage(res->ctl);
+}
+
+static int
 ctl_repeat(struct parse_result *res, int argc, char **argv)
 {
-	int ch, b;
+	int ch;
 
 	while ((ch = getopt(argc, argv, "")) != -1)
 		ctl_usage(res->ctl);
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 2)
+	if (argc != 1 && argc != 2)
 		ctl_usage(res->ctl);
 
-	if (!strcmp(argv[1], "on"))
-		b = 1;
-	else if (!strcmp(argv[1], "off"))
-		b = 0;
-	else
-		ctl_usage(res->ctl);
-
-	res->mode.repeat_one = -1;
-	res->mode.repeat_all = -1;
-	res->mode.consume = -1;
 	if (!strcmp(argv[0], "one"))
-		res->mode.repeat_one = b;
+		res->mode.repeat_one = parse_mode(res, argv[1]);
 	else if (!strcmp(argv[0], "all"))
-		res->mode.repeat_all = b;
+		res->mode.repeat_all = parse_mode(res, argv[1]);
 	else
 		ctl_usage(res->ctl);
 
@@ -702,12 +704,10 @@ ctl_consume(struct parse_result *res, int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 1)
+	if (argc > 1)
 		ctl_usage(res->ctl);
 
-	res->mode.repeat_one = -1;
-	res->mode.repeat_all = -1;
-	res->mode.consume = !strcmp(argv[0], "on");
+	res->mode.consume = parse_mode(res, argv[0]);
 	return ctlaction(res);
 }
 
@@ -964,6 +964,10 @@ ctl(int argc, char **argv)
 	if ((fmt = getenv("AMUSED_STATUS_FORMAT")) == NULL)
 		fmt = "status,time,repeat";
 	res.status_format = fmt;
+
+	res.mode.consume = MODE_UNDEF;
+	res.mode.repeat_all = MODE_UNDEF;
+	res.mode.repeat_one = MODE_UNDEF;
 
 	log_init(1, LOG_DAEMON);
 	log_setverbose(verbose);
