@@ -3,7 +3,7 @@
 amused is a music player.  It doesn't have any amazing features
 built-in, on the contrary: it's quite minimal (a fancy word to say
 that does very little.)  It composes well, or aims to do so, with
-other tools thought.
+other tools though.
 
 The main feature is that audio decoding runs in a sandboxed process
 under `pledge("stdio recvfd audio")` (on OpenBSD at least.)
@@ -49,8 +49,10 @@ instructed to use libbsd exclusively as follows:
 
 The fine man page has all nitty gritty details, but the TL;DR is
 
- - enqueue music with `amused add files...`
- - control the playback with `amused play|pause|toggle|stop` etc
+ - enqueue music with `amused add files...` or `amused load`
+ - control the playback with `amused play|pause|toggle|stop`
+ - check the status with `amused status` and the playlist with
+   `amused show`
 
 amused tries to be usable in composition with other more familiar tools
 instead of providing everything itself.  For instance, there isn't a
