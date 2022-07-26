@@ -133,9 +133,9 @@ sub center {
 	my ($str, $pstr) = @_;
 	my $width = mbswidth($str);
 	return $str if $width > $COLS;
-	my $pre = ($COLS - $width) / 2;
+	my $pre = round(($COLS - $width) / 2);
 	my $lpad = $pstr x $pre;
-	my $rpad = $pstr x ($COLS - $width - $pre + 1);
+	my $rpad = $pstr x ($COLS - $width - $pre);
 	return ($lpad, $str, $rpad);
 }
 
