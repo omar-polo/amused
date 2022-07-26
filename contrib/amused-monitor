@@ -254,7 +254,7 @@ sub hinput {
 	my ($ch, $key) = getchar;
 	if (defined $key) {
 		if ($key == KEY_BACKSPACE) {
-			system "amused", " seek", "0";
+			system "amused", "seek", "0";
 		}
 	} elsif (defined $ch) {
 		if ($ch eq " ") {
@@ -276,7 +276,7 @@ sub hinput {
 		} elsif ($ch eq "q") {
 			$run = 0;
 		} elsif ($ch eq "\cH") {
-			system "amused", " seek", "0"
+			system "amused", "seek", "0"
 		}
 	}
 }
