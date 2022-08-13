@@ -319,13 +319,13 @@ if (`uname` =~ "OpenBSD") {
 	}
 }
 
-my $tick = 0;
-my $tbefore = clock_gettime(CLOCK_MONOTONIC);
-
 getsongs;
 getnums;
 getstatus;
 render;
+
+my $tick = 0;
+my $tbefore = clock_gettime(CLOCK_MONOTONIC);
 
 while ($run) {
 	$poll->poll(0.25);
