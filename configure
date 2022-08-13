@@ -52,7 +52,7 @@ The options are as follows:
 
     -h, --help     print this help message
 
-    --prefix=path  equivalent to specifying the PREFIX variable, supported
+    --prefix=path  equivalent to specify the PREFIX variable, supported
                    for compatibility with other common "configure" scripts.
 
 Variables available:
@@ -77,7 +77,7 @@ Variables available:
     SHAREDIR               where to install misc files (PREFIX/share)
     SBINDIR                where to install system executables (PREFIX/sbin)
     INCLUDEDIR             where to install header files (PREFIX/include)
-    PKG_CONFIG             path to the pkg-config program or empty to disable
+    PKG_CONFIG             pkg-config program, \`false' to disable (pkg-config)
 
 Additionally, the following environment variables are used if set:
 
