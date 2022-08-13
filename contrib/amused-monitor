@@ -303,6 +303,22 @@ my $poll = IO::Poll->new();
 $poll->mask(\*STDIN => POLLIN);
 $poll->mask($monitor => POLLIN);
 
+if (`uname` =~ "OpenBSD") {
+	use OpenBSD::Pledge;
+	use OpenBSD::Unveil;
+
+	my $prog = `which amused`;
+	chomp $prog;
+
+	unveil($prog, 'rx') or die "unveil $prog: $!";
+	if (defined($pfile)) {
+		unveil($pfile, 'wc') or die "unveil $pfile: $!";
+		pledge qw(stdio wpath cpath tty proc exec) or die "pledge: $!";
+	} else {
+		pledge qw(stdio tty proc exec) or die "pledge: $!";
+	}
+}
+
 my $tick = 0;
 my $tbefore = clock_gettime(CLOCK_MONOTONIC);
 
