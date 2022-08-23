@@ -120,7 +120,7 @@ sub showtime {
 	if ($seconds > 3600) {
 		my $hours = int($seconds / 3600);
 		$seconds -= $hours * 3600;
-		$str = sprintf("%02:", $hours);
+		$str = sprintf("%02d:", $hours);
 	}
 
 	my $minutes = int($seconds / 60);
