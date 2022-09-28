@@ -8,7 +8,7 @@ other tools though.
 The main feature is that audio decoding runs in a sandboxed process
 under `pledge("stdio recvfd audio")` (on OpenBSD at least.)
 
-It's available on the OpenBSD port tree starting with 7.1
+It's available on the OpenBSD port tree starting from 7.1
 
 
 ## Building
@@ -41,7 +41,7 @@ passing `PKG_CONFIG=false` (or the empty string)
 For Linux users with libbsd installed, the configure script can be
 instructed to use libbsd exclusively as follows:
 
-	CFLAGS="$(pkg-config --cflags libbsd-overlay)" \
+	$ CFLAGS="$(pkg-config --cflags libbsd-overlay)" \
 		./configure LDFLAGS="$(pkg-config --libs libbsd-overlay)"
 
 
@@ -66,7 +66,7 @@ standard UNIX tools can be used:
 It also doesn't provide any means to manage a music collection.  It
 plays nice with find(1) however:
 
-	find . | amused load
+	$ find . | amused load
 
 I wrote a bit more about the background of amused [in a blog
 post](https://www.omarpolo.com/post/amused.html).
