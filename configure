@@ -129,9 +129,9 @@ fi
 
 CC=`printf "all:\\n\\t@echo \\\$(CC)\\n" | make ${MAKE_FLAGS} -sf -`
 CFLAGS=`printf "all:\\n\\t@echo \\\$(CFLAGS)\\n" | make ${MAKE_FLAGS} -sf -`
-CFLAGS="${CFLAGS} -g -W -Wall -Wmissing-prototypes -Wstrict-prototypes"
-CFLAGS="${CFLAGS} -Wmissing-declarations -Wno-unused-parameter"
-CFLAGS="${CFLAGS} -Wno-sign-compare"
+CFLAGS="${CFLAGS} -g -W -Wall -Wextra -Wmissing-prototypes"
+CFLAGS="${CFLAGS} -Wstrict-prototypes -Wmissing-declarations"
+CFLAGS="${CFLAGS} -Wno-unused-parameter -Wno-sign-compare"
 LDADD=
 LDADD_IMSG=
 LDADD_LIBEVENT=
