@@ -49,9 +49,9 @@ instructed to use libbsd exclusively as follows:
 
 The fine man page has all nitty gritty details, but the TL;DR is
 
- - enqueue music with `amused add files...` or `amused load`
+ - enqueue music with `amused add files...` or `amused load <playlist`
  - control the playback with `amused play|pause|toggle|stop`
- - check the status with `amused status` and the playlist with
+ - check the status with `amused status` and the current playlist with
    `amused show`
 
 amused tries to be usable in composition with other more familiar tools
@@ -67,6 +67,10 @@ It also doesn't provide any means to manage a music collection.  It
 plays nice with find(1) however:
 
 	$ find . | amused load
+
+Non-music files found in the playlist are automatically skipped and
+removed, so there's no harm in loading everything under a certain
+directory.
 
 I wrote a bit more about the background of amused [in a blog
 post](https://www.omarpolo.com/post/amused.html).
