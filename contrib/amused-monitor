@@ -34,6 +34,7 @@ my $trim = "";
 my $pair_n = 1;
 
 my @songs;
+my $current_song;
 my $playlist_cur;
 my $playlist_max;
 my $time_cur;
@@ -62,7 +63,12 @@ sub excerpt {
 		chomp;
 		s,$trim,,;
 		$tmp[$idx] = $_;
-		$cur = $n if m/^>/;
+
+		if (m/^>/) {
+			$cur = $n;
+			$current_song = s/^> //r;
+		}
+
 		$n++;
 		$idx = ++$idx % $lines;
 
@@ -101,8 +107,10 @@ sub status {
 
 	open (my $fh, "-|", "amused", "status", "-f",
 	      "status,time:raw,mode:oneline");
-	my $status = <$fh>;
-	chomp $status;
+
+	<$fh> =~ m/([a-z]+) (.*)/;
+	my ($status, $current_song) = ($1, $2);
+
 	while (<$fh>) {
 		chomp;
 		$pos = s/position //r if m/^position /;
@@ -110,7 +118,7 @@ sub status {
 		$mode = $_ if m/^repeat/;
 	}
 	close($fh);
-	return ($status, $pos, $dur, $mode);
+	return ($status, $current_song, $pos, $dur, $mode);
 }
 
 sub showtime {
@@ -213,7 +221,7 @@ sub render {
 
 	offsets $LINES - 4, 0, $playlist_cur, $playlist_max;
 	progress $LINES - 3, 0, $time_cur, $time_dur;
-	show_status $LINES - 2, 0, $status;
+	show_status $LINES - 2, 0, "$status $current_song";
 	show_mode $LINES - 1, 0, $mode;
 
 	refresh;
@@ -226,10 +234,6 @@ sub getsongs {
 
 sub getnums {
 	($playlist_cur, $playlist_max) = playlist_numbers;
-}
-
-sub getstatus {
-	($status, $time_cur, $time_dur, $mode) = status;
 }
 
 sub save {
@@ -245,7 +249,15 @@ sub hevent {
 	my $fh = shift;
 	my $l = <$fh>;
 	die "monitor quit" unless defined($l);
-	getstatus;
+
+	$status = "playing" if $l =~ m/^play/;
+	$status = "paused"  if $l =~ m/^pause/;
+	$status = "stopped" if $l =~ m/^stop/;
+
+	($time_cur, $time_dur) = ($1, $2) if $l =~ m/^seek (\d+) (\d+)/;
+
+	$mode = $1 if $l =~ m/^mode (.*)/;
+
 	getnums if $l =~ m/load|jump|next|prev/;
 	getsongs if $l =~ m/load|jump|next|prev/;
 }
@@ -321,24 +333,11 @@ if (`uname` =~ "OpenBSD") {
 
 getsongs;
 getnums;
-getstatus;
+($status, $current_song, $time_cur, $time_dur, $mode) = status;
 render;
 
-my $tick = 0;
-my $tbefore = clock_gettime(CLOCK_MONOTONIC);
-
 while ($run) {
-	$poll->poll(0.25);
-	my $now = clock_gettime(CLOCK_MONOTONIC);
-	my $elapsed = $now - $tbefore;
-	if ($elapsed > 1) {
-		$tbefore = $now;
-		$time_cur += round($elapsed)
-		    if $status =~ m/^playing/;
-	}
-
-	getstatus unless $tick++ % 8;
-
+	$poll->poll();
 	hinput if $poll->events(\*STDIN) & POLLIN;
 	hevent $monitor if $poll->events($monitor) & POLLIN;
 
