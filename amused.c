@@ -47,8 +47,6 @@ pid_t		 player_pid;
 struct event	 ev_sigint;
 struct event	 ev_sigterm;
 
-static int	 notify_seek;
-
 enum amused_process {
 	PROC_MAIN,
 	PROC_PLAYER,
@@ -138,10 +136,7 @@ main_dispatch_player(int sig, short event, void *d)
 			    sizeof(current_position));
 			if (current_position < 0)
 				current_position = -1;
-			if (notify_seek) {
-				notify_seek = 0;
-				control_notify(IMSG_CTL_SEEK);
-			}
+			control_notify(IMSG_CTL_SEEK);
 			break;
 		case IMSG_LEN:
 			if (datalen != sizeof(current_duration))
@@ -595,6 +590,5 @@ main_seek(struct player_seek *s)
 		break;
 	}
 
-	notify_seek = 1;
 	main_send_player(IMSG_CTL_SEEK, -1, s, sizeof(*s));
 }
