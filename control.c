@@ -230,13 +230,22 @@ void
 control_notify(int type)
 {
 	struct ctl_conn *c;
+	struct player_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	ev.event = type;
+	ev.position = current_position;
+	ev.duration = current_duration;
+	ev.mode.repeat_one = repeat_one;
+	ev.mode.repeat_all = repeat_all;
+	ev.mode.consume = consume;
 
 	TAILQ_FOREACH(c, &ctl_conns, entry) {
 		if (!c->monitor)
 			continue;
 
 		imsg_compose_event(&c->iev, IMSG_CTL_MONITOR, 0, 0,
-		    -1, &type, sizeof(type));
+		    -1, &ev, sizeof(ev));
 	}
 }
 

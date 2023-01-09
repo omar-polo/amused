@@ -52,7 +52,7 @@ enum imsg_type {
 	IMSG_CTL_ADD,		/* path to a file */
 	IMSG_CTL_COMMIT,	/* offset of the track to jump to */
 
-	IMSG_CTL_MONITOR,
+	IMSG_CTL_MONITOR,	/* struct player_event */
 
 	IMSG_CTL_ERR,
 	IMSG__LAST,
@@ -109,6 +109,13 @@ struct player_status {
 	int64_t			position;
 	int64_t			duration;
 	struct player_mode	mode;
+};
+
+struct player_event {
+	int			 event;
+	int64_t			 position;
+	int64_t			 duration;
+	struct player_mode	 mode;
 };
 
 struct parse_result {

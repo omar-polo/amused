@@ -329,15 +329,39 @@ print_status(struct player_status *ps, const char *spec)
 	free(dup);
 }
 
+static void
+print_monitor_event(struct player_event *ev)
+{
+	switch (ev->event) {
+	case IMSG_CTL_MODE:
+		printf("%s repeat one:%s all:%s consume:%s\n",
+		    event_name(ev->event),
+		    ev->mode.repeat_one ? "on" : "off",
+		    ev->mode.repeat_all ? "on" : "off",
+		    ev->mode.consume ? "on" : "off");
+		break;
+	case IMSG_CTL_SEEK:
+		printf("%s %lld %lld\n", event_name(ev->event),
+		    (long long)ev->position, (long long)ev->duration);
+		break;
+	default:
+		puts(event_name(ev->event));
+		break;
+	}
+
+	fflush(stdout);
+}
+
 static int
 ctlaction(struct parse_result *res)
 {
 	char path[PATH_MAX];
 	struct imsg imsg;
 	struct player_status ps;
+	struct player_event ev;
 	size_t datalen;
 	ssize_t n;
-	int i, type, ret = 0, done = 1;
+	int i, ret = 0, done = 1;
 
 	if (pledge("stdio", NULL) == -1)
 		fatal("pledge");
@@ -543,18 +567,17 @@ ctlaction(struct parse_result *res)
 					fatalx("invalid message %d",
 					    imsg.hdr.type);
 
-				if (datalen != sizeof(type))
+				if (datalen != sizeof(ev))
 					fatalx("data size mismatch");
 
-				memcpy(&type, imsg.data, sizeof(type));
-				if (type < 0 || type > IMSG__LAST)
+				memcpy(&ev, imsg.data, sizeof(ev));
+				if (ev.event < 0 || ev.event > IMSG__LAST)
 					fatalx("received corrupted data");
 
-				if (!res->monitor[type])
+				if (!res->monitor[ev.event])
 					break;
 
-				puts(event_name(type));
-				fflush(stdout);
+				print_monitor_event(&ev);
 				break;
 			default:
 				done = 1;
