@@ -300,6 +300,9 @@ bind . <comma> {exec amused seek -1}
 bind . <less> {exec amused seek -5}
 bind . <period> {exec amused seek +1}
 bind . <greater> {exec amused seek +5}
+bind . <slash> {focus .c.top.query}
+
+bind .c.top.query <Escape> {focus .}
 
 # init the state
 
