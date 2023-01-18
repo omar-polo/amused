@@ -283,6 +283,9 @@ ttk::label .c.bottom.cur_time -textvariable cur_time -padding "0 0 5 0"
 ttk::scale .c.bottom.bar -orient horizontal -length 400 -command amused_seek
 ttk::label .c.bottom.max_time -textvariable max_time -padding "5 0 0 0"
 
+grid [ttk::frame .c.current -padding "0 5 0 0"] -column 0 -row 5
+grid [ttk::label .c.current.title -textvariable cur_song]
+
 grid .c.bottom.cur_time -column 0 -row 0
 grid .c.bottom.bar -column 1 -row 0
 grid .c.bottom.max_time -column 2 -row 0
