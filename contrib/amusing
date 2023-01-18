@@ -24,7 +24,6 @@ set max 0
 set cur_song ""
 set cur_time 0
 set max_time 0
-set status "stopped"
 set mode {"off" "off" "off"}
 
 set toggle_btn "pause"
@@ -136,7 +135,6 @@ proc setmode {n m text} {
 }
 
 proc getstatus {} {
-	global status
 	global cur_time
 	global max_time
 	global toggle_btn
@@ -146,15 +144,12 @@ proc getstatus {} {
 	while {[gets $fd line] != -1} {
 		switch -glob $line {
 		"playing *"	{
-			set status "playing"
 			set toggle_btn "pause"
 		}
 		"paused *"	{
-			set status "paused"
 			set toggle_btn "play"
 		}
 		"stopped *"	{
-			set status "stopped"
 			set toggle_btn "play"
 		}
 		"position *"	{settime cur_time $line}
@@ -181,7 +176,6 @@ proc setpos {ev} {
 }
 
 proc handle_event {fd} {
-	global status
 	global toggle_btn
 
 	if {[eof $fd]} {
@@ -199,17 +193,14 @@ proc handle_event {fd} {
 	"mode *"	{puts "TODO: refresh mode"}
 	"next"		{getsongs}	# may be optimized
 	"pause"		{
-		set status "paused"
 		set toggle_btn "play"
 	}
 	"play"		{
-		set status "playing"
 		set toggle_btn "pause"
 	}
 	"prev"		{getsongs}	# may be optimized
 	"seek *"	{setpos $ev}
 	"stop"		{
-		set status "stopped"
 		set toggle_btn "play"
 	}
 	default		{puts "un-catched event $ev"}
@@ -263,7 +254,7 @@ bind .c.main.list <<ListboxSelect>> {
 	}
 }
 
-grid [ttk::frame .c.cntl -padding "0 5 0 0"] -column 0 -row 2
+grid [ttk::frame .c.cntl -padding "0 5 0 5"] -column 0 -row 2
 ttk::button .c.cntl.prev -text "prev" -command "amused prev"
 ttk::button .c.cntl.togg -textvariable toggle_btn -command "amused toggle"
 ttk::button .c.cntl.stop -text stop -command "amused stop"
@@ -274,16 +265,12 @@ grid .c.cntl.togg -column 1 -row 0
 grid .c.cntl.stop -column 2 -row 0
 grid .c.cntl.next -column 3 -row 0
 
-grid [ttk::frame .c.status -padding "5 5 5 5"] -column 0 -row 3
-ttk::label .c.status.text -textvariable status
-grid .c.status.text
-
-grid [ttk::frame .c.bottom -borderwidth 2] -column 0 -row 4
+grid [ttk::frame .c.bottom -borderwidth 2] -column 0 -row 3
 ttk::label .c.bottom.cur_time -textvariable cur_time -padding "0 0 5 0"
 ttk::scale .c.bottom.bar -orient horizontal -length 400 -command amused_seek
 ttk::label .c.bottom.max_time -textvariable max_time -padding "5 0 0 0"
 
-grid [ttk::frame .c.current -padding "0 5 0 0"] -column 0 -row 5
+grid [ttk::frame .c.current -padding "0 5 0 0"] -column 0 -row 4
 grid [ttk::label .c.current.title -textvariable cur_song]
 
 grid .c.bottom.cur_time -column 0 -row 0
