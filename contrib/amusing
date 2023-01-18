@@ -290,6 +290,17 @@ grid rowconfigure .c.main 0 -weight 1
 grid columnconfigure .c.bottom 1 -weight 1
 grid rowconfigure .c.bottom 0 -weight 1
 
+# define keybindings
+
+bind . <space> {amused toggle}
+bind . <n> {amused next}
+bind . <p> {amused prev}
+bind . <s> {amused stop}
+bind . <comma> {exec amused seek -1}
+bind . <less> {exec amused seek -5}
+bind . <period> {exec amused seek +1}
+bind . <greater> {exec amused seek +5}
+
 # init the state
 
 set fd [open "|amused monitor" r]
