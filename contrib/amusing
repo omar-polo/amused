@@ -1,0 +1,312 @@
+#!/usr/bin/env tclsh8.6
+#
+# Copyright (c) 2023 Omar Polo <op@omarpolo.com>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+package require Tk
+
+set usongs {}	;# unfiltered sogs
+set fsongs {}	;# filtered songs
+set query ""
+set cur 0
+set max 0
+set cur_song ""
+set cur_time 0
+set max_time 0
+set status "stopped"
+set mode {"off" "off" "off"}
+
+set toggle_btn "pause"
+
+# workaround for spurious first event from ttk::scale
+set first_seek yes
+
+proc amused_jump {song} {
+	puts "jumping to $song"
+	exec amused jump $song
+}
+
+proc amused_seek {pos} {
+	global cur_time first_seek
+
+	if {$first_seek == yes} {
+		puts "skipping spurious seek"
+		set first_seek no
+		return
+	}
+
+	set pos [expr {round($pos)}]
+	set tmp [showtime $pos]
+
+	if {$cur_time != $tmp} {
+		set cur_time $tmp
+		puts "seeking to $cur_time"
+		exec amused seek $pos
+	}
+}
+
+proc amused {cmd} {
+	puts "exec amused $cmd"
+	exec "amused" $cmd
+}
+
+proc getsongs {} {
+	global usongs
+	global cur
+	global cur_song
+	global max
+	global query
+
+	set usongs {}
+
+	set fd [open "|amused show -p"]
+
+	set i 0
+	while {[gets $fd line] != -1} {
+		set marker [string range $line 0 1]
+		if {$marker == "> "} {
+			set cur $i
+			# XXX: is wrong to do that here.
+			set cur_song [string range $line 2 end]
+		}
+
+		set song [string range $line 2 end]
+		set usongs [lappend usongs $song]
+
+		incr i
+	}
+
+	set max $i
+	dofilter $query
+	.c.main.list see $cur
+
+	close $fd
+}
+
+proc dofilter {query} {
+	global usongs fsongs cur cur_song
+
+	set q [string tolower [string trim $query]]
+	set fsongs {}
+	set i -1
+	foreach e $usongs {
+		set l [string tolower $e]
+		if {$q == "" || [string first $q $l] != -1} {
+			incr i
+			set fsongs [lappend fentries $e]
+			if {$e == $cur_song} {
+				set cur $i
+			}
+		}
+	}
+
+	.c.main.list selection set $cur
+}
+
+proc updatefilter {varname args} {
+	upvar #0 $varname var
+	dofilter $var
+}
+
+proc settime {var text} {
+	upvar $var time
+
+	set parsed [split $text]
+	set t [lindex $parsed 1]
+	set time [showtime $t]
+}
+
+proc setmode {n m text} {
+	global mode
+
+	set parsed [split $text]
+	set t [lindex $parsed $m]
+	lset mode $n $t
+}
+
+proc getstatus {} {
+	global status
+	global cur_time
+	global max_time
+	global toggle_btn
+
+	set fd [open "|amused status -f status,time:raw,mode"]
+
+	while {[gets $fd line] != -1} {
+		switch -glob $line {
+		"playing *"	{
+			set status "playing"
+			set toggle_btn "pause"
+		}
+		"paused *"	{
+			set status "paused"
+			set toggle_btn "play"
+		}
+		"stopped *"	{
+			set status "stopped"
+			set toggle_btn "play"
+		}
+		"position *"	{settime cur_time $line}
+		"duration *"	{settime max_time $line}
+		"repeat all *"	{setmode 0 2 $line}
+		"repeat one *"	{setmode 1 2 $line}
+		"consume *"	{setmode 2 1 $line}
+		}
+	}
+
+	close $fd
+}
+
+proc setpos {ev} {
+	global cur_time max_time
+
+	set t [split $ev]
+
+	set cur_time [showtime [lindex $t 1]]
+	set max_time [showtime [lindex $t 2]]
+
+	.c.bottom.bar set [lindex $t 1]
+	.c.bottom.bar configure -to [lindex $t 2]
+}
+
+proc handle_event {fd} {
+	global status
+	global toggle_btn
+
+	if {[eof $fd]} {
+		set loop 0
+	}
+
+	set ev [gets $fd]
+
+	#puts "got event $ev"
+
+	switch -glob $ev {
+	"add *"		{getsongs}
+	"jump"		{getsongs}
+	"load"		{getsongs}
+	"mode *"	{puts "TODO: refresh mode"}
+	"next"		{getsongs}	# may be optimized
+	"pause"		{
+		set status "paused"
+		set toggle_btn "play"
+	}
+	"play"		{
+		set status "playing"
+		set toggle_btn "pause"
+	}
+	"prev"		{getsongs}	# may be optimized
+	"seek *"	{setpos $ev}
+	"stop"		{
+		set status "stopped"
+		set toggle_btn "play"
+	}
+	default		{puts "un-catched event $ev"}
+	}
+}
+
+proc showtime {seconds} {
+	set tmp ""
+	if {$seconds > 3600} {
+		set hours [expr {$seconds / 3600}]
+		set seconds [expr {$seconds - $hours * 3600}]
+		set tmp [format "%02d:" $hours]
+	}
+
+	set minutes [expr {$seconds / 60}]
+	set seconds [expr {$seconds - $minutes * 60}]
+	return [format "%s%02d:%02d" $tmp $minutes $seconds]
+}
+
+# start the gui
+
+option add *tearOff 0
+wm title . gamused
+wm geometry . 600x300
+
+# create and grid the outer content frame
+grid [ttk::frame .c -padding "5 5 5 5"] -column 0 -row 0 -sticky nsew
+
+grid [ttk::frame .c.top -padding "5 0 5 5"]
+ttk::entry .c.top.query -textvariable query -width 50
+trace add variable query write "updatefilter query"
+grid .c.top.query -column 0 -row 0
+
+grid [ttk::frame .c.main] -column 0 -row 1 -sticky nsew
+tk::listbox .c.main.list -listvariable fsongs \
+	-yscrollcommand ".c.main.scroll set" -exportselection no \
+	-selectbackground "#8888cc" -selectforeground "#ffffff"
+ttk::scrollbar .c.main.scroll -command ".c.main.list yview" -orient vertical
+
+grid .c.main.list -column 0 -row 0 -sticky nwes
+grid .c.main.scroll -column 1 -row 0 -sticky ns
+
+bind .c.main.list <<ListboxSelect>> {
+	set curselection [.c.main.list curselection]
+	if {$curselection != ""} {
+		amused_jump [lindex $fsongs $curselection]
+	} else {
+		# something strange happened.  maybe lost focus.
+		# set the current again.
+		.c.main.list selection set $cur
+	}
+}
+
+grid [ttk::frame .c.cntl -padding "0 5 0 0"] -column 0 -row 2
+ttk::button .c.cntl.prev -text "prev" -command "amused prev"
+ttk::button .c.cntl.togg -textvariable toggle_btn -command "amused toggle"
+ttk::button .c.cntl.stop -text stop -command "amused stop"
+ttk::button .c.cntl.next -text "next" -command "amused next"
+
+grid .c.cntl.prev -column 0 -row 0
+grid .c.cntl.togg -column 1 -row 0
+grid .c.cntl.stop -column 2 -row 0
+grid .c.cntl.next -column 3 -row 0
+
+grid [ttk::frame .c.status -padding "5 5 5 5"] -column 0 -row 3
+ttk::label .c.status.text -textvariable status
+grid .c.status.text
+
+grid [ttk::frame .c.bottom -borderwidth 2] -column 0 -row 4
+ttk::label .c.bottom.cur_time -textvariable cur_time -padding "0 0 5 0"
+ttk::scale .c.bottom.bar -orient horizontal -length 400 -command amused_seek
+ttk::label .c.bottom.max_time -textvariable max_time -padding "5 0 0 0"
+
+grid .c.bottom.cur_time -column 0 -row 0
+grid .c.bottom.bar -column 1 -row 0
+grid .c.bottom.max_time -column 2 -row 0
+
+# make resizing works
+grid columnconfigure . 0 -weight 1
+grid rowconfigure . 0 -weight 1
+
+grid columnconfigure .c 0 -weight 1
+grid rowconfigure .c 1 -weight 1
+
+grid columnconfigure .c.main 0 -weight 1
+grid rowconfigure .c.main 0 -weight 1
+
+grid columnconfigure .c.bottom 1 -weight 1
+grid rowconfigure .c.bottom 0 -weight 1
+
+# init the state
+
+set fd [open "|amused monitor" r]
+fileevent $fd readable "handle_event $fd"
+
+getsongs
+getstatus
+
+#set loop 1
+#vwait loop
