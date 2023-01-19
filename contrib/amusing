@@ -304,6 +304,8 @@ bind . <slash> {focus .c.top.query}
 
 bind .c.top.query <Escape> {focus .}
 
+bind . <Control-q> {exit}
+
 # init the state
 
 set fd [open "|amused monitor" r]
