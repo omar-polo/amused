@@ -1001,9 +1001,6 @@ ctl(int argc, char **argv)
 	if ((ctl_sock = ctl_connect()) == -1)
 		fatal("can't connect");
 
-	if (ctl_sock == -1)
-		fatalx("failed to connect to the daemon");
-
 	ibuf = xmalloc(sizeof(*ibuf));
 	imsg_init(ibuf, ctl_sock);
 
