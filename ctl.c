@@ -91,10 +91,11 @@ canonpath(const char *input, char *buf, size_t bufsize)
 {
 	const char *p;
 	char *q, path[PATH_MAX];
+	int r;
 
 	if (input[0] != '/') {
-		if (snprintf(path, sizeof(path), "%s/%s", cwd, input)
-		    >= sizeof(path)) {
+		r = snprintf(path, sizeof(path), "%s/%s", cwd, input);
+		if (r < 0 || (size_t)r >= sizeof(path)) {
 			errno = ENAMETOOLONG;
 			return -1;
 		}
