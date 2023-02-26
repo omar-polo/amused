@@ -323,8 +323,11 @@ play(const void *buf, size_t len, int64_t *s)
 		}
 
 		revents = sio_revents(hdl, player_pfds + 1);
-		if (revents & POLLHUP)
+		if (revents & POLLHUP) {
+			if (errno == EAGAIN)
+				continue;
 			fatal("sndio hang-up");
+		}
 		if (revents & POLLOUT) {
 			w = sio_write(hdl, buf, len);
 			len -= w;
