@@ -57,7 +57,7 @@ player_setup(unsigned int bits, unsigned int rate, unsigned int channels)
 {
 	int nfds, fpct;
 
-	log_debug("%s: bits=%d, rate=%d, channels=%d", __func__,
+	log_debug("%s: bits=%u, rate=%u, channels=%u", __func__,
 	    bits, rate, channels);
 
 	fpct = (rate*5)/100;
