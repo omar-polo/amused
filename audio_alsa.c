@@ -24,6 +24,7 @@
 #include "log.h"
 
 static snd_pcm_t	*pcm;
+static size_t		 bpf;
 
 int
 audio_open(void (*onmove_cb)(void *, int))
@@ -49,18 +50,24 @@ audio_setup(unsigned int bits, unsigned int rate, unsigned int channels,
 	int			 err;
 	snd_pcm_format_t	 fmt;
 
-	if (bits == 8)
+	if (bits == 8) {
 		fmt = SND_PCM_FORMAT_S8;
-	else if (bits == 16)
+		bpf = 1;
+	} else if (bits == 16) {
 		fmt = SND_PCM_FORMAT_S16;
-	else if (bits == 24)
+		bpf = 2;
+	} else if (bits == 24) {
 		fmt = SND_PCM_FORMAT_S24;
-	else if (bits == 32)
+		bpf = 4;
+	} else if (bits == 32) {
 		fmt = SND_PCM_FORMAT_S32;
-	else {
+		bpf = 4;
+	} else {
 		log_warnx("can't handle %d bits", bits);
 		return -1;
 	}
+	
+	bpf *= channels;
 
 	err = snd_pcm_set_params(pcm, fmt, SND_PCM_ACCESS_RW_INTERLEAVED,
 	    channels, rate, 1, 500000 /* 0.5s */);
@@ -109,14 +116,33 @@ audio_revents(struct pollfd *pfds)
 size_t
 audio_write(const void *buf, size_t len)
 {
-	snd_pcm_sframes_t	ret;
+	snd_pcm_sframes_t	avail, ret;
+
+	/*
+	 * snd_pcm_writei works in terms of FRAMES, not BYTES!
+	 */
+	len /= bpf;
+
+	avail = snd_pcm_avail_update(pcm);
+	if (avail < 0) {
+		if (avail == -EPIPE) {
+			log_warnx("alsa xrun occurred");
+			return 0;
+		}
+		log_warnx("snd_pcm_avail_update failure: %s",
+		    snd_strerror(avail));
+		return 0;
+	}
+
+	if (len > avail)
+		len = avail;
 
 	ret = snd_pcm_writei(pcm, buf, len);
 	if (ret < 0) {
 		log_warnx("snd_pcm_writei failed: %s", snd_strerror(ret));
 		return 0;
 	}
-	return ret;
+	return ret * bpf;
 }
 
 int
