@@ -5,6 +5,7 @@ PROG =		amused
 DISTNAME =	${PROG}-${VERSION}
 
 SOURCES =	amused.c \
+		audio_sndio.c \
 		compats.c \
 		control.c \
 		ctl.c \
@@ -93,6 +94,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 # supports it.
 
 -include amused.d
+-include audio_sndio.d
 -include compats.d
 -include control.d
 -include ctl.d

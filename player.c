@@ -22,7 +22,6 @@
 #include <errno.h>
 #include <poll.h>
 #include <signal.h>
-#include <sndio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -34,15 +33,13 @@
 #include "log.h"
 #include "xmalloc.h"
 
-struct sio_hdl		*hdl;
-struct sio_par		 par;
 struct pollfd		*player_pfds;
 static struct imsgbuf	*ibuf;
 
-static int stopped = 1;
 static int nextfd = -1;
 static int64_t samples;
 static int64_t duration;
+static unsigned int current_rate;
 
 volatile sig_atomic_t halted;
 
@@ -55,61 +52,11 @@ player_signal_handler(int signo)
 int
 player_setup(unsigned int bits, unsigned int rate, unsigned int channels)
 {
-	int nfds, fpct;
-
 	log_debug("%s: bits=%u, rate=%u, channels=%u", __func__,
 	    bits, rate, channels);
 
-	fpct = (rate*5)/100;
-
-	/* don't stop if the parameters are the same */
-	if (bits == par.bits && channels == par.pchan &&
-	    par.rate - fpct <= rate && rate <= par.rate + fpct) {
-		if (stopped)
-			goto start;
-		return 0;
-	}
-
-again:
-	if (!stopped) {
-		sio_stop(hdl);
-		stopped = 1;
-	}
-
-	sio_initpar(&par);
-	par.bits = bits;
-	par.rate = rate;
-	par.pchan = channels;
-	if (!sio_setpar(hdl, &par)) {
-		if (errno == EAGAIN) {
-			nfds = sio_pollfd(hdl, player_pfds + 1, POLLOUT);
-			if (poll(player_pfds + 1, nfds, INFTIM) == -1)
-				fatal("poll");
-			goto again;
-		}
-		log_warnx("invalid params (bits=%d, rate=%d, channels=%d",
-		    bits, rate, channels);
-		return -1;
-	}
-	if (!sio_getpar(hdl, &par)) {
-		log_warnx("can't get params");
-		return -1;
-	}
-
-	if (par.bits != bits || par.pchan != channels) {
-		log_warnx("failed to set params");
-		return -1;
-	}
-
-	/* TODO: check the sample rate? */
-
-start:
-	if (!sio_start(hdl)) {
-		log_warn("sio_start");
-		return -1;
-	}
-	stopped = 0;
-	return 0;
+	current_rate = rate;
+	return audio_setup(bits, rate, channels, player_pfds + 1);
 }
 
 void
@@ -118,7 +65,7 @@ player_setduration(int64_t d)
 	int64_t seconds;
 
 	duration = d;
-	seconds = duration / par.rate;
+	seconds = duration / current_rate;
 	imsg_compose(ibuf, IMSG_LEN, 0, 0, -1, &seconds, sizeof(seconds));
 	imsg_flush(ibuf);
 }
@@ -130,9 +77,9 @@ player_onmove(void *arg, int delta)
 	int64_t sec;
 
 	samples += delta;
-	if (llabs(samples - reported) >= par.rate) {
+	if (llabs(samples - reported) >= current_rate) {
 		reported = samples;
-		sec = samples / par.rate;
+		sec = samples / current_rate;
 
 		imsg_compose(ibuf, IMSG_POS, 0, 0, -1, &sec, sizeof(sec));
 		imsg_flush(ibuf);
@@ -200,7 +147,7 @@ again:
 		if (seek.percent) {
 			*s = (double)seek.offset * (double)duration / 100.0;
 		} else {
-			*s = seek.offset * par.rate;
+			*s = seek.offset * current_rate;
 			if (seek.relative)
 				*s += samples;
 		}
@@ -310,26 +257,25 @@ play(const void *buf, size_t len, int64_t *s)
 
 	*s = -1;
 	while (len != 0) {
-		nfds = sio_pollfd(hdl, player_pfds + 1, POLLOUT);
+		nfds = audio_pollfd(player_pfds + 1, POLLOUT);
 		r = poll(player_pfds, nfds + 1, INFTIM);
 		if (r == -1)
 			fatal("poll");
 
 		wait = player_pfds[0].revents & (POLLHUP|POLLIN);
 		if (player_shouldstop(s, wait)) {
-			sio_flush(hdl);
-			stopped = 1;
+			audio_flush();
 			return 0;
 		}
 
-		revents = sio_revents(hdl, player_pfds + 1);
+		revents = audio_revents(player_pfds + 1);
 		if (revents & POLLHUP) {
 			if (errno == EAGAIN)
 				continue;
-			fatal("sndio hang-up");
+			fatal("audio hang-up");
 		}
 		if (revents & POLLOUT) {
-			w = sio_write(hdl, buf, len);
+			w = audio_write(buf, len);
 			len -= w;
 			buf += w;
 		}
@@ -358,13 +304,11 @@ player(int debug, int verbose)
 	}
 #endif
 
-	if ((hdl = sio_open(SIO_DEVANY, SIO_PLAY, 1)) == NULL)
-		fatal("sio_open");
-
-	sio_onmove(hdl, player_onmove, NULL);
+	if (audio_open(player_onmove) == -1)
+		fatal("audio_open");
 
 	/* allocate one extra for imsg */
-	player_pfds = calloc(sio_nfds(hdl) + 1, sizeof(*player_pfds));
+	player_pfds = calloc(audio_nfds() + 1, sizeof(*player_pfds));
 	if (player_pfds == NULL)
 		fatal("calloc");
 
