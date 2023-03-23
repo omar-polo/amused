@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2014, 2015, 2016 Ingo Schwarze <schwarze@openbsd.org>
 # Copyright (c) 2017, 2018 Kristaps Dzonsons <kristaps@bsd.lv>
-# Copyright (c) 2022 Omar Polo <op@omarpolo.com>
+# Copyright (c) 2022, 2023 Omar Polo <op@omarpolo.com>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -55,8 +55,12 @@ The options are as follows:
     --prefix=path  equivalent to specify the PREFIX variable, supported
                    for compatibility with other common "configure" scripts.
 
+    --backend=name equivalent to specify the BACKEND variable, can be either
+                   "sndio" or "alsa".
+
 Variables available:
 
+    BACKEND                audio backend to use; can be "sndio" or "alsa"
     LDADD                  generic linker flags
     LDADD_IMSG             linker flags for libimsg
     LDADD_LIBEVENT         linker flags for libevent
@@ -127,6 +131,7 @@ fi
 # environment except for CC and CFLAGS, which we might have passed in.
 #----------------------------------------------------------------------
 
+BACKEND=auto
 CC=`printf "all:\\n\\t@echo \\\$(CC)\\n" | make ${MAKE_FLAGS} -sf -`
 CFLAGS=`printf "all:\\n\\t@echo \\\$(CFLAGS)\\n" | make ${MAKE_FLAGS} -sf -`
 CFLAGS="${CFLAGS} -g -W -Wall -Wextra -Wmissing-prototypes"
@@ -139,6 +144,7 @@ LDADD_LIBEVENT2=
 LDADD_LIB_FLAC=
 LDADD_LIB_MPG123=
 LDADD_LIB_VORBISFILE=
+LDADD_LIB_ASOUND=
 LDADD_LIB_SNDIO=
 LDADD_LIB_SOCKET=
 LDADD_STATIC=
@@ -207,6 +213,17 @@ while [ $# -gt 0 ]; do
 		fi
 	fi
 
+	if [ "$key" = "--backend" ]; then
+		key=BACKEND
+		if [ "$1" = "--backend" ]; then
+			if ! shift 2>&1 >/dev/null; then
+				echo "$0 missing value for --backend" 1>&2
+				exit 1
+			fi
+			val="$1"
+		fi
+	fi
+
 	if [ "$1" = "$key" ]; then
 		echo "$0: invalid key-value: $1" 1>&2
 		exit 1
@@ -215,6 +232,14 @@ while [ $# -gt 0 ]; do
 	shift
 
 	case "$key" in
+	BACKEND)
+		case "$val" in
+		alsa)	BACKEND=alsa ;;
+		sndio)	BACKEND=sndio ;;
+		*)
+			echo "unknown audio backend: $val" 1>&2
+			exit 1
+		esac ;;
 	LDADD)
 		LDADD="$val" ;;
 	LDADD_IMSG)
@@ -289,6 +314,7 @@ HAVE_LIB_FLAC=
 HAVE_LIB_MPG123=
 HAVE_LIB_OPUSFILE=
 HAVE_LIB_VORBISFILE=
+HAVE_LIB_ASOUND=
 HAVE_LIB_SNDIO=
 HAVE_LIB_SOCKET=
 HAVE_MEMMEM=
@@ -490,7 +516,6 @@ runtest lib_mpg123	LIB_MPG123 "" "" "-lmpg123" "libmpg123" || true
 runtest lib_opusfile	LIB_OPUSFILE "" "" "-lopusfile"	"opusfile"  || true
 runtest lib_vorbisfile	LIB_VORBISFILE "" "" "-lvorbisfile" "vorbisfile" || true
 
-runtest lib_sndio	LIB_SNDIO "" "" "-lsndio" "sndio" || true
 runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
 runtest memmem		MEMMEM			  	  || true
 runtest memrchr		MEMRCHR			  	  || true
@@ -504,7 +529,6 @@ runtest reallocarray	REALLOCARRAY			  || true
 runtest recallocarray	RECALLOCARRAY			  || true
 runtest sandbox_init	SANDBOX_INIT	"-Wno-deprecated" || true
 runtest setproctitle	SETPROCTITLE			  || true
-runtest sio_flush	SIO_FLUSH "" "" "${LDADD_LIB_SNDIO}" || true
 runtest SOCK_NONBLOCK	SOCK_NONBLOCK			  || true
 runtest static		STATIC "" "-static"		  || true
 runtest strlcat		STRLCAT				  || true
@@ -516,6 +540,36 @@ runtest sys_queue	SYS_QUEUE			  || true
 runtest sys_file	SYS_FILE			  || true
 runtest unveil		UNVEIL				  || true
 runtest __progname	__PROGNAME			  || true
+
+if [ $BACKEND != alsa ]; then # auto or sndio
+	runtest lib_sndio LIB_SNDIO "" "" "-lsndio" "sndio" || true
+	runtest sio_flush SIO_FLUSH "" "" "${LDADD_LIB_SNDIO}" || true
+
+	if [ "${HAVE_LIB_SNDIO}" -eq 0 ]; then
+		if [ $BACKEND = sndio ]; then
+			echo "Fatal: missing libsndio" 1>&2
+			echo "Fatal: missing libsndio" 1>&3
+			exit 1
+		fi
+	else
+		BACKEND=sndio
+	fi
+fi
+
+if [ $BACKEND != sndio ]; then # auto or alsa
+	runtest lib_asound LIB_ASOUND "" "" "-lasound" "alsa" || true
+	if [ "${HAVE_LIB_ASOUND}" -eq 0 ]; then
+		if [ $BACKEND = alsa ]; then
+			echo "Fatal: missing libasound" 1>&2
+			echo "Fatal: missing libasound" 1>&3
+		else
+			echo "Fatal: missing libasound or libsndio" 1>&2
+			echo "Fatal: missing libasound or libsndio" 1>&3
+		fi
+		exit 1
+	fi
+	BACKEND=alsa
+fi
 
 if [ "${HAVE_LIBEVENT}" -eq 0 -a "${HAVE_LIBEVENT2}" -eq 0 ]; then
 	echo "Fatal: missing libevent" 1>&2
@@ -529,12 +583,6 @@ if [ "${HAVE_LIB_FLAC}" -eq 0 -o \
      "${HAVE_LIB_VORBISFILE}" -eq 0 ]; then
 	echo "Fatal: missing required audio libraries" 1>&2
 	echo "Fatal: missing required audio libraries" 1>&3
-	exit 1
-fi
-
-if [ "${HAVE_LIB_SNDIO}" -eq 0 ]; then
-	echo "Fatal: missing libsndio" 1>&2
-	echo "Fatal: missing libsndio" 1>&3
 	exit 1
 fi
 
@@ -920,12 +968,14 @@ exec > Makefile.configure
 [ -z "${INSTALL_DATA}"    ] && INSTALL_DATA="${INSTALL} -m 0444"
 
 cat << __HEREDOC__
+BACKEND		 = ${BACKEND}
 CC		 = ${CC}
 CFLAGS		 = ${CFLAGS}
 CPPFLAGS	 = ${CPPFLAGS}
 LDADD		 = ${LDADD} ${LDADD_IMSG} ${LDADD_LIB_FLAC} ${LDADD_LIB_MPG123} \
-		   ${LDADD_LIB_OPUSFILE} ${LDADD_LIB_VORBISFILE} ${LDADD_LIB_SOCKET} \
-		   ${LDADD_LIBEVENT} ${LDADD_LIBEVENT2} ${LDADD_LIB_SNDIO}
+		   ${LDADD_LIB_OPUSFILE} ${LDADD_LIB_VORBISFILE} \
+		   ${LDADD_LIB_SOCKET} ${LDADD_LIBEVENT} ${LDADD_LIBEVENT2} \
+		   ${LDADD_LIB_SNDIO} ${LDADD_LIB_ASOUND}
 LDADD_STATIC	 = ${LDADD_STATIC}
 LDFLAGS		 = ${LDFLAGS}
 STATIC		 = ${STATIC}

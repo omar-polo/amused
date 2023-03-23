@@ -942,6 +942,20 @@ main(void)
 	return 0;
 }
 #endif /* TEST_LIB_VORBISFILE */
+#if TEST_LIB_ASOUND
+#include <alsa/asoundlib.h>
+
+int
+main(void)
+{
+	snd_pcm_t *pcm;
+	int err;
+
+	err = snd_pcm_open(&pcm, "default", SND_PCM_STREAM_PLAYBACK,
+	    SND_PCM_NONBLOCK);
+	return err;
+}
+#endif /* TEST_LIB_ASOUND */
 #if TEST_LIB_SNDIO
 #include <sndio.h>
 

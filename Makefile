@@ -5,7 +5,6 @@ PROG =		amused
 DISTNAME =	${PROG}-${VERSION}
 
 SOURCES =	amused.c \
-		audio_sndio.c \
 		compats.c \
 		control.c \
 		ctl.c \
@@ -18,7 +17,7 @@ SOURCES =	amused.c \
 		playlist.c \
 		xmalloc.c
 
-OBJS =		${SOURCES:.c=.o}
+OBJS =		${SOURCES:.c=.o} audio_${BACKEND}.o
 
 HEADERS =	amused.h \
 		control.h \
@@ -37,7 +36,9 @@ DISTFILES =	CHANGES \
 		queue.h \
 		tests.c \
 		${HEADERS} \
-		${SOURCES}
+		${SOURCES} \
+		audio_alsa.c \
+		audio_sndio.c
 
 all: ${PROG}
 
