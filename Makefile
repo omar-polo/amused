@@ -94,6 +94,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 # supports it.
 
 -include amused.d
+-include audio_alsa.d
 -include audio_sndio.d
 -include compats.d
 -include control.d
