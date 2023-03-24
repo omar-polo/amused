@@ -19,7 +19,7 @@ The dependencies are:
  - libmpg123
  - libvorbis
  - opusfile
- - libsndio
+ - libsndio or libasound (ALSA)
 
 Then, to build:
 
@@ -43,6 +43,11 @@ instructed to use libbsd exclusively as follows:
 
 	$ CFLAGS="$(pkg-config --cflags libbsd-overlay)" \
 		./configure LDFLAGS="$(pkg-config --libs libbsd-overlay)"
+
+To force the use of one specific audio backend and not simply the first
+one found, pass `--backend` as:
+
+	$ ./configure --backend=alsa # or sndio
 
 
 ## Usage
