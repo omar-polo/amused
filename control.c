@@ -1,7 +1,7 @@
 /*	$OpenBSD: control.c,v 1.8 2021/03/02 04:10:07 jsg Exp $	*/
 
 /*
- * Copyright (c) 2022 Omar Polo <op@openbsd.org>
+ * Copyright (c) 2022 Omar Polo <op@omarpolo.com>
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any

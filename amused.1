@@ -1,4 +1,4 @@
-.\" Copyright (c) 2022 Omar Polo <op@openbsd.org>
+.\" Copyright (c) 2022 Omar Polo <op@omarpolo.com>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -227,14 +227,14 @@ $ find . -type f -iname \\*.opus -exec amused add {} +
 .Ed
 .Pp
 Save the state of the player to the file
-.Pa state :
+.Pa amused.dump :
 .Bd -literal -offset indent
-$ amused show -p > state
+$ amused show -p > amused.dump
 .Ed
 .Pp
 Load a previous state:
 .Bd -literal -offset indent
-$ amused load < state
+$ amused load < amused.dump
 .Ed
 .Pp
 Shuffle the playlist:
@@ -257,4 +257,4 @@ $ amused jump "$(amused show | fzf +s)"
 The
 .Nm
 utility was written by
-.An Omar Polo Aq Mt op@openbsd.org .
+.An Omar Polo Aq Mt op@omarpolo.com .

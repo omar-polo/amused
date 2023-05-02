@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Omar Polo <op@openbsd.org>
+ * Copyright (c) 2022 Omar Polo <op@omarpolo.com>
  * Copyright (c) 2015 Theo de Raadt <deraadt@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
