@@ -43,7 +43,7 @@ server is already running.
 Use
 .Ar socket
 instead of the default
-.Pa /tmp/amused-$UID
+.Pa /tmp/amused-UID
 to communicate with the daemon.
 .It Fl v
 Produce more verbose output.
@@ -205,8 +205,8 @@ The default format used by
 .Cm status .
 .El
 .Sh FILES
-.Bl -tag -width "/tmp/amused-$UID" -compact
-.It Pa /tmp/amused-$UID
+.Bl -tag -width "/tmp/amused-UID" -compact
+.It Pa /tmp/amused-UID
 .Ux Ns -domain
 socket used for communication with the daemon.
 .El
