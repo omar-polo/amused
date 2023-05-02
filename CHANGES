@@ -1,3 +1,17 @@
+* amused 0.11; 2023-05-02
+- added support for ALSA
+- retry when sio_revents fails with EAGAIN
+- log errno too when sio_revents fails
+- added contrib/amusing: a GUI written in Tcl/Tk
+- amused-monitor: use new extended events info
+- enriched `mode' and `seek' events reporting in `amused monitor'
+- various minor improvements to amused.1
+- amused-monitor: fix error for tracks hours long
+- amused-monitor: add pledge
+- amused-monitor: fix rewind
+- amused-monitor: fix off by one
+- fix sndio detection
+
 * amused 0.10; 2022-07-13
 - changed the default output of 'amused status'
 - print the status after 'amused consume' or 'amused repeat'
