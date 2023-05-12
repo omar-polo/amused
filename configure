@@ -554,6 +554,8 @@ if [ $BACKEND != alsa ]; then # auto or sndio
 	else
 		BACKEND=sndio
 	fi
+else
+	HAVE_SIO_FLUSH=0
 fi
 
 if [ $BACKEND != sndio ]; then # auto or alsa
