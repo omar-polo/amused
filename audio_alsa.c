@@ -25,9 +25,10 @@
 
 static snd_pcm_t	*pcm;
 static size_t		 bpf;
+static void		(*onmove_cb)(void *, int);
 
 int
-audio_open(void (*onmove_cb)(void *, int))
+audio_open(void (*cb)(void *, int))
 {
 	const char	*device = "default";
 	int		 err;
@@ -39,7 +40,7 @@ audio_open(void (*onmove_cb)(void *, int))
 		return -1;
 	}
 
-	/* TODO: set up onmove callback? */
+	onmove_cb = cb;
 	return 0;
 }
 
@@ -143,6 +144,8 @@ audio_write(const void *buf, size_t len)
 		log_warnx("snd_pcm_writei failed: %s", snd_strerror(ret));
 		return 0;
 	}
+	if (onmove_cb)
+		onmove_cb(NULL, ret);
 	return ret * bpf;
 }
 
