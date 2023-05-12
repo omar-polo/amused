@@ -126,7 +126,8 @@ audio_write(const void *buf, size_t len)
 	avail = snd_pcm_avail_update(pcm);
 	if (avail < 0) {
 		if (avail == -EPIPE) {
-			log_warnx("alsa xrun occurred");
+			log_debug("alsa xrun occurred");
+			snd_pcm_recover(pcm, -EPIPE, 1);
 			return 0;
 		}
 		log_warnx("snd_pcm_avail_update failure: %s",
