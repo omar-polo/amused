@@ -41,9 +41,9 @@ audio_open(void (*onmove_cb)(void *, int))
 
 int
 audio_setup(unsigned int bits, unsigned int rate, unsigned int channels,
-    struct pollfd *pfds)
+    struct pollfd *pfds, int nfds)
 {
-	int		 nfds, fpct;
+	int		 fpct;
 
 	fpct = (rate * 5) / 100;
 
@@ -67,7 +67,7 @@ audio_setup(unsigned int bits, unsigned int rate, unsigned int channels,
 	par.pchan = channels;
 	if (!sio_setpar(hdl, &par)) {
 		if (errno == EAGAIN) {
-			nfds = sio_pollfd(hdl, pfds, POLLOUT);
+			sio_pollfd(hdl, pfds, POLLOUT);
 			if (poll(pfds, nfds, INFTIM) == -1)
 				fatal("poll");
 			goto again;
@@ -104,13 +104,13 @@ audio_nfds(void)
 }
 
 int
-audio_pollfd(struct pollfd *pfds, int events)
+audio_pollfd(struct pollfd *pfds, int nfds, int events)
 {
 	return sio_pollfd(hdl, pfds, events);
 }
 
 int
-audio_revents(struct pollfd *pfds)
+audio_revents(struct pollfd *pfds, int nfds)
 {
 	return sio_revents(hdl, pfds);
 }

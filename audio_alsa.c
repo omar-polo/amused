@@ -46,7 +46,7 @@ audio_open(void (*cb)(void *, int))
 
 int
 audio_setup(unsigned int bits, unsigned int rate, unsigned int channels,
-    struct pollfd *pfds)
+    struct pollfd *pfds, int nfds)
 {
 	int			 err;
 	snd_pcm_format_t	 fmt;
@@ -93,19 +93,18 @@ audio_nfds(void)
 }
 
 int
-audio_pollfd(struct pollfd *pfds, int events)
+audio_pollfd(struct pollfd *pfds, int nfds, int events)
 {
-	return snd_pcm_poll_descriptors(pcm, pfds, audio_nfds());
+	return snd_pcm_poll_descriptors(pcm, pfds, nfds);
 }
 
 int
-audio_revents(struct pollfd *pfds)
+audio_revents(struct pollfd *pfds, int nfds)
 {
 	int			 err;
 	unsigned short		 revents;
 
-	err = snd_pcm_poll_descriptors_revents(pcm, pfds, audio_nfds(),
-	    &revents);
+	err = snd_pcm_poll_descriptors_revents(pcm, pfds, nfds, &revents);
 	if (err < 0) {
 		log_warnx("snd revents failure: %s", snd_strerror(err));
 		return 0;

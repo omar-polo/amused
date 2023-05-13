@@ -34,6 +34,7 @@
 #include "xmalloc.h"
 
 struct pollfd		*player_pfds;
+int			 player_nfds;
 static struct imsgbuf	*ibuf;
 
 static int nextfd = -1;
@@ -56,7 +57,7 @@ player_setup(unsigned int bits, unsigned int rate, unsigned int channels)
 	    bits, rate, channels);
 
 	current_rate = rate;
-	return audio_setup(bits, rate, channels, player_pfds + 1);
+	return audio_setup(bits, rate, channels, player_pfds + 1, player_nfds);
 }
 
 void
@@ -253,12 +254,12 @@ int
 play(const void *buf, size_t len, int64_t *s)
 {
 	size_t w;
-	int nfds, revents, r, wait;
+	int revents, r, wait;
 
 	*s = -1;
 	while (len != 0) {
-		nfds = audio_pollfd(player_pfds + 1, POLLOUT);
-		r = poll(player_pfds, nfds + 1, INFTIM);
+		audio_pollfd(player_pfds + 1, player_nfds, POLLOUT);
+		r = poll(player_pfds, player_nfds + 1, INFTIM);
 		if (r == -1)
 			fatal("poll");
 
@@ -268,7 +269,7 @@ play(const void *buf, size_t len, int64_t *s)
 			return 0;
 		}
 
-		revents = audio_revents(player_pfds + 1);
+		revents = audio_revents(player_pfds + 1, player_nfds);
 		if (revents & POLLHUP) {
 			if (errno == EAGAIN)
 				continue;
@@ -307,8 +308,12 @@ player(int debug, int verbose)
 	if (audio_open(player_onmove) == -1)
 		fatal("audio_open");
 
+	if ((player_nfds = audio_nfds()) <= 0)
+		fatal("audio_nfds: invalid number of file descriptors: %d",
+		    player_nfds);
+
 	/* allocate one extra for imsg */
-	player_pfds = calloc(audio_nfds() + 1, sizeof(*player_pfds));
+	player_pfds = calloc(player_nfds + 1, sizeof(*player_pfds));
 	if (player_pfds == NULL)
 		fatal("calloc");
 
