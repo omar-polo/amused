@@ -1,3 +1,8 @@
+* amused 0.12; 2023-05-17
+- few ALSA backend bug fixes
+- set up the onmove callback on ALSA too
+- fix build with BACKEND=alsa; from ben, thanks!
+
 * amused 0.11; 2023-05-02
 - added support for ALSA
 - retry when sio_revents fails with EAGAIN
