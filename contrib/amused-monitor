@@ -18,8 +18,11 @@ use strict;
 use warnings;
 use v5.12;
 
+use open ":std", ":encoding(UTF-8)";
+use utf8;
+
 use Curses;
-use POSIX ":sys_wait_h";
+use POSIX qw(:sys_wait_h setlocale LC_ALL);
 use Text::CharWidth qw(mbswidth);
 use IO::Poll qw(POLLIN);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
@@ -301,6 +304,7 @@ GetOptions(
 my $mpid = open(my $monitor, "-|", "amused", "monitor")
     or die "can't spawn amused monitor";
 
+setlocale(LC_ALL, "");
 initscr;
 start_color;
 use_default_colors;
