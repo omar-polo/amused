@@ -322,8 +322,8 @@ getprogname(void)
 #endif
 #endif /* !HAVE_GETPROGNAME */
 #if !HAVE_IMSG
-/*	$OpenBSD: imsg-buffer.c,v 1.13 2021/03/31 17:42:24 eric Exp $	*/
-/*	$OpenBSD: imsg.c,v 1.17 2022/01/28 10:41:44 claudio Exp $	*/
+/*	$OpenBSD: imsg-buffer.c,v 1.16 2023/06/19 17:19:50 claudio Exp $	*/
+/*	$OpenBSD: imsg.c,v 1.19 2023/06/19 17:19:50 claudio Exp $	*/
 
 /*
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
@@ -358,15 +358,20 @@ getprogname(void)
 static int	ibuf_realloc(struct ibuf *, size_t);
 static void	ibuf_enqueue(struct msgbuf *, struct ibuf *);
 static void	ibuf_dequeue(struct msgbuf *, struct ibuf *);
+static void	msgbuf_drain(struct msgbuf *, size_t);
 
 struct ibuf *
 ibuf_open(size_t len)
 {
 	struct ibuf	*buf;
 
+	if (len == 0) {
+		errno = EINVAL;
+		return (NULL);
+	}
 	if ((buf = calloc(1, sizeof(struct ibuf))) == NULL)
 		return (NULL);
-	if ((buf->buf = malloc(len)) == NULL) {
+	if ((buf->buf = calloc(len, 1)) == NULL) {
 		free(buf);
 		return (NULL);
 	}
@@ -381,14 +386,22 @@ ibuf_dynamic(size_t len, size_t max)
 {
 	struct ibuf	*buf;
 
-	if (max < len)
+	if (max < len) {
+		errno = EINVAL;
 		return (NULL);
+	}
 
-	if ((buf = ibuf_open(len)) == NULL)
+	if ((buf = calloc(1, sizeof(struct ibuf))) == NULL)
 		return (NULL);
-
-	if (max > 0)
-		buf->max = max;
+	if (len > 0) {
+		if ((buf->buf = calloc(len, 1)) == NULL) {
+			free(buf);
+			return (NULL);
+		}
+	}
+	buf->size = len;
+	buf->max = max;
+	buf->fd = -1;
 
 	return (buf);
 }
@@ -399,7 +412,7 @@ ibuf_realloc(struct ibuf *buf, size_t len)
 	unsigned char	*b;
 
 	/* on static buffers max is eq size and so the following fails */
-	if (buf->wpos + len > buf->max) {
+	if (len > SIZE_MAX - buf->wpos || buf->wpos + len > buf->max) {
 		errno = ERANGE;
 		return (-1);
 	}
@@ -413,22 +426,15 @@ ibuf_realloc(struct ibuf *buf, size_t len)
 	return (0);
 }
 
-int
-ibuf_add(struct ibuf *buf, const void *data, size_t len)
-{
-	if (buf->wpos + len > buf->size)
-		if (ibuf_realloc(buf, len) == -1)
-			return (-1);
-
-	memcpy(buf->buf + buf->wpos, data, len);
-	buf->wpos += len;
-	return (0);
-}
-
 void *
 ibuf_reserve(struct ibuf *buf, size_t len)
 {
 	void	*b;
+
+	if (len > SIZE_MAX - buf->wpos) {
+		errno = ERANGE;
+		return (NULL);
+	}
 
 	if (buf->wpos + len > buf->size)
 		if (ibuf_realloc(buf, len) == -1)
@@ -436,17 +442,158 @@ ibuf_reserve(struct ibuf *buf, size_t len)
 
 	b = buf->buf + buf->wpos;
 	buf->wpos += len;
+	memset(b, 0, len);
 	return (b);
+}
+
+int
+ibuf_add(struct ibuf *buf, const void *data, size_t len)
+{
+	void *b;
+
+	if ((b = ibuf_reserve(buf, len)) == NULL)
+		return (-1);
+
+	memcpy(b, data, len);
+	return (0);
+}
+
+int
+ibuf_add_buf(struct ibuf *buf, const struct ibuf *from)
+{
+	return ibuf_add(buf, from->buf, from->wpos);
+}
+
+int
+ibuf_add_n8(struct ibuf *buf, uint64_t value)
+{
+	uint8_t v;
+
+	if (value > UINT8_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = value;
+	return ibuf_add(buf, &v, sizeof(v));
+}
+
+int
+ibuf_add_n16(struct ibuf *buf, uint64_t value)
+{
+	uint16_t v;
+
+	if (value > UINT16_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = htobe16(value);
+	return ibuf_add(buf, &v, sizeof(v));
+}
+
+int
+ibuf_add_n32(struct ibuf *buf, uint64_t value)
+{
+	uint32_t v;
+
+	if (value > UINT32_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = htobe32(value);
+	return ibuf_add(buf, &v, sizeof(v));
+}
+
+int
+ibuf_add_n64(struct ibuf *buf, uint64_t value)
+{
+	value = htobe64(value);
+	return ibuf_add(buf, &value, sizeof(value));
+}
+
+int
+ibuf_add_zero(struct ibuf *buf, size_t len)
+{
+	void *b;
+
+	if ((b = ibuf_reserve(buf, len)) == NULL)
+		return (-1);
+	return (0);
 }
 
 void *
 ibuf_seek(struct ibuf *buf, size_t pos, size_t len)
 {
 	/* only allowed to seek in already written parts */
-	if (pos + len > buf->wpos)
+	if (len > SIZE_MAX - pos || pos + len > buf->wpos) {
+		errno = ERANGE;
 		return (NULL);
+	}
 
 	return (buf->buf + pos);
+}
+
+int
+ibuf_set(struct ibuf *buf, size_t pos, const void *data, size_t len)
+{
+	void *b;
+
+	if ((b = ibuf_seek(buf, pos, len)) == NULL)
+		return (-1);
+
+	memcpy(b, data, len);
+	return (0);
+}
+
+int
+ibuf_set_n8(struct ibuf *buf, size_t pos, uint64_t value)
+{
+	uint8_t v;
+
+	if (value > UINT8_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = value;
+	return (ibuf_set(buf, pos, &v, sizeof(v)));
+}
+
+int
+ibuf_set_n16(struct ibuf *buf, size_t pos, uint64_t value)
+{
+	uint16_t v;
+
+	if (value > UINT16_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = htobe16(value);
+	return (ibuf_set(buf, pos, &v, sizeof(v)));
+}
+
+int
+ibuf_set_n32(struct ibuf *buf, size_t pos, uint64_t value)
+{
+	uint32_t v;
+
+	if (value > UINT32_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = htobe32(value);
+	return (ibuf_set(buf, pos, &v, sizeof(v)));
+}
+
+int
+ibuf_set_n64(struct ibuf *buf, size_t pos, uint64_t value)
+{
+	value = htobe64(value);
+	return (ibuf_set(buf, pos, &value, sizeof(value)));
+}
+
+void *
+ibuf_data(struct ibuf *buf)
+{
+	return (buf->buf);
 }
 
 size_t
@@ -465,6 +612,45 @@ void
 ibuf_close(struct msgbuf *msgbuf, struct ibuf *buf)
 {
 	ibuf_enqueue(msgbuf, buf);
+}
+
+void
+ibuf_free(struct ibuf *buf)
+{
+	if (buf == NULL)
+		return;
+#ifdef NOTYET
+	if (buf->fd != -1)
+		close(buf->fd);
+#endif
+	freezero(buf->buf, buf->size);
+	free(buf);
+}
+
+int
+ibuf_fd_avail(struct ibuf *buf)
+{
+	return (buf->fd != -1);
+}
+
+int
+ibuf_fd_get(struct ibuf *buf)
+{
+	int fd;
+
+	fd = buf->fd;
+#ifdef NOTYET
+	buf->fd = -1;
+#endif
+	return (fd);
+}
+
+void
+ibuf_fd_set(struct ibuf *buf, int fd)
+{
+	if (buf->fd != -1)
+		close(buf->fd);
+	buf->fd = fd;
 }
 
 int
@@ -504,15 +690,6 @@ again:
 }
 
 void
-ibuf_free(struct ibuf *buf)
-{
-	if (buf == NULL)
-		return;
-	freezero(buf->buf, buf->size);
-	free(buf);
-}
-
-void
 msgbuf_init(struct msgbuf *msgbuf)
 {
 	msgbuf->queued = 0;
@@ -520,7 +697,7 @@ msgbuf_init(struct msgbuf *msgbuf)
 	TAILQ_INIT(&msgbuf->bufs);
 }
 
-void
+static void
 msgbuf_drain(struct msgbuf *msgbuf, size_t n)
 {
 	struct ibuf	*buf, *next;
@@ -528,7 +705,7 @@ msgbuf_drain(struct msgbuf *msgbuf, size_t n)
 	for (buf = TAILQ_FIRST(&msgbuf->bufs); buf != NULL && n > 0;
 	    buf = next) {
 		next = TAILQ_NEXT(buf, entry);
-		if (buf->rpos + n >= buf->wpos) {
+		if (n >= buf->wpos - buf->rpos) {
 			n -= buf->wpos - buf->rpos;
 			ibuf_dequeue(msgbuf, buf);
 		} else {
@@ -629,8 +806,10 @@ ibuf_dequeue(struct msgbuf *msgbuf, struct ibuf *buf)
 {
 	TAILQ_REMOVE(&msgbuf->bufs, buf, entry);
 
-	if (buf->fd != -1)
+	if (buf->fd != -1) {
 		close(buf->fd);
+		buf->fd = -1;
+	}
 
 	msgbuf->queued--;
 	ibuf_free(buf);
@@ -785,8 +964,7 @@ imsg_compose(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
 	if (imsg_add(wbuf, data, datalen) == -1)
 		return (-1);
 
-	wbuf->fd = fd;
-
+	ibuf_fd_set(wbuf, fd);
 	imsg_close(ibuf, wbuf);
 
 	return (1);
@@ -809,14 +987,49 @@ imsg_composev(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
 		if (imsg_add(wbuf, iov[i].iov_base, iov[i].iov_len) == -1)
 			return (-1);
 
-	wbuf->fd = fd;
-
+	ibuf_fd_set(wbuf, fd);
 	imsg_close(ibuf, wbuf);
 
 	return (1);
 }
 
-/* ARGSUSED */
+int
+imsg_compose_ibuf(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid,
+    pid_t pid, struct ibuf *buf)
+{
+	struct ibuf	*wbuf = NULL;
+	struct imsg_hdr	 hdr;
+	int save_errno;
+
+	if (ibuf_size(buf) + IMSG_HEADER_SIZE > MAX_IMSGSIZE) {
+		errno = ERANGE;
+		goto fail;
+	}
+
+	hdr.type = type;
+	hdr.len = ibuf_size(buf) + IMSG_HEADER_SIZE;
+	hdr.flags = 0;
+	hdr.peerid = peerid;
+	if ((hdr.pid = pid) == 0)
+		hdr.pid = ibuf->pid;
+
+	if ((wbuf = ibuf_open(IMSG_HEADER_SIZE)) == NULL)
+		goto fail;
+	if (imsg_add(wbuf, &hdr, sizeof(hdr)) == -1)
+		goto fail;
+
+	ibuf_close(&ibuf->w, wbuf);
+	ibuf_close(&ibuf->w, buf);
+	return (1);
+
+ fail:
+	save_errno = errno;
+	ibuf_free(buf);
+	ibuf_free(wbuf);
+	errno = save_errno;
+	return (-1);
+}
+
 struct ibuf *
 imsg_create(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
     uint16_t datalen)
@@ -863,10 +1076,9 @@ imsg_close(struct imsgbuf *ibuf, struct ibuf *msg)
 	hdr = (struct imsg_hdr *)msg->buf;
 
 	hdr->flags &= ~IMSGF_HASFD;
-	if (msg->fd != -1)
+	if (ibuf_fd_avail(msg))
 		hdr->flags |= IMSGF_HASFD;
-
-	hdr->len = (uint16_t)msg->wpos;
+	hdr->len = ibuf_size(msg);
 
 	ibuf_close(&ibuf->w, msg);
 }
