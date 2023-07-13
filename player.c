@@ -145,13 +145,12 @@ again:
 		if (IMSG_DATA_SIZE(imsg) != sizeof(seek))
 			fatalx("wrong size for seek ctl");
 		memcpy(&seek, imsg.data, sizeof(seek));
-		if (seek.percent) {
+		if (seek.percent)
 			*s = (double)seek.offset * (double)duration / 100.0;
-		} else {
+		else
 			*s = seek.offset * current_rate;
-			if (seek.relative)
-				*s += samples;
-		}
+		if (seek.relative)
+			*s += samples;
 		if (*s < 0)
 			*s = 0;
 		break;
