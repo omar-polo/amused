@@ -144,13 +144,13 @@ proc getstatus {} {
 	while {[gets $fd line] != -1} {
 		switch -glob $line {
 		"playing *"	{
-			set toggle_btn "pause"
+			set toggle_btn "⏸"
 		}
 		"paused *"	{
-			set toggle_btn "play"
+			set toggle_btn "⏵"
 		}
 		"stopped *"	{
-			set toggle_btn "play"
+			set toggle_btn "⏵"
 		}
 		"position *"	{settime cur_time $line}
 		"duration *"	{settime max_time $line}
@@ -193,15 +193,15 @@ proc handle_event {fd} {
 	"mode *"	{puts "TODO: refresh mode"}
 	"next"		{getsongs}	# may be optimized
 	"pause"		{
-		set toggle_btn "play"
+		set toggle_btn "⏵"
 	}
 	"play"		{
-		set toggle_btn "pause"
+		set toggle_btn "⏸"
 	}
 	"prev"		{getsongs}	# may be optimized
 	"seek *"	{setpos $ev}
 	"stop"		{
-		set toggle_btn "play"
+		set toggle_btn "⏸"
 	}
 	default		{puts "un-catched event $ev"}
 	}
@@ -254,11 +254,17 @@ bind .c.main.list <<ListboxSelect>> {
 	}
 }
 
+ttk::style configure ctrl.TButton -font {sans-serif 16}
+
 grid [ttk::frame .c.cntl -padding "0 5 0 5"] -column 0 -row 2
-ttk::button .c.cntl.prev -text "prev" -command "amused prev"
-ttk::button .c.cntl.togg -textvariable toggle_btn -command "amused toggle"
-ttk::button .c.cntl.stop -text stop -command "amused stop"
-ttk::button .c.cntl.next -text "next" -command "amused next"
+ttk::button .c.cntl.prev -style ctrl.TButton -width 3 \
+	-text "⏮" -command "amused prev"
+ttk::button .c.cntl.togg -style ctrl.TButton -width 3 \
+	-textvariable toggle_btn -command "amused toggle"
+ttk::button .c.cntl.stop -style ctrl.TButton -width 3 \
+	-text "⏹" -command "amused stop"
+ttk::button .c.cntl.next -style ctrl.TButton -width 3 \
+	-text "⏭" -command "amused next"
 
 grid .c.cntl.prev -column 0 -row 0
 grid .c.cntl.togg -column 1 -row 0
