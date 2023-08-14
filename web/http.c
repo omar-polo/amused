@@ -66,8 +66,6 @@ http_parse(struct request *req, int fd)
 
 	memset(req, 0, sizeof(*req));
 
-	line = req->buf;
-
 	while (!done) {
 		if (req->len == sizeof(req->buf)) {
 			log_warnx("not enough space");
@@ -88,6 +86,7 @@ http_parse(struct request *req, int fd)
 		req->len += nr;
 
 		while ((endln = memmem(req->buf, req->len, "\r\n", 2))) {
+			line = req->buf;
 			if (endln == req->buf)
 				done = 1;
 
@@ -136,6 +135,8 @@ http_parse(struct request *req, int fd)
 			len = endln - req->buf + 2;
 			memmove(req->buf, req->buf + len, req->len - len);
 			req->len -= len;
+			if (done)
+				break;
 		}
 	}
 
@@ -156,6 +157,10 @@ http_read(struct request *req, int fd)
 	size_t	 left;
 	ssize_t	 nr;
 
+	/* drop \r\n */
+	if (req->len > 2)
+		req->len -= 2;
+
 	if (req->clen > sizeof(req->buf) - 1)
 		return -1;
 	if (req->len == req->clen) {
@@ -163,7 +168,8 @@ http_read(struct request *req, int fd)
 		return 0;
 	}
 	if (req->len > req->clen) {
-		log_warnx("got more data than what advertised!");
+		log_warnx("got more data than what advertised! (%zu vs %zu)",
+		    req->len, req->clen);
 		return -1;
 	}
 
