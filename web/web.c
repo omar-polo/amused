@@ -229,6 +229,25 @@ url_decode(char *url)
 }
 
 static void
+unexpected_imsg(struct imsg *imsg, const char *expected)
+{
+	const char	 *msg;
+	size_t		 datalen;
+
+	if (imsg->hdr.type != IMSG_CTL_ERR) {
+		log_warnx("got event %d while expecting %s",
+		    imsg->hdr.type, expected);
+		return;
+	}
+
+	datalen = IMSG_DATA_SIZE(*imsg);
+	msg = imsg->data;
+	if (datalen == 0 || msg[datalen - 1] != '\0')
+		fatalx("malformed error message");
+	log_warnx("failure: %s", msg);
+}
+
+static void
 route_notfound(struct reswriter *res, struct request *req)
 {
 	if (http_reply(res, 404, "Not Found", "text/plain") == -1 ||
@@ -267,8 +286,7 @@ render_playlist(struct reswriter *res)
 				break;
 
 			if (imsg.hdr.type != IMSG_CTL_SHOW) {
-				log_warnx("got event %d while expecting SHOW",
-				    imsg.hdr.type);
+				unexpected_imsg(&imsg, "IMSG_CTL_SHOW");
 				imsg_free(&imsg);
 				continue;
 			}
@@ -331,8 +349,7 @@ render_controls(struct reswriter *res)
 		return;
 
 	if (imsg.hdr.type != IMSG_CTL_STATUS) {
-		log_warnx("got event %d while expecting CTL_STATUS",
-		    imsg.hdr.type);
+		unexpected_imsg(&imsg, "IMSG_CTL_STATUS");
 		goto done;
 	}
 	if (IMSG_DATA_SIZE(imsg) != sizeof(ps))
@@ -448,8 +465,7 @@ route_jump(struct reswriter *res, struct request *req)
 				break;
 
 			if (imsg.hdr.type != IMSG_CTL_STATUS) {
-				log_warnx("got event %d while expecting"
-				    " IMSG_CTL_STATUS", imsg.hdr.type);
+				unexpected_imsg(&imsg, "IMSG_CTL_STATUS");
 				imsg_free(&imsg);
 				continue;
 			}
@@ -569,8 +585,7 @@ route_mode(struct reswriter *res, struct request *req)
 				break;
 
 			if (imsg.hdr.type != IMSG_CTL_STATUS) {
-				log_warnx("got event %d while expecting"
-				    " IMSG_CTL_STATUS", imsg.hdr.type);
+				unexpected_imsg(&imsg, "IMSG_CTL_STATUS");
 				imsg_free(&imsg);
 				continue;
 			}
