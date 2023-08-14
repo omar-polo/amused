@@ -20,12 +20,18 @@ enum http_method {
 	METHOD_POST,
 };
 
+enum http_version {
+	HTTP_1_0,
+	HTTP_1_1,
+};
+
 struct request {
 	char	buf[BUFSIZ];
 	size_t	len;
 
 	char	*path;
 	int	 method;
+	int	 version;
 	char	*ctype;
 	size_t	 clen;
 };
@@ -40,7 +46,7 @@ struct reswriter {
 
 int	http_parse(struct request *, int);
 int	http_read(struct request *, int);
-void	http_response_init(struct reswriter *, int);
+void	http_response_init(struct reswriter *, struct request *, int);
 int	http_reply(struct reswriter *, int, const char *, const char *);
 int	http_flush(struct reswriter *);
 int	http_write(struct reswriter *, const char *, size_t);

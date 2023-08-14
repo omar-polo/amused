@@ -645,7 +645,7 @@ handle_client(int psock)
 		close(sock);
 		return;
 	}
-	http_response_init(&res, sock);
+	http_response_init(&res, &req, sock);
 	route_dispatch(&res, &req);
 	http_flush(&res);
 	http_close(&res);

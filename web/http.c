@@ -112,8 +112,11 @@ http_parse(struct request *req, int fd)
 				if (*t != '\0')
 					*t++ = '\0';
 				req->path = xstrdup(s);
-				if (strcmp("HTTP/1.0", t) != 0 &&
-				    strcmp("HTTP/1.1", t) != 0) {
+				if (!strcmp("HTTP/1.0", t))
+					req->version = HTTP_1_0;
+				else if (!strcmp("HTTP/1.1", t))
+					req->version = HTTP_1_1;
+				else {
 					log_warnx("unknown http version: %s",
 					    t);
 					return -1;
@@ -194,10 +197,11 @@ http_read(struct request *req, int fd)
 }
 
 void
-http_response_init(struct reswriter *res, int fd)
+http_response_init(struct reswriter *res, struct request *req, int fd)
 {
 	memset(res, 0, sizeof(*res));
 	res->fd = fd;
+	res->chunked = req->version == HTTP_1_1;
 }
 
 int
@@ -208,13 +212,12 @@ http_reply(struct reswriter *res, int code, const char *reason,
 	int		 r;
 
 	res->len = 0;	/* discard any leftover from reading */
-	res->chunked = ctype != NULL;
 
 	log_debug("> %d %s", code, reason);
 
 	if (code >= 300 && code < 400) {
 		location = ctype;
-		ctype = NULL;
+		ctype = "text/html;charset=UTF-8";
 	}
 
 	r = snprintf(res->buf, sizeof(res->buf), "HTTP/1.1 %d %s\r\n"
@@ -231,11 +234,23 @@ http_reply(struct reswriter *res, int code, const char *reason,
 	    location == NULL ? "" : "Location: ",
 	    location == NULL ? "" : location,
 	    location == NULL ? "" : "\r\n",
-	    ctype == NULL ? "" : "Transfer-Encoding: chunked\r\n");
+	    res->chunked ? "Transfer-Encoding: chunked\r\n" : "");
 	if (r < 0 || (size_t)r >= sizeof(res->buf))
 		return -1;
 
-	return writeall(res, res->buf, r);
+	if (writeall(res, res->buf, r) == -1)
+		return -1;
+
+	if (location) {
+		if (http_writes(res, "<a href='") == -1 ||
+		    http_htmlescape(res, location) == -1 ||
+		    http_writes(res, "'>") == -1 ||
+		    http_htmlescape(res, reason) == -1 ||
+		    http_writes(res, "</a>") == -1)
+			return -1;
+	}
+
+	return 0;
 }
 
 int
@@ -252,6 +267,13 @@ http_flush(struct reswriter *res)
 
 	if (res->len == 0)
 		return 0;
+
+	if (!res->chunked) {
+		if (writeall(res, res->buf, res->len) == -1)
+			return -1;
+		res->len = 0;
+		return 0;
+	}
 
 	r = snprintf(buf, sizeof(buf), "%zx\r\n", res->len);
 	if (r < 0 || (size_t)r >= sizeof(buf)) {
