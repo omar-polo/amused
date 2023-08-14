@@ -445,6 +445,7 @@ route_jump(struct reswriter *res, struct request *req)
 		field += 5;
 		found = 1;
 
+		memset(&path, 0, sizeof(path));
 		if (strlcpy(path, field, sizeof(path)) >= sizeof(path))
 			goto badreq;
 
