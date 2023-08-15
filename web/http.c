@@ -160,23 +160,17 @@ http_read(struct request *req, int fd)
 	size_t	 left;
 	ssize_t	 nr;
 
-	/* drop \r\n */
-	if (req->len > 2)
-		req->len -= 2;
-
-	if (req->clen > sizeof(req->buf) - 1)
-		return -1;
-	if (req->len == req->clen) {
-		req->buf[req->len] = '\0';
-		return 0;
-	}
-	if (req->len > req->clen) {
-		log_warnx("got more data than what advertised! (%zu vs %zu)",
-		    req->len, req->clen);
+	if (req->clen > sizeof(req->buf) - 1) {
+		log_warnx("POST has more data then what can be accepted");
 		return -1;
 	}
 
-	left = req->clen - req->len;
+	/* clients may have sent more data than advertised */
+	if (req->clen < req->len)
+		left = 0;
+	else
+		left = req->clen - req->len;
+
 	while (left > 0) {
 		nr = read(fd, req->buf + req->len, left);
 		if (nr <= 0) {
@@ -193,6 +187,9 @@ http_read(struct request *req, int fd)
 	}
 
 	req->buf[req->len] = '\0';
+	while (req->len > 0 && (req->buf[req->len - 1] == '\r' ||
+	    (req->buf[req->len - 1] == '\n')))
+		req->buf[--req->len] = '\0';
 	return 0;
 }
 
