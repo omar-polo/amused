@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,7 @@
 
 #include "amused.h"
 #include "control.h"
+#include "ev.h"
 #include "log.h"
 #include "playlist.h"
 #include "xmalloc.h"
@@ -44,8 +46,6 @@ struct imsgev	*iev_player;
 
 const char	*argv0;
 pid_t		 player_pid;
-struct event	 ev_sigint;
-struct event	 ev_sigterm;
 
 enum amused_process {
 	PROC_MAIN,
@@ -79,10 +79,10 @@ main_shutdown(void)
 }
 
 static void
-main_sig_handler(int sig, short event, void *arg)
+main_sig_handler(int sig, int event, void *arg)
 {
 	/*
-	 * Normal signal handler rules don't apply because libevent
+	 * Normal signal handler rules don't apply because ev.c
 	 * decouples for us.
 	 */
 
@@ -97,7 +97,7 @@ main_sig_handler(int sig, short event, void *arg)
 }
 
 static void
-main_dispatch_player(int sig, short event, void *d)
+main_dispatch_player(int sig, int event, void *d)
 {
 	char		*errstr;
 	struct imsgev	*iev = d;
@@ -107,13 +107,13 @@ main_dispatch_player(int sig, short event, void *d)
 	ssize_t		 n;
 	int		 shut = 0;
 
-	if (event & EV_READ) {
+	if (event & POLLIN) {
 		if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
 			fatal("imsg_read error");
 		if (n == 0)	/* Connection closed */
 			shut = 1;
 	}
-	if (event & EV_WRITE) {
+	if (event & POLLOUT) {
 		if ((n = msgbuf_write(&ibuf->w)) == -1 && errno != EAGAIN)
 			fatal("msgbuf_write");
 		if (n == 0)	/* Connection closed */
@@ -181,13 +181,10 @@ main_dispatch_player(int sig, short event, void *d)
 		imsg_free(&imsg);
 	}
 
-	if (!shut)
+	if (shut)
+		ev_break();
+	else
 		imsg_event_add(iev);
-	else {
-		/* This pipe is dead.  Remove its event handler. */
-		event_del(&iev->ev);
-		event_loopexit(NULL);
-	}
 }
 
 static pid_t
@@ -261,25 +258,22 @@ amused_main(void)
 
 	player_pid = start_child(PROC_PLAYER, pipe_main2player[1]);
 
-	event_init();
-
-	signal_set(&ev_sigint, SIGINT, main_sig_handler, NULL);
-	signal_set(&ev_sigterm, SIGTERM, main_sig_handler, NULL);
-
-	signal_add(&ev_sigint, NULL);
-	signal_add(&ev_sigterm, NULL);
+	if (ev_init() == -1)
+		fatal("ev_init");
 
 	signal(SIGHUP, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
 	signal(SIGPIPE, SIG_IGN);
 
+	ev_signal(SIGINT, main_sig_handler, NULL);
+	ev_signal(SIGTERM, main_sig_handler, NULL);
+
 	iev_player = xmalloc(sizeof(*iev_player));
 	imsg_init(&iev_player->ibuf, pipe_main2player[0]);
 	iev_player->handler = main_dispatch_player;
-	iev_player->events = EV_READ;
-	event_set(&iev_player->ev, iev_player->ibuf.fd, iev_player->events,
+	iev_player->events = POLLIN;
+	ev_add(iev_player->ibuf.fd, iev_player->events,
 	    iev_player->handler, iev_player);
-	event_add(&iev_player->ev, NULL);
 
 	if ((control_fd = control_init(csock)) == -1)
 		fatal("control socket setup failed %s", csock);
@@ -289,7 +283,7 @@ amused_main(void)
 		fatal("pledge");
 
 	log_info("startup");
-	event_dispatch();
+	ev_loop();
 	main_shutdown();
 }
 
@@ -359,13 +353,11 @@ spawn_daemon(void)
 void
 imsg_event_add(struct imsgev *iev)
 {
-	iev->events = EV_READ;
+	iev->events = POLLIN;
 	if (iev->ibuf.w.queued)
-		iev->events |= EV_WRITE;
+		iev->events |= POLLOUT;
 
-	event_del(&iev->ev);
-	event_set(&iev->ev, iev->ibuf.fd, iev->events, iev->handler, iev);
-	event_add(&iev->ev, NULL);
+	ev_add(iev->ibuf.fd, iev->events, iev->handler, iev);
 }
 
 int

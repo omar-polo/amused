@@ -18,7 +18,7 @@
 
 int	control_init(char *);
 int	control_listen(int fd);
-void	control_accept(int, short, void *);
+void	control_accept(int, int, void *);
 void	control_notify(int);
-void	control_dispatch_imsg(int, short, void *);
+void	control_dispatch_imsg(int, int, void *);
 int	control_imsg_relay(struct imsg *);

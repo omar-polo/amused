@@ -28,12 +28,14 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "amused.h"
+#include "ev.h"
 #include "log.h"
 #include "control.h"
 #include "playlist.h"
@@ -41,8 +43,6 @@
 #define	CONTROL_BACKLOG	5
 
 struct {
-	struct event	ev;
-	struct event	evt;
 	int		fd;
 	struct playlist	play;
 	int		tx;
@@ -115,25 +115,17 @@ control_listen(int fd)
 		return (-1);
 	}
 
-	event_set(&control_state.ev, control_state.fd, EV_READ,
-	    control_accept, NULL);
-	event_add(&control_state.ev, NULL);
-	evtimer_set(&control_state.evt, control_accept, NULL);
-
+	ev_add(control_state.fd, POLLIN, control_accept, NULL);
 	return (0);
 }
 
 void
-control_accept(int listenfd, short event, void *bula)
+control_accept(int listenfd, int event, void *bula)
 {
 	int			 connfd;
 	socklen_t		 len;
 	struct sockaddr_un	 sun;
 	struct ctl_conn		*c;
-
-	event_add(&control_state.ev, NULL);
-	if ((event & EV_TIMEOUT))
-		return;
 
 	len = sizeof(sun);
 	if ((connfd = accept4(listenfd, (struct sockaddr *)&sun, &len,
@@ -145,8 +137,8 @@ control_accept(int listenfd, short event, void *bula)
 		if (errno == ENFILE || errno == EMFILE) {
 			struct timeval evtpause = { 1, 0 };
 
-			event_del(&control_state.ev);
-			evtimer_add(&control_state.evt, &evtpause);
+			ev_del(control_state.fd);
+			ev_timer(&evtpause, control_accept, NULL);
 		} else if (errno != EWOULDBLOCK && errno != EINTR &&
 		    errno != ECONNABORTED)
 			log_warn("%s: accept4", __func__);
@@ -161,10 +153,8 @@ control_accept(int listenfd, short event, void *bula)
 
 	imsg_init(&c->iev.ibuf, connfd);
 	c->iev.handler = control_dispatch_imsg;
-	c->iev.events = EV_READ;
-	event_set(&c->iev.ev, c->iev.ibuf.fd, c->iev.events,
-	    c->iev.handler, &c->iev);
-	event_add(&c->iev.ev, NULL);
+	c->iev.events = POLLIN;
+	ev_add(c->iev.ibuf.fd, c->iev.events, c->iev.handler, &c->iev);
 
 	TAILQ_INSERT_TAIL(&ctl_conns, c, entry);
 }
@@ -214,13 +204,13 @@ control_close(int fd)
 	msgbuf_clear(&c->iev.ibuf.w);
 	TAILQ_REMOVE(&ctl_conns, c, entry);
 
-	event_del(&c->iev.ev);
+	ev_del(c->iev.ibuf.fd);
 	close(c->iev.ibuf.fd);
 
 	/* Some file descriptors are available again. */
-	if (evtimer_pending(&control_state.evt, NULL)) {
-		evtimer_del(&control_state.evt);
-		event_add(&control_state.ev, NULL);
+	if (ev_timer_pending()) {
+		ev_timer(NULL, NULL, NULL);
+		ev_add(control_state.fd, POLLIN, control_accept, NULL);
 	}
 
 	free(c);
@@ -260,7 +250,7 @@ new_mode(int val, int newval)
 }
 
 void
-control_dispatch_imsg(int fd, short event, void *bula)
+control_dispatch_imsg(int fd, int event, void *bula)
 {
 	struct ctl_conn		*c;
 	struct imsg		 imsg;
@@ -273,14 +263,14 @@ control_dispatch_imsg(int fd, short event, void *bula)
 		return;
 	}
 
-	if (event & EV_READ) {
+	if (event & POLLIN) {
 		if (((n = imsg_read(&c->iev.ibuf)) == -1 && errno != EAGAIN) ||
 		    n == 0) {
 			control_close(fd);
 			return;
 		}
 	}
-	if (event & EV_WRITE) {
+	if (event & POLLOUT) {
 		if (msgbuf_write(&c->iev.ibuf.w) <= 0 && errno != EAGAIN) {
 			control_close(fd);
 			return;

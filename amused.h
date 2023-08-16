@@ -60,9 +60,8 @@ enum imsg_type {
 
 struct imsgev {
 	struct imsgbuf	 ibuf;
-	void		(*handler)(int, short, void *);
-	struct event	 ev;
-	short		 events;
+	void		(*handler)(int, int, void *);
+	int		 events;
 };
 
 enum actions {

@@ -63,8 +63,6 @@ Variables available:
     BACKEND                audio backend to use; can be "sndio" or "alsa"
     LDADD                  generic linker flags
     LDADD_IMSG             linker flags for libimsg
-    LDADD_LIBEVENT         linker flags for libevent
-    LDADD_LIBEVENT2        linker flags for libevent2
     LDADD_LIBFLAC          linker flags for libflac
     LDADD_LIBMPG123        linker flags for libmpg123
     LDADD_LIBOPUSFILE      linker flags for libopusfile
@@ -139,8 +137,6 @@ CFLAGS="${CFLAGS} -Wstrict-prototypes -Wmissing-declarations"
 CFLAGS="${CFLAGS} -Wno-unused-parameter -Wno-sign-compare"
 LDADD=
 LDADD_IMSG=
-LDADD_LIBEVENT=
-LDADD_LIBEVENT2=
 LDADD_LIB_FLAC=
 LDADD_LIB_MPG123=
 LDADD_LIB_VORBISFILE=
@@ -244,10 +240,6 @@ while [ $# -gt 0 ]; do
 		LDADD="$val" ;;
 	LDADD_IMSG)
 		LDADD_IMSG="$val" ;;
-	LDADD_LIBEVENT)
-		LDADD_LIBEVENT="$val" ;;
-	LDADD_LIBEVENT2)
-		LDADD_LIBEVENT2="$val" ;;
 	LDADD_LIBFLAC)
 		LDADD_LIBFLAC="$val" ;;
 	LDADD_LIBMPG123)
@@ -308,8 +300,6 @@ HAVE_GETPROGNAME=
 HAVE_INFTIM=
 HAVE_IMSG=
 HAVE_LANDLOCK=
-HAVE_LIBEVENT=
-HAVE_LIBEVENT2=0		# may not be checked, set to zero
 HAVE_LIB_FLAC=
 HAVE_LIB_MPG123=
 HAVE_LIB_OPUSFILE=
@@ -508,9 +498,6 @@ runtest imsg		IMSG "" "" "-lutil"		  || true
 runtest INFTIM		INFTIM				  || true
 runtest landlock	LANDLOCK			  || true
 
-runtest libevent	LIBEVENT "" "" "-levent"	  || \
-runtest libevent2	LIBEVENT2 "" "" "-levent_extra -levent_core" "libevent" || true
-
 runtest lib_flac	LIB_FLAC "" "" "-lFLAC" "flac"	  || true
 runtest lib_mpg123	LIB_MPG123 "" "" "-lmpg123" "libmpg123" || true
 runtest lib_opusfile	LIB_OPUSFILE "" "" "-lopusfile"	"opusfile"  || true
@@ -571,12 +558,6 @@ if [ $BACKEND != sndio ]; then # auto or alsa
 		exit 1
 	fi
 	BACKEND=alsa
-fi
-
-if [ "${HAVE_LIBEVENT}" -eq 0 -a "${HAVE_LIBEVENT2}" -eq 0 ]; then
-	echo "Fatal: missing libevent" 1>&2
-	echo "Fatal: missing libevent" 1>&3
-	exit 1
 fi
 
 if [ "${HAVE_LIB_FLAC}" -eq 0 -o \
@@ -897,25 +878,6 @@ else
 fi
 echo
 
-if [ "${HAVE_LIBEVENT2}" -eq 1 ]; then
-	cat << __HEREDOC__
-#include <event2/event.h>
-#include <event2/event_compat.h>
-#include <event2/event_struct.h>
-#include <event2/buffer.h>
-#include <event2/buffer_compat.h>
-#include <event2/bufferevent.h>
-#include <event2/bufferevent_struct.h>
-#include <event2/bufferevent_compat.h>
-
-__HEREDOC__
-elif [ "${HAVE_LIBEVENT}" -eq 1 ]; then
-	cat << __HEREDOC__
-#include <event.h>
-
-__HEREDOC__
-fi
-
 cat << __HEREDOC__
 #ifndef __dead
 # define __dead __attribute__((noreturn))
@@ -977,8 +939,7 @@ CFLAGS		 = ${CFLAGS}
 CPPFLAGS	 = ${CPPFLAGS}
 LDADD		 = ${LDADD} ${LDADD_IMSG} ${LDADD_LIB_FLAC} ${LDADD_LIB_MPG123} \
 		   ${LDADD_LIB_OPUSFILE} ${LDADD_LIB_VORBISFILE} \
-		   ${LDADD_LIB_SOCKET} ${LDADD_LIBEVENT} ${LDADD_LIBEVENT2} \
-		   ${LDADD_LIB_SNDIO} ${LDADD_LIB_ASOUND}
+		   ${LDADD_LIB_SOCKET} ${LDADD_LIB_SNDIO} ${LDADD_LIB_ASOUND}
 LDADD_STATIC	 = ${LDADD_STATIC}
 LDFLAGS		 = ${LDFLAGS}
 STATIC		 = ${STATIC}

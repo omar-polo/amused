@@ -8,6 +8,7 @@ SOURCES =	amused.c \
 		compats.c \
 		control.c \
 		ctl.c \
+		ev.c \
 		log.c \
 		player.c \
 		player_123.c \
@@ -100,6 +101,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 -include compats.d
 -include control.d
 -include ctl.d
+-include ev.d
 -include log.d
 -include player.d
 -include player_123.d

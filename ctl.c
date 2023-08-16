@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "amused.h"
