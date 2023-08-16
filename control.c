@@ -103,6 +103,12 @@ control_init(char *path)
 	return (fd);
 }
 
+static void
+enable_accept(int fd, int ev, void *bula)
+{
+	ev_add(control_state.fd, POLLIN, control_accept, NULL);
+}
+
 int
 control_listen(int fd)
 {
@@ -115,7 +121,7 @@ control_listen(int fd)
 		return (-1);
 	}
 
-	ev_add(control_state.fd, POLLIN, control_accept, NULL);
+	enable_accept(-1, 0, NULL);
 	return (0);
 }
 
@@ -138,7 +144,7 @@ control_accept(int listenfd, int event, void *bula)
 			struct timeval evtpause = { 1, 0 };
 
 			ev_del(control_state.fd);
-			ev_timer(&evtpause, control_accept, NULL);
+			ev_timer(&evtpause, enable_accept, NULL);
 		} else if (errno != EWOULDBLOCK && errno != EINTR &&
 		    errno != ECONNABORTED)
 			log_warn("%s: accept4", __func__);
