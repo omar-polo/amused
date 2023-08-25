@@ -652,7 +652,7 @@ web_accept(int psock, int ev, void *d)
 {
 	struct reswriter res;
 	struct request	 req;
-	int		 sock;;
+	int		 sock;
 
 	if ((sock = accept(psock, NULL, NULL)) == -1) {
 		warn("accept");
