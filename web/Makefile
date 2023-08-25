@@ -19,7 +19,8 @@ include ../Makefile.configure
 # --- targets ---
 
 ${PROG}: ${OBJS}
-	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD}
+	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_IMSG} \
+		${LDADD_LIB_SOCKET}
 
 clean:
 	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}

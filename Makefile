@@ -52,7 +52,8 @@ include Makefile.configure
 # -- targets --
 
 ${PROG}: ${OBJS}
-	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD}
+	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_IMSG} \
+		${LDADD_DECODERS} ${LDADD_LIB_SOCKET} ${LDADD_BACKEND}
 
 clean:
 	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}
