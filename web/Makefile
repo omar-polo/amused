@@ -2,7 +2,7 @@
 
 PROG =		amused-web
 
-SOURCES =	web.c http.c ../log.c ../playlist.c ../xmalloc.c
+SOURCES =	web.c http.c ../ev.c ../log.c ../playlist.c ../xmalloc.c
 
 OBJS =		${SOURCES:.c=.o}
 
@@ -41,7 +41,7 @@ uninstall:
 	rm ${DESTDIR}${MANDIR}/man1/${PROG}.1
 
 .c.o:
-	${CC} ${CFLAGS} -I../ -c $< -o $@
+	${CC} -I../ ${CFLAGS} -c $< -o $@
 
 # --- maintainer targets ---
 

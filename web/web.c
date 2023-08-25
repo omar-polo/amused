@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "amused.h"
+#include "ev.h"
 #include "http.h"
 #include "log.h"
 #include "playlist.h"
@@ -647,7 +648,7 @@ route_dispatch(struct reswriter *res, struct request *req)
 }
 
 static void
-handle_client(int psock)
+handle_client(int psock, int ev, void *d)
 {
 	struct reswriter res;
 	struct request	 req;
@@ -681,21 +682,16 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-	struct pollfd	 pfds[16];
 	struct addrinfo	 hints, *res, *res0;
 	const char	*cause = NULL;
 	const char	*host = NULL;
 	const char	*port = "9090";
 	char		*sock = NULL;
-	size_t		 i, nsock, error, save_errno;
-	int		 ch, v, amused_sock;
+	size_t		 nsock, error, save_errno;
+	int		 ch, v, amused_sock, fd;
 	int		 verbose = 0;
 
 	setlocale(LC_ALL, NULL);
-
-	memset(&pfds, 0, sizeof(pfds));
-	for (i = 0; i < nitems(pfds); ++i)
-		pfds[i].fd = -1;
 
 	log_init(1, LOG_DAEMON);
 
@@ -737,6 +733,9 @@ main(int argc, char **argv)
 
 	signal(SIGPIPE, SIG_IGN);
 
+	if (ev_init() == -1)
+		fatal("ev_init");
+
 	amused_sock = dial(sock);
 	imsg_init(&ibuf, amused_sock);
 
@@ -749,31 +748,32 @@ main(int argc, char **argv)
 		errx(1, "%s", gai_strerror(error));
 
 	nsock = 0;
-	for (res = res0; res && nsock < nitems(pfds); res = res->ai_next) {
-		pfds[nsock].fd = socket(res->ai_family, res->ai_socktype,
+	for (res = res0; res; res = res->ai_next) {
+		fd = socket(res->ai_family, res->ai_socktype,
 		    res->ai_protocol);
-		if (pfds[nsock].fd == -1) {
+		if (fd == -1) {
 			cause = "socket";
 			continue;
 		}
 
 		v = 1;
-		if (setsockopt(pfds[nsock].fd, SOL_SOCKET, SO_REUSEADDR,
+		if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
 		    &v, sizeof(v)) == -1)
 			fatal("setsockopt(SO_REUSEADDR)");
 
-		if (bind(pfds[nsock].fd, res->ai_addr, res->ai_addrlen) == -1) {
+		if (bind(fd, res->ai_addr, res->ai_addrlen) == -1) {
 			cause = "bind";
 			save_errno = errno;
-			close(pfds[nsock].fd);
+			close(fd);
 			errno = save_errno;
 			continue;
 		}
 
-		if (listen(pfds[nsock].fd, 5) == -1)
+		if (listen(fd, 5) == -1)
 			err(1, "listen");
 
-		pfds[nsock].events = POLLIN;
+		if (ev_add(fd, POLLIN, handle_client, NULL) == -1)
+			fatal("ev_add");
 		nsock++;
 	}
 	if (nsock == 0)
@@ -784,20 +784,6 @@ main(int argc, char **argv)
 		err(1, "pledge");
 
 	log_info("starting");
-
-	for (;;) {
-		if (poll(pfds, nitems(pfds), INFTIM) == -1) {
-			if (errno == EINTR)
-				continue;
-			err(1, "poll");
-		}
-
-		for (i = 0; i < nitems(pfds); ++i) {
-			if (pfds[i].fd == -1)
-				continue;
-			if (!(pfds[i].revents & POLLIN))
-				continue;
-			handle_client(pfds[i].fd);
-		}
-	}
+	ev_loop();
+	return (1);
 }
