@@ -648,7 +648,7 @@ route_dispatch(struct reswriter *res, struct request *req)
 }
 
 static void
-handle_client(int psock, int ev, void *d)
+web_accept(int psock, int ev, void *d)
 {
 	struct reswriter res;
 	struct request	 req;
@@ -772,7 +772,7 @@ main(int argc, char **argv)
 		if (listen(fd, 5) == -1)
 			err(1, "listen");
 
-		if (ev_add(fd, POLLIN, handle_client, NULL) == -1)
+		if (ev_add(fd, POLLIN, web_accept, NULL) == -1)
 			fatal("ev_add");
 		nsock++;
 	}
