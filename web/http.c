@@ -169,7 +169,7 @@ http_read(struct client *clt)
 int
 http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 {
-	const char	*location = NULL;
+	const char	*version, *location = NULL;
 	int		 r;
 
 	log_debug("> %d %s", code, reason);
@@ -179,14 +179,18 @@ http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 		ctype = "text/html;charset=UTF-8";
 	}
 
-	r = bufio_compose_fmt(&clt->bio, "HTTP/1.1 %d %s\r\n"
+	version = "HTTP/1.1";
+	if (clt->req.version == HTTP_1_0)
+		version = "HTTP/1.0";
+
+	r = bufio_compose_fmt(&clt->bio, "%s %d %s\r\n"
 	    "Connection: close\r\n"
 	    "Cache-Control: no-store\r\n"
 	    "%s%s%s"
 	    "%s%s%s"
 	    "%s"
 	    "\r\n",
-	    code, reason,
+	    version, code, reason,
 	    ctype == NULL ? "" : "Content-Type: ",
 	    ctype == NULL ? "" : ctype,
 	    ctype == NULL ? "" : "\r\n",
