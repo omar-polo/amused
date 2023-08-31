@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#define BIO_CHUNK	128
+#define BIO_CHUNK	1024
 struct buffer {
 	uint8_t		*buf;
 	size_t		 len;
