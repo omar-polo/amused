@@ -44,7 +44,6 @@ void	buf_free(struct buffer *);
 
 int	bufio_init(struct bufio *);
 int	bufio_reset(struct bufio *);
-int	bufio_reset(struct bufio *);
 void	bufio_set_fd(struct bufio *, int);
 short	bufio_pollev(struct bufio *);
 ssize_t	bufio_read(struct bufio *);
