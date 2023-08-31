@@ -62,7 +62,7 @@ http_parse(struct client *clt)
 	struct request	*req = &clt->req;
 	size_t		 len;
 	uint8_t		*endln;
-	char		*t, *line;
+	char		*frag, *query, *t, *line;
 	const char	*errstr, *m;
 
 	while (!clt->reqdone) {
@@ -99,7 +99,14 @@ http_parse(struct client *clt)
 				t = line;
 			if (*t != '\0')
 				*t++ = '\0';
+
+			if ((query = strchr(line, '?')))
+				*query = '\0';
+			if ((frag = strchr(line, '#')))
+				*frag = '\0';
+
 			clt->req.path = xstrdup(line);
+
 			if (!strcmp(t, "HTTP/1.0"))
 				clt->req.version = HTTP_1_0;
 			else if (!strcmp(t, "HTTP/1.1")) {
