@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <tls.h>
 #include <unistd.h>
 
 #include "bufio.h"
@@ -71,8 +70,6 @@ buf_has_line(struct buffer *buf, const char *nl)
 void
 buf_drain(struct buffer *buf, size_t l)
 {
-	buf->cur = 0;
-
 	if (l >= buf->len) {
 		buf->len = 0;
 		return;
@@ -119,8 +116,6 @@ bufio_init(struct bufio *bio)
 int
 bufio_reset(struct bufio *bio)
 {
-	if (bio->ctx)
-		tls_close(bio->ctx);
 	if (bio->fd != -1)
 		close(bio->fd);
 
@@ -135,45 +130,10 @@ bufio_set_fd(struct bufio *bio, int fd)
 	bio->fd = fd;
 }
 
-int
-bufio_starttls(struct bufio *bio, const char *host, int insecure)
-{
-	struct tls_config	*conf;
-
-	if ((conf = tls_config_new()) == NULL)
-		return (-1);
-
-	if (insecure) {
-		tls_config_insecure_noverifycert(conf);
-		tls_config_insecure_noverifyname(conf);
-		tls_config_insecure_noverifytime(conf);
-	}
-
-	if ((bio->ctx = tls_client()) == NULL) {
-		tls_config_free(conf);
-		return (-1);
-	}
-
-	if (tls_configure(bio->ctx, conf) == -1) {
-		tls_config_free(conf);
-		return (-1);
-	}
-
-	tls_config_free(conf);
-
-	if (tls_connect_socket(bio->ctx, bio->fd, host) == -1)
-		return (-1);
-
-	return (0);
-}
-
 short
 bufio_pollev(struct bufio *bio)
 {
 	short		 ev;
-
-	if (bio->pflags)
-		return (bio->pflags);
 
 	ev = POLLIN;
 	if (bio->wbuf.len != 0)
@@ -194,24 +154,6 @@ bufio_read(struct bufio *bio)
 			return (-1);
 	}
 
-	if (bio->ctx) {
-		r = tls_read(bio->ctx, rbuf->buf + rbuf->len,
-		    rbuf->cap - rbuf->cap);
-		switch (r) {
-		case TLS_WANT_POLLIN:
-		case TLS_WANT_POLLOUT:
-			bio->pflags = POLLIN | POLLOUT;
-			errno = EAGAIN;
-			return (-1);
-		case -1:
-			return (-1);
-		default:
-			bio->pflags = 0;
-			rbuf->len += r;
-			return (r);
-		}
-	}
-
 	r = read(bio->fd, rbuf->buf + rbuf->len, rbuf->cap - rbuf->len);
 	if (r == -1)
 		return (-1);
@@ -224,22 +166,6 @@ bufio_write(struct bufio *bio)
 {
 	struct buffer	*wbuf = &bio->wbuf;
 	ssize_t		 w;
-
-	if (bio->ctx) {
-		switch (w = tls_write(bio->ctx, wbuf->buf, wbuf->len)) {
-		case TLS_WANT_POLLIN:
-		case TLS_WANT_POLLOUT:
-			bio->pflags = POLLIN | POLLOUT;
-			errno = EAGAIN;
-			return (-1);
-		case -1:
-			return (-1);
-		default:
-			bio->pflags = 0;
-			buf_drain(wbuf, w);
-			return (w);
-		}
-	}
 
 	w = write(bio->fd, wbuf->buf, wbuf->len);
 	if (w == -1)
@@ -285,32 +211,4 @@ bufio_compose_fmt(struct bufio *bio, const char *fmt, ...)
 	r = bufio_compose(bio, str, r);
 	free(str);
 	return (r);
-}
-
-void
-bufio_rewind_cursor(struct bufio *bio)
-{
-	bio->rbuf.cur = 0;
-}
-
-int
-bufio_get_cb(void *d)
-{
-	struct bufio	*bio = d;
-	struct buffer	*rbuf = &bio->rbuf;
-
-	if (rbuf->cur >= rbuf->len)
-		return (EOF);
-	return (rbuf->buf[rbuf->cur++]);
-}
-
-int
-bufio_peek_cb(void *d)
-{
-	struct bufio	*bio = d;
-	struct buffer	*rbuf = &bio->rbuf;
-
-	if (rbuf->cur >= rbuf->len)
-		return (EOF);
-	return (rbuf->buf[rbuf->cur]);
 }

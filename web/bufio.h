@@ -28,13 +28,10 @@ struct buffer {
 	uint8_t		*buf;
 	size_t		 len;
 	size_t		 cap;
-	size_t		 cur;
 };
 
 struct bufio {
 	int		 fd;
-	struct tls	*ctx;
-	int		 pflags;	/* poll flags */
 	struct buffer	 wbuf;
 	struct buffer	 rbuf;
 };
@@ -49,7 +46,6 @@ int	bufio_init(struct bufio *);
 int	bufio_reset(struct bufio *);
 int	bufio_reset(struct bufio *);
 void	bufio_set_fd(struct bufio *, int);
-int	bufio_starttls(struct bufio *, const char *, int);
 short	bufio_pollev(struct bufio *);
 ssize_t	bufio_read(struct bufio *);
 ssize_t	bufio_write(struct bufio *);
@@ -57,8 +53,3 @@ int	bufio_compose(struct bufio *, const void *, size_t);
 int	bufio_compose_str(struct bufio *, const char *);
 int	bufio_compose_fmt(struct bufio *, const char *, ...)
 	    __attribute__((__format__ (printf, 2, 3)));
-void	bufio_rewind_cursor(struct bufio *);
-
-/* callbacks for pdjson */
-int	bufio_get_cb(void *);
-int	bufio_peek_cb(void *);
