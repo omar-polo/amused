@@ -205,6 +205,8 @@ http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 		return -1;
 	}
 
+	bufio_set_chunked(&clt->bio, clt->chunked);
+
 	if (location) {
 		if (http_writes(clt, "<a href='") == -1 ||
 		    http_htmlescape(clt, location) == -1 ||
@@ -214,7 +216,6 @@ http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 			return -1;
 	}
 
-	bufio_set_chunked(&clt->bio, clt->chunked);
 	return 0;
 }
 
