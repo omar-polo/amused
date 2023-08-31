@@ -448,6 +448,8 @@ ctlaction(struct parse_result *res)
 		done = 0;
 		imsg_compose(ibuf, IMSG_CTL_MODE, 0, 0, -1,
 		    &res->mode, sizeof(res->mode));
+		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+		    &res->mode, sizeof(res->mode));
 		res->status_format = "mode:oneline";
 		if (verbose)
 			res->status_format = "mode";
