@@ -53,7 +53,7 @@ http_parse(struct client *clt)
 	struct request	*req = &clt->req;
 	size_t		 len;
 	uint8_t		*endln;
-	char		*s, *t, *line;
+	char		*t, *line;
 	const char	*errstr, *m;
 
 	while (!clt->reqdone) {
@@ -77,21 +77,20 @@ http_parse(struct client *clt)
 		if (clt->req.method == METHOD_UNKNOWN) {
 			if (!strncmp("GET ", line, 4)) {
 				req->method = METHOD_GET;
-				s = line + 4;
+				line += 4;
 			} else if (!strncmp("POST ", line, 5)) {
 				req->method = METHOD_POST;
-				s = line + 5;
+				line += 5;
 			} else {
 				errno = EINVAL;
 				return -1;
 			}
 
-			t = strchr(s, ' ');
-			if (t == NULL)
-				t = s;
+			if ((t = strchr(line, ' ')) == NULL)
+				t = line;
 			if (*t != '\0')
 				*t++ = '\0';
-			clt->req.path = xstrdup(s);
+			clt->req.path = xstrdup(line);
 			if (!strcmp(t, "HTTP/1.0"))
 				clt->req.version = HTTP_1_0;
 			else if (!strcmp(t, "HTTP/1.1")) {
@@ -102,6 +101,8 @@ http_parse(struct client *clt)
 				errno = EINVAL;
 				return -1;
 			}
+
+			line = t;	/* so that no header below matches */
 		}
 
 		if (!strncasecmp(line, "Content-Length:", 15)) {
