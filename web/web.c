@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "amused.h"
+#include "bufio.h"
 #include "ev.h"
 #include "http.h"
 #include "log.h"
@@ -249,15 +250,15 @@ unexpected_imsg(struct imsg *imsg, const char *expected)
 }
 
 static void
-route_notfound(struct reswriter *res, struct request *req)
+route_notfound(struct client *clt)
 {
-	if (http_reply(res, 404, "Not Found", "text/plain") == -1 ||
-	    http_writes(res, "Page not found\n") == -1)
+	if (http_reply(clt, 404, "Not Found", "text/plain") == -1 ||
+	    http_writes(clt, "Page not found\n") == -1)
 		return;
 }
 
 static void
-render_playlist(struct reswriter *res)
+render_playlist(struct client *clt)
 {
 	struct imsg		 imsg;
 	struct player_status	 ps;
@@ -268,10 +269,10 @@ render_playlist(struct reswriter *res)
 	imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
 	imsg_flush(&ibuf);
 
-	http_writes(res, "<section class='playlist-wrapper'>");
-	http_writes(res, "<form action=jump method=post"
+	http_writes(clt, "<section class='playlist-wrapper'>");
+	http_writes(clt, "<form action=jump method=post"
 	    " enctype='"FORM_URLENCODED"'>");
-	http_writes(res, "<ul class=playlist>");
+	http_writes(clt, "<ul class=playlist>");
 
 	done = 0;
 	while (!done) {
@@ -309,26 +310,26 @@ render_playlist(struct reswriter *res)
 			if (!strncmp(p, prefix, prefixlen))
 				p += prefixlen;
 
-			http_fmt(res, "<li%s>",
+			http_fmt(clt, "<li%s>",
 			    current ? " id=current" : "");
-			http_writes(res,
+			http_writes(clt,
 			    "<button type=submit name=jump value=\"");
-			http_htmlescape(res, ps.path);
-			http_writes(res, "\">");
-			http_htmlescape(res, p);
-			http_writes(res, "</button></li>");
+			http_htmlescape(clt, ps.path);
+			http_writes(clt, "\">");
+			http_htmlescape(clt, p);
+			http_writes(clt, "</button></li>");
 
 			imsg_free(&imsg);
 		}
 	}
 
-	http_writes(res, "</ul>");
-	http_writes(res, "</form>");
-	http_writes(res, "</section>");
+	http_writes(clt, "</ul>");
+	http_writes(clt, "</form>");
+	http_writes(clt, "</section>");
 }
 
 static void
-render_controls(struct reswriter *res)
+render_controls(struct client *clt)
 {
 	struct imsg		 imsg;
 	struct player_status	 ps;
@@ -368,28 +369,28 @@ render_controls(struct reswriter *res)
 	else
 		p = ps.path;
 
-	if (http_writes(res, "<section class=controls>") == -1 ||
-	    http_writes(res, "<p><a href='#current'>") == -1 ||
-	    http_htmlescape(res, p) == -1 ||
-	    http_writes(res, "</a></p>") == -1 ||
-	    http_writes(res, "<form action=ctrls method=post"
+	if (http_writes(clt, "<section class=controls>") == -1 ||
+	    http_writes(clt, "<p><a href='#current'>") == -1 ||
+	    http_htmlescape(clt, p) == -1 ||
+	    http_writes(clt, "</a></p>") == -1 ||
+	    http_writes(clt, "<form action=ctrls method=post"
 		" enctype='"FORM_URLENCODED"'>") == -1 ||
-	    http_writes(res, "<button type=submit name=ctl value=prev>"
+	    http_writes(clt, "<button type=submit name=ctl value=prev>"
 		ICON_PREV"</button>") == -1 ||
-	    http_fmt(res, "<button type=submit name=ctl value=%s>"
+	    http_fmt(clt, "<button type=submit name=ctl value=%s>"
 		"%s</button>", playing ? "pause" : "play",
 		playing ? ICON_PAUSE : ICON_PLAY) == -1 ||
-	    http_writes(res, "<button type=submit name=ctl value=next>"
+	    http_writes(clt, "<button type=submit name=ctl value=next>"
 		ICON_NEXT"</button>") == -1 ||
-	    http_writes(res, "</form>") == -1 ||
-	    http_writes(res, "<form action=mode method=post"
+	    http_writes(clt, "</form>") == -1 ||
+	    http_writes(clt, "<form action=mode method=post"
 		" enctype='"FORM_URLENCODED"'>") == -1 ||
-	    http_fmt(res, "<button%s type=submit name=mode value=all>"
+	    http_fmt(clt, "<button%s type=submit name=mode value=all>"
 		ICON_REPEAT_ALL"</button>", ac) == -1 ||
-	    http_fmt(res, "<button%s type=submit name=mode value=one>"
+	    http_fmt(clt, "<button%s type=submit name=mode value=one>"
 		ICON_REPEAT_ONE"</button>", oc) == -1 ||
-	    http_writes(res, "</form>") == -1 ||
-	    http_writes(res, "</section>") == -1)
+	    http_writes(clt, "</form>") == -1 ||
+	    http_writes(clt, "</section>") == -1)
 		return;
 
  done:
@@ -397,34 +398,34 @@ render_controls(struct reswriter *res)
 }
 
 static void
-route_home(struct reswriter *res, struct request *req)
+route_home(struct client *clt)
 {
-	if (http_reply(res, 200, "OK", "text/html;charset=UTF-8") == -1)
+	if (http_reply(clt, 200, "OK", "text/html;charset=UTF-8") == -1)
 		return;
 
-	if (http_write(res, head, strlen(head)) == -1)
+	if (http_write(clt, head, strlen(head)) == -1)
 		return;
 
-	if (http_writes(res, "<main>") == -1)
+	if (http_writes(clt, "<main>") == -1)
 		return;
 
-	if (http_writes(res, "<section class=searchbox>"
+	if (http_writes(clt, "<section class=searchbox>"
 	    "<input type=search name=filter aria-label='Filter playlist'"
 	    " placeholder='Filter playlist' id=search />"
 	    "</section>") == -1)
 		return;
 
-	render_controls(res);
-	render_playlist(res);
+	render_controls(clt);
+	render_playlist(clt);
 
-	if (http_writes(res, "</main>") == -1)
+	if (http_writes(clt, "</main>") == -1)
 		return;
 
-	http_write(res, foot, strlen(foot));
+	http_write(clt, foot, strlen(foot));
 }
 
 static void
-route_jump(struct reswriter *res, struct request *req)
+route_jump(struct client *clt)
 {
 	struct imsg		 imsg;
 	struct player_status	 ps;
@@ -433,10 +434,7 @@ route_jump(struct reswriter *res, struct request *req)
 	char			*form, *field;
 	int			 found = 0;
 
-	if (http_read(req, res->fd) == -1)
-		return;
-
-	form = req->buf;
+	form = clt->buf;
 	while ((field = strsep(&form, "&")) != NULL) {
 		if (url_decode(field) == -1)
 			goto badreq;
@@ -486,24 +484,21 @@ route_jump(struct reswriter *res, struct request *req)
 	if (!found)
 		goto badreq;
 
-	http_reply(res, 302, "See Other", "/");
+	http_reply(clt, 302, "See Other", "/");
 	return;
 
  badreq:
-	http_reply(res, 400, "Bad Request", "text/plain");
-	http_writes(res, "Bad Request.\n");
+	http_reply(clt, 400, "Bad Request", "text/plain");
+	http_writes(clt, "Bad Request.\n");
 }
 
 static void
-route_controls(struct reswriter *res, struct request *req)
+route_controls(struct client *clt)
 {
 	char		*form, *field;
 	int		 cmd, found = 0;
 
-	if (http_read(req, res->fd) == -1)
-		return;
-
-	form = req->buf;
+	form = clt->buf;
 	while ((field = strsep(&form, "&")) != NULL) {
 		if (url_decode(field) == -1)
 			goto badreq;
@@ -532,16 +527,16 @@ route_controls(struct reswriter *res, struct request *req)
 	if (!found)
 		goto badreq;
 
-	http_reply(res, 302, "See Other", "/");
+	http_reply(clt, 302, "See Other", "/");
 	return;
 
  badreq:
-	http_reply(res, 400, "Bad Request", "text/plain");
-	http_writes(res, "Bad Request.\n");
+	http_reply(clt, 400, "Bad Request", "text/plain");
+	http_writes(clt, "Bad Request.\n");
 }
 
 static void
-route_mode(struct reswriter *res, struct request *req)
+route_mode(struct client *clt)
 {
 	char			*form, *field;
 	int			 found = 0;
@@ -552,10 +547,7 @@ route_mode(struct reswriter *res, struct request *req)
 
 	pm.repeat_one = pm.repeat_all = pm.consume = MODE_UNDEF;
 
-	if (http_read(req, res->fd) == -1)
-		return;
-
-	form = req->buf;
+	form = clt->buf;
 	while ((field = strsep(&form, "&")) != NULL) {
 		if (url_decode(field) == -1)
 			goto badreq;
@@ -605,21 +597,21 @@ route_mode(struct reswriter *res, struct request *req)
 	if (!found)
 		goto badreq;
 
-	http_reply(res, 302, "See Other", "/");
+	http_reply(clt, 302, "See Other", "/");
 	return;
 
  badreq:
-	http_reply(res, 400, "Bad Request", "text/plain");
-	http_writes(res, "Bad Request.\n");
+	http_reply(clt, 400, "Bad Request", "text/plain");
+	http_writes(clt, "Bad Request.\n");
 }
 
 static void
-route_dispatch(struct reswriter *res, struct request *req)
+route_dispatch(struct client *clt)
 {
 	static const struct route {
-		int method;
-		const char *path;
-		void (*fn)(struct reswriter *, struct request *);
+		int		 method;
+		const char	*path;
+		route_fn	 route;
 	} routes[] = {
 		{ METHOD_GET,	"/",		&route_home },
 		{ METHOD_POST,	"/jump",	&route_jump },
@@ -629,12 +621,13 @@ route_dispatch(struct reswriter *res, struct request *req)
 		{ METHOD_GET,	"*",		&route_notfound },
 		{ METHOD_POST,	"*",		&route_notfound },
 	};
+	struct request *req = &clt->req;
 	size_t i;
 
 	if ((req->method != METHOD_GET && req->method != METHOD_POST) ||
 	    (req->ctype != NULL && strcmp(req->ctype, FORM_URLENCODED) != 0) ||
 	    req->path == NULL) {
-		http_reply(res, 400, "Bad Request", NULL);
+		http_reply(clt, 400, "Bad Request", NULL);
 		return;
 	}
 
@@ -642,32 +635,89 @@ route_dispatch(struct reswriter *res, struct request *req)
 		if (req->method != routes[i].method ||
 		    fnmatch(routes[i].path, req->path, 0) != 0)
 			continue;
-		routes[i].fn(res, req);
+		clt->done = 1; /* assume with one round is done */
+		clt->route = routes[i].route;
+		clt->route(clt);
+		if (clt->done)
+			http_close(clt);
 		return;
 	}
 }
 
 static void
+client_ev(int fd, int ev, void *d)
+{
+	struct client	*clt = d;
+
+	if (ev & (POLLIN|POLLHUP)) {
+		if (bufio_read(&clt->bio) == -1 && errno != EAGAIN) {
+			log_warn("bufio_read");
+			goto err;
+		}
+	}
+
+	if (ev & POLLOUT) {
+		if (bufio_write(&clt->bio) == -1 && errno != EAGAIN) {
+			log_warn("bufio_read");
+			goto err;
+		}
+	}
+
+	if (clt->route == NULL) {
+		if (http_parse(clt) == -1) {
+			if (errno == EAGAIN)
+				goto again;
+			log_warnx("HTTP parse request failed");
+			goto err;
+		}
+		if (clt->req.method == METHOD_POST &&
+		    http_read(clt) == -1) {
+			if (errno == EAGAIN)
+				goto again;
+			log_warnx("failed to read POST data");
+			goto err;
+		}
+		route_dispatch(clt);
+		goto again;
+	}
+
+	if (!clt->done)
+		clt->route(clt);
+
+ again:
+	ev = bufio_pollev(&clt->bio);
+	if (ev == POLLIN && clt->done) {
+		goto err; /* done with this client */
+	}
+
+	ev_add(fd, ev, client_ev, clt);
+	return;
+
+ err:
+	ev_del(fd);
+	http_free(clt);
+}
+
+static void
 web_accept(int psock, int ev, void *d)
 {
-	struct reswriter res;
-	struct request	 req;
+	struct client	*clt;
 	int		 sock;
 
 	if ((sock = accept(psock, NULL, NULL)) == -1) {
 		warn("accept");
 		return;
 	}
-	if (http_parse(&req, sock) == -1) {
+	clt = xcalloc(1, sizeof(*clt));
+	if ((clt = calloc(1, sizeof(*clt))) == NULL ||
+	    http_init(clt, sock) == -1) {
+		log_warn("failed to initialize client");
+		free(clt);
 		close(sock);
 		return;
 	}
-	http_response_init(&res, &req, sock);
-	route_dispatch(&res, &req);
-	http_flush(&res);
-	http_close(&res);
-	http_free_request(&req);
-	close(sock);
+
+	client_ev(sock, POLLIN, clt);
 	return;
 }
 

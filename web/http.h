@@ -25,34 +25,41 @@ enum http_version {
 	HTTP_1_1,
 };
 
-struct request {
-	char	buf[BUFSIZ];
-	size_t	len;
+struct bufio;
 
+struct request {
 	char	*path;
 	int	 method;
 	int	 version;
 	char	*ctype;
+	char	*body;
 	size_t	 clen;
 };
 
-struct reswriter {
-	int	fd;
-	int	err;
-	int	chunked;
-	char	buf[BUFSIZ];
-	size_t	len;
+struct client;
+typedef void (*route_fn)(struct client *);
+
+struct client {
+	char		buf[1024];
+	size_t		len;
+	struct bufio	bio;
+	struct request	req;
+	int		err;
+	int		chunked;
+	int		reqdone;	/* done parsing the request */
+	int		done;		/* done handling the client */
+	route_fn	route;
 };
 
-int	http_parse(struct request *, int);
-int	http_read(struct request *, int);
-void	http_response_init(struct reswriter *, struct request *, int);
-int	http_reply(struct reswriter *, int, const char *, const char *);
-int	http_flush(struct reswriter *);
-int	http_write(struct reswriter *, const char *, size_t);
-int	http_writes(struct reswriter *, const char *);
-int	http_fmt(struct reswriter *, const char *, ...);
-int	http_urlescape(struct reswriter *, const char *);
-int	http_htmlescape(struct reswriter *, const char *);
-int	http_close(struct reswriter *);
-void	http_free_request(struct request *);
+int	http_init(struct client *, int);
+int	http_parse(struct client *);
+int	http_read(struct client *);
+int	http_reply(struct client *, int, const char *, const char *);
+int	http_flush(struct client *);
+int	http_write(struct client *, const char *, size_t);
+int	http_writes(struct client *, const char *);
+int	http_fmt(struct client *, const char *, ...);
+int	http_urlescape(struct client *, const char *);
+int	http_htmlescape(struct client *, const char *);
+int	http_close(struct client *);
+void	http_free(struct client *);

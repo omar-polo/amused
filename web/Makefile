@@ -2,7 +2,7 @@
 
 PROG =		amused-web
 
-SOURCES =	web.c http.c ../ev.c ../log.c ../playlist.c ../xmalloc.c
+SOURCES =	web.c bufio.c http.c ../ev.c ../log.c ../playlist.c ../xmalloc.c
 
 OBJS =		${SOURCES:.c=.o}
 
