@@ -32,6 +32,7 @@ struct buffer {
 
 struct bufio {
 	int		 fd;
+	int		 chunked;
 	struct buffer	 wbuf;
 	struct buffer	 rbuf;
 };
@@ -43,10 +44,13 @@ void	buf_drain_line(struct buffer *, const char *);
 void	buf_free(struct buffer *);
 
 int	bufio_init(struct bufio *);
+void	bufio_free(struct bufio *);
 int	bufio_reset(struct bufio *);
 void	bufio_set_fd(struct bufio *, int);
+void	bufio_set_chunked(struct bufio *, int);
 short	bufio_pollev(struct bufio *);
 ssize_t	bufio_read(struct bufio *);
+size_t	bufio_drain(struct bufio *, void *, size_t);
 ssize_t	bufio_write(struct bufio *);
 int	bufio_compose(struct bufio *, const void *, size_t);
 int	bufio_compose_str(struct bufio *, const char *);

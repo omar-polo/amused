@@ -113,14 +113,20 @@ bufio_init(struct bufio *bio)
 	return (0);
 }
 
-int
-bufio_reset(struct bufio *bio)
+void
+bufio_free(struct bufio *bio)
 {
 	if (bio->fd != -1)
 		close(bio->fd);
 
 	buf_free(&bio->rbuf);
 	buf_free(&bio->wbuf);
+}
+
+int
+bufio_reset(struct bufio *bio)
+{
+	bufio_free(bio);
 	return (bufio_init(bio));
 }
 
@@ -128,6 +134,12 @@ void
 bufio_set_fd(struct bufio *bio, int fd)
 {
 	bio->fd = fd;
+}
+
+void
+bufio_set_chunked(struct bufio *bio, int chunked)
+{
+	bio->chunked = chunked;
 }
 
 short
@@ -161,6 +173,18 @@ bufio_read(struct bufio *bio)
 	return (r);
 }
 
+size_t
+bufio_drain(struct bufio *bio, void *d, size_t len)
+{
+	struct buffer	*rbuf = &bio->rbuf;
+
+	if (len > rbuf->len)
+		len = rbuf->len;
+	memcpy(d, rbuf->buf, len);
+	buf_drain(rbuf, len);
+	return (len);
+}
+
 ssize_t
 bufio_write(struct bufio *bio)
 {
@@ -174,10 +198,13 @@ bufio_write(struct bufio *bio)
 	return (w);
 }
 
-int
-bufio_compose(struct bufio *bio, const void *d, size_t len)
+static int
+bufio_append(struct bufio *bio, const void *d, size_t len)
 {
 	struct buffer	*wbuf = &bio->wbuf;
+
+	if (len == 0)
+		return (0);
 
 	while (wbuf->cap - wbuf->len < len) {
 		if (buf_grow(wbuf) == -1)
@@ -186,6 +213,29 @@ bufio_compose(struct bufio *bio, const void *d, size_t len)
 
 	memcpy(wbuf->buf + wbuf->len, d, len);
 	wbuf->len += len;
+	return (0);
+}
+
+int
+bufio_compose(struct bufio *bio, const void *d, size_t len)
+{
+	char		 n[16];
+	int		 r;
+
+	if (bio->chunked) {
+		r = snprintf(n, sizeof(n), "%zx\r\n", len);
+		if (r < 0 || (size_t)r >= sizeof(n))
+			return (-1);
+		if (bufio_append(bio, n, r) == -1)
+			return (-1);
+	}
+
+	if (bufio_append(bio, d, len) == -1)
+		return (-1);
+
+	if (bio->chunked)
+		return bufio_append(bio, "\r\n", 2);
+
 	return (0);
 }
 
