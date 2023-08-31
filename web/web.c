@@ -59,6 +59,9 @@
 #define ICON_PLAY		"⏵"
 
 static struct imsgbuf		 ibuf;
+static struct playlist		 playlist_tmp;
+static struct player_status	 player_status;
+static uint64_t			 position, duration;
 static const char		*prefix = "";
 static size_t			 prefixlen;
 
@@ -184,7 +187,6 @@ dial(const char *sock)
 	return s;
 }
 
-
 /*
  * Adapted from usr.sbin/httpd/httpd.c' url_decode.
  */
@@ -233,22 +235,120 @@ url_decode(char *url)
 }
 
 static void
-unexpected_imsg(struct imsg *imsg, const char *expected)
+imsg_dispatch(int fd, int ev, void *d)
 {
-	const char	 *msg;
-	size_t		 datalen;
+	static ssize_t		 off;
+	static int		 off_found;
+	struct imsg		 imsg;
+	struct player_status	 ps;
+	struct player_event	 event;
+	const char		*msg;
+	ssize_t			 n;
+	size_t			 datalen;
 
-	if (imsg->hdr.type != IMSG_CTL_ERR) {
-		log_warnx("got event %d while expecting %s",
-		    imsg->hdr.type, expected);
-		return;
+	if (ev & (POLLIN|POLLHUP)) {
+		if ((n = imsg_read(&ibuf)) == -1 && errno != EAGAIN)
+			fatal("imsg_read");
+		if (n == 0)
+			fatalx("pipe closed");
+	}
+	if (ev & POLLOUT) {
+		if ((n = msgbuf_write(&ibuf.w)) == -1 && errno != EAGAIN)
+			fatal("msgbuf_write");
+		if (n == 0)
+			fatalx("pipe closed");
 	}
 
-	datalen = IMSG_DATA_SIZE(*imsg);
-	msg = imsg->data;
-	if (datalen == 0 || msg[datalen - 1] != '\0')
-		fatalx("malformed error message");
-	log_warnx("failure: %s", msg);
+	for (;;) {
+		if ((n = imsg_get(&ibuf, &imsg)) == -1)
+			fatal("imsg_get");
+		if (n == 0)
+			break;
+
+		datalen = IMSG_DATA_SIZE(imsg);
+
+		switch (imsg.hdr.type) {
+		case IMSG_CTL_ERR:
+			msg = imsg.data;
+			if (datalen == 0 || msg[datalen - 1] != '\0')
+				fatalx("malformed error message");
+			log_warnx("error: %s", msg);
+			break;
+
+		case IMSG_CTL_ADD:
+			playlist_free(&playlist_tmp);
+			imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
+			break;
+
+		case IMSG_CTL_MONITOR:
+			if (datalen != sizeof(event))
+				fatalx("corrupted IMSG_CTL_MONITOR");
+			memcpy(&event, imsg.data, sizeof(event));
+			switch (event.event) {
+			case IMSG_CTL_PLAY:
+			case IMSG_CTL_PAUSE:
+			case IMSG_CTL_STOP:
+			case IMSG_CTL_MODE:
+				imsg_compose(&ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+				    NULL, 0);
+				break;
+
+			case IMSG_CTL_NEXT:
+			case IMSG_CTL_PREV:
+			case IMSG_CTL_JUMP:
+			case IMSG_CTL_COMMIT:
+				imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1,
+				    NULL, 0);
+				imsg_compose(&ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+				    NULL, 0);
+				break;
+
+			case IMSG_CTL_SEEK:
+				position = event.position;
+				duration = event.duration;
+				break;
+
+			default:
+				log_debug("ignoring event %d", event.event);
+				break;
+			}
+			break;
+
+		case IMSG_CTL_SHOW:
+			if (datalen == 0) {
+				playlist_swap(&playlist_tmp, off);
+				memset(&playlist_tmp, 0, sizeof(playlist_tmp));
+				off = 0;
+				off_found = 0;
+				break;
+			}
+			if (datalen != sizeof(ps))
+				fatalx("corrupted IMSG_CTL_SHOW");
+			memcpy(&ps, imsg.data, sizeof(ps));
+			if (ps.path[sizeof(ps.path) - 1] != '\0')
+				fatalx("corrupted IMSG_CTL_SHOW");
+			playlist_push(&playlist_tmp, ps.path);
+			if (ps.status == STATE_PLAYING)
+				off_found = 1;
+			if (!off_found)
+				off++;
+			break;
+
+		case IMSG_CTL_STATUS:
+			if (datalen != sizeof(player_status))
+				fatalx("corrupted IMSG_CTL_STATUS");
+			memcpy(&player_status, imsg.data, datalen);
+			if (player_status.path[sizeof(player_status.path) - 1]
+			    != '\0')
+				fatalx("corrupted IMSG_CTL_STATUS");
+			break;
+		}
+	}
+
+	ev = POLLIN;
+	if (ibuf.w.queued)
+		ev |= POLLOUT;
+	ev_add(fd, ev, imsg_dispatch, NULL);
 }
 
 static void
@@ -262,67 +362,28 @@ route_notfound(struct client *clt)
 static void
 render_playlist(struct client *clt)
 {
-	struct imsg		 imsg;
-	struct player_status	 ps;
-	ssize_t			 n;
-	const char		*p;
-	int			 current, done;
-
-	imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
-	imsg_flush(&ibuf);
+	ssize_t			 i;
+	const char		*path, *p;
+	int			 current;
 
 	http_writes(clt, "<section class='playlist-wrapper'>");
 	http_writes(clt, "<form action=jump method=post"
 	    " enctype='"FORM_URLENCODED"'>");
 	http_writes(clt, "<ul class=playlist>");
 
-	done = 0;
-	while (!done) {
-		if ((n = imsg_read(&ibuf)) == -1)
-			fatal("imsg_read");
-		if (n == 0)
-			fatalx("pipe closed");
+	for (i = 0; i < playlist.len; ++i) {
+		current = play_off == i;
 
-		for (;;) {
-			if ((n = imsg_get(&ibuf, &imsg)) == -1)
-				fatal("imsg_get");
-			if (n == 0)
-				break;
+		p = path = playlist.songs[i];
+		if (!strncmp(p, prefix, prefixlen))
+			p += prefixlen;
 
-			if (imsg.hdr.type != IMSG_CTL_SHOW) {
-				unexpected_imsg(&imsg, "IMSG_CTL_SHOW");
-				imsg_free(&imsg);
-				continue;
-			}
-
-			if (IMSG_DATA_SIZE(imsg) == 0) {
-				done = 1;
-				break;
-			}
-
-			if (IMSG_DATA_SIZE(imsg) != sizeof(ps))
-				fatalx("wrong size for seek ctl");
-			memcpy(&ps, imsg.data, sizeof(ps));
-			if (ps.path[sizeof(ps.path) - 1] != '\0')
-				fatalx("received corrupted data");
-
-			current = ps.status == STATE_PLAYING;
-
-			p = ps.path;
-			if (!strncmp(p, prefix, prefixlen))
-				p += prefixlen;
-
-			http_fmt(clt, "<li%s>",
-			    current ? " id=current" : "");
-			http_writes(clt,
-			    "<button type=submit name=jump value=\"");
-			http_htmlescape(clt, ps.path);
-			http_writes(clt, "\">");
-			http_htmlescape(clt, p);
-			http_writes(clt, "</button></li>");
-
-			imsg_free(&imsg);
-		}
+		http_fmt(clt, "<li%s>", current ? " id=current" : "");
+		http_writes(clt, "<button type=submit name=jump value=\"");
+		http_htmlescape(clt, path);
+		http_writes(clt, "\">");
+		http_htmlescape(clt, p);
+		http_writes(clt, "</button></li>");
 	}
 
 	http_writes(clt, "</ul>");
@@ -333,43 +394,17 @@ render_playlist(struct client *clt)
 static void
 render_controls(struct client *clt)
 {
-	struct imsg		 imsg;
-	struct player_status	 ps;
-	ssize_t			 n;
 	const char		*oc, *ac, *p;
 	int			 playing;
 
-	imsg_compose(&ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
-	imsg_flush(&ibuf);
+	ac = player_status.mode.repeat_all ? " class='mode-active'" : "";
+	oc = player_status.mode.repeat_one ? " class='mode-active'" : "";
+	playing = player_status.status == STATE_PLAYING;
 
-	if ((n = imsg_read(&ibuf)) == -1)
-		fatal("imsg_read");
-	if (n == 0)
-		fatalx("pipe closed");
-
-	if ((n = imsg_get(&ibuf, &imsg)) == -1)
-		fatal("imsg_get");
-	if (n == 0)
-		return;
-
-	if (imsg.hdr.type != IMSG_CTL_STATUS) {
-		unexpected_imsg(&imsg, "IMSG_CTL_STATUS");
-		goto done;
-	}
-	if (IMSG_DATA_SIZE(imsg) != sizeof(ps))
-		fatalx("wrong size for IMSG_CTL_STATUS");
-	memcpy(&ps, imsg.data, sizeof(ps));
-	if (ps.path[sizeof(ps.path) - 1] != '\0')
-		fatalx("received corrupted data");
-
-	ac = ps.mode.repeat_all ? " class='mode-active'" : "";
-	oc = ps.mode.repeat_one ? " class='mode-active'" : "";
-	playing = ps.status == STATE_PLAYING;
-
-	if ((p = strrchr(ps.path, '/')) != NULL)
+	if ((p = strrchr(player_status.path, '/')) != NULL)
 		p++;
 	else
-		p = ps.path;
+		p = player_status.path;
 
 	if (http_writes(clt, "<section class=controls>") == -1 ||
 	    http_writes(clt, "<p><a href='#current'>") == -1 ||
@@ -394,9 +429,6 @@ render_controls(struct client *clt)
 	    http_writes(clt, "</form>") == -1 ||
 	    http_writes(clt, "</section>") == -1)
 		return;
-
- done:
-	imsg_free(&imsg);
 }
 
 static void
@@ -429,9 +461,6 @@ route_home(struct client *clt)
 static void
 route_jump(struct client *clt)
 {
-	struct imsg		 imsg;
-	struct player_status	 ps;
-	ssize_t			 n;
 	char			 path[PATH_MAX];
 	char			*form, *field;
 	int			 found = 0;
@@ -453,33 +482,7 @@ route_jump(struct client *clt)
 		log_warnx("path is %s", path);
 		imsg_compose(&ibuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
-		imsg_flush(&ibuf);
-
-		if ((n = imsg_read(&ibuf)) == -1)
-			fatal("imsg_read");
-		if (n == 0)
-			fatalx("pipe closed");
-
-		for (;;) {
-			if ((n = imsg_get(&ibuf, &imsg)) == -1)
-				fatal("imsg_get");
-			if (n == 0)
-				break;
-
-			if (imsg.hdr.type != IMSG_CTL_STATUS) {
-				unexpected_imsg(&imsg, "IMSG_CTL_STATUS");
-				imsg_free(&imsg);
-				continue;
-			}
-
-			if (IMSG_DATA_SIZE(imsg) != sizeof(ps))
-				fatalx("data size mismatch");
-			memcpy(&ps, imsg.data, sizeof(ps));
-			if (ps.path[sizeof(ps.path) - 1] != '\0')
-				fatalx("received corrupted data");
-			log_debug("jumped to %s", ps.path);
-		}
-
+		ev_add(ibuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -542,10 +545,7 @@ route_mode(struct client *clt)
 {
 	char			*form, *field;
 	int			 found = 0;
-	ssize_t			 n;
-	struct player_status	 ps;
 	struct player_mode	 pm;
-	struct imsg		 imsg;
 
 	pm.repeat_one = pm.repeat_all = pm.consume = MODE_UNDEF;
 
@@ -567,32 +567,7 @@ route_mode(struct client *clt)
 			goto badreq;
 
 		imsg_compose(&ibuf, IMSG_CTL_MODE, 0, 0, -1, &pm, sizeof(pm));
-		imsg_flush(&ibuf);
-
-		if ((n = imsg_read(&ibuf)) == -1)
-			fatal("imsg_read");
-		if (n == 0)
-			fatalx("pipe closed");
-
-		for (;;) {
-			if ((n = imsg_get(&ibuf, &imsg)) == -1)
-				fatal("imsg_get");
-			if (n == 0)
-				break;
-
-			if (imsg.hdr.type != IMSG_CTL_STATUS) {
-				unexpected_imsg(&imsg, "IMSG_CTL_STATUS");
-				imsg_free(&imsg);
-				continue;
-			}
-
-			if (IMSG_DATA_SIZE(imsg) != sizeof(ps))
-				fatalx("data size mismatch");
-			memcpy(&ps, imsg.data, sizeof(ps));
-			if (ps.path[sizeof(ps.path) - 1] != '\0')
-				fatalx("received corrupted data");
-		}
-
+		ev_add(ibuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -811,6 +786,10 @@ main(int argc, char **argv)
 
 	amused_sock = dial(sock);
 	imsg_init(&ibuf, amused_sock);
+	imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
+	imsg_compose(&ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
+	imsg_compose(&ibuf, IMSG_CTL_MONITOR, 0, 0, -1, NULL, 0);
+	ev_add(amused_sock, POLLIN|POLLOUT, imsg_dispatch, NULL);
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
