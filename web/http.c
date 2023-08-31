@@ -126,7 +126,8 @@ http_parse(struct client *clt)
 		m = "POST";
 	else
 		m = "unknown";
-	log_debug("< %s %s", m, req->path);
+	log_debug("< %s %s HTTP/%s", m, req->path,
+	    req->version == HTTP_1_1 ? "1.1" : "1.0");
 
 	return 0;
 }
