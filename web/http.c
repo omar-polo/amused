@@ -62,7 +62,7 @@ http_parse(struct client *clt)
 	struct request	*req = &clt->req;
 	size_t		 len;
 	uint8_t		*endln;
-	char		*frag, *query, *t, *line;
+	char		*frag, *query, *http, *line;
 	const char	*errstr, *m;
 
 	while (!clt->reqdone) {
@@ -95,10 +95,10 @@ http_parse(struct client *clt)
 				return -1;
 			}
 
-			if ((t = strchr(line, ' ')) == NULL)
-				t = line;
-			if (*t != '\0')
-				*t++ = '\0';
+			if ((http = strchr(line, ' ')) == NULL)
+				http = line;
+			if (*http != '\0')
+				*http++ = '\0';
 
 			if ((query = strchr(line, '?')))
 				*query = '\0';
@@ -107,18 +107,18 @@ http_parse(struct client *clt)
 
 			clt->req.path = xstrdup(line);
 
-			if (!strcmp(t, "HTTP/1.0"))
+			if (!strcmp(http, "HTTP/1.0"))
 				clt->req.version = HTTP_1_0;
-			else if (!strcmp(t, "HTTP/1.1")) {
+			else if (!strcmp(http, "HTTP/1.1")) {
 				clt->req.version = HTTP_1_1;
 				clt->chunked = 1;
 			} else {
-				log_warnx("unknown http version %s", t);
+				log_warnx("unknown http version %s", http);
 				errno = EINVAL;
 				return -1;
 			}
 
-			line = t;	/* so that no header below matches */
+			line = http;	/* so that no header below matches */
 		}
 
 		if (!strncasecmp(line, "Content-Length:", 15)) {
