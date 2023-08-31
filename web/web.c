@@ -67,8 +67,12 @@ const char *head = "<!doctype html>"
 	"<head>"
 	"<meta name='viewport' content='width=device-width, initial-scale=1'/>"
 	"<title>Amused Web</title>"
-	"<style>"
-	"*{box-sizing:border-box}"
+	"<link rel='stylesheet' href='/style.css?v=0'>"
+	"</style>"
+	"</head>"
+	"<body>";
+
+const char *css = 	"*{box-sizing:border-box}"
 	"html,body{"
 	" padding: 0;"
 	" border: 0;"
@@ -146,20 +150,18 @@ const char *head = "<!doctype html>"
 	"}"
 	".mode-active{"
 	" color: #0064ff;"
-	"}"
-	"</style>"
-	"</head>"
-	"<body>";
+	"}";
 
-const char *foot = "<script>"
+const char *js =
 	"function cur(e) {"
 	" if (e) {e.preventDefault()}"
 	" let cur = document.querySelector('#current');"
 	" if (cur) {cur.scrollIntoView(); window.scrollBy(0, -100);}"
 	"}"
 	"cur();"
-	"document.querySelector('.controls a').addEventListener('click',cur)"
-	"</script></body></html>";
+	"document.querySelector('.controls a').addEventListener('click',cur)";
+
+const char *foot = "<script src='/app.js?v=0'></script></body></html>";
 
 static int
 dial(const char *sock)
@@ -606,6 +608,24 @@ route_mode(struct client *clt)
 }
 
 static void
+route_assets(struct client *clt)
+{
+	if (!strcmp(clt->req.path, "/style.css")) {
+		http_reply(clt, 200, "OK", "text/css");
+		http_write(clt, css, strlen(css));
+		return;
+	}
+
+	if (!strcmp(clt->req.path, "/app.js")) {
+		http_reply(clt, 200, "OK", "application/javascript");
+		http_write(clt, js, strlen(js));
+		return;
+	}
+
+	route_notfound(clt);
+}
+
+static void
 route_dispatch(struct client *clt)
 {
 	static const struct route {
@@ -617,6 +637,9 @@ route_dispatch(struct client *clt)
 		{ METHOD_POST,	"/jump",	&route_jump },
 		{ METHOD_POST,	"/ctrls",	&route_controls },
 		{ METHOD_POST,	"/mode",	&route_mode },
+
+		{ METHOD_GET,	"/style.css",	&route_assets },
+		{ METHOD_GET,	"/app.js",	&route_assets },
 
 		{ METHOD_GET,	"*",		&route_notfound },
 		{ METHOD_POST,	"*",		&route_notfound },
