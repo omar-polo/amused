@@ -54,6 +54,14 @@ The
 .Nm
 program was written by
 .An Omar Polo Aq Mt op@omarpolo.com .
-.Sh BUGS
-The web interface doesn't update itself automatically.
-Periodically refresh are needed.
+.Sh CAVEATS
+.Nm
+should be hosted only in trusted networks because it doesn't employ all
+the techniques that would be needed to prevent abuses in public
+networks.
+If reachable in a public network, it should at least be protected by a
+password.
+.Pp
+Depending on the browser and the address from where
+.Nm
+is accessed, the use of TLS may be required.
