@@ -64,8 +64,6 @@ static struct imsgbuf		 ibuf;
 static struct playlist		 playlist_tmp;
 static struct player_status	 player_status;
 static uint64_t			 position, duration;
-static const char		*prefix = "";
-static size_t			 prefixlen;
 
 static void client_ev(int, int, void *);
 
@@ -547,7 +545,7 @@ static void
 render_playlist(struct client *clt)
 {
 	ssize_t			 i;
-	const char		*path, *p;
+	const char		*path;
 	int			 current;
 
 	http_writes(clt, "<section class='playlist-wrapper'>");
@@ -558,15 +556,13 @@ render_playlist(struct client *clt)
 	for (i = 0; i < playlist.len; ++i) {
 		current = play_off == i;
 
-		p = path = playlist.songs[i];
-		if (!strncmp(p, prefix, prefixlen))
-			p += prefixlen;
+		path = playlist.songs[i];
 
 		http_fmt(clt, "<li%s>", current ? " id=current" : "");
 		http_writes(clt, "<button type=submit name=jump value=\"");
 		http_htmlescape(clt, path);
 		http_writes(clt, "\">");
-		http_htmlescape(clt, p);
+		http_htmlescape(clt, path);
 		http_writes(clt, "</button></li>");
 	}
 
@@ -974,7 +970,7 @@ web_accept(int psock, int ev, void *d)
 void __dead
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-v] [-s sock] [-t prefix] [[host] port]\n",
+	fprintf(stderr, "usage: %s [-v] [-s sock] [[host] port]\n",
 	    getprogname());
 	exit(1);
 }
@@ -999,14 +995,10 @@ main(int argc, char **argv)
 	if (pledge("stdio rpath unix inet dns", NULL) == -1)
 		err(1, "pledge");
 
-	while ((ch = getopt(argc, argv, "s:t:v")) != -1) {
+	while ((ch = getopt(argc, argv, "s:v")) != -1) {
 		switch (ch) {
 		case 's':
 			sock = optarg;
-			break;
-		case 't':
-			prefix = optarg;
-			prefixlen = strlen(prefix);
 			break;
 		case 'v':
 			verbose = 1;
