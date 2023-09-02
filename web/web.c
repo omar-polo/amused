@@ -706,7 +706,6 @@ web_accept(int psock, int ev, void *d)
 		warn("accept");
 		return;
 	}
-	clt = xcalloc(1, sizeof(*clt));
 	if ((clt = calloc(1, sizeof(*clt))) == NULL ||
 	    http_init(clt, sock) == -1) {
 		log_warn("failed to initialize client");
