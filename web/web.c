@@ -41,6 +41,7 @@
 #include "http.h"
 #include "log.h"
 #include "playlist.h"
+#include "ws.h"
 #include "xmalloc.h"
 
 #ifndef nitems
@@ -58,12 +59,15 @@
 #define ICON_TOGGLE		"⏯"
 #define ICON_PLAY		"⏵"
 
+static struct clthead		 clients;
 static struct imsgbuf		 ibuf;
 static struct playlist		 playlist_tmp;
 static struct player_status	 player_status;
 static uint64_t			 position, duration;
 static const char		*prefix = "";
 static size_t			 prefixlen;
+
+static void client_ev(int, int, void *);
 
 const char *head = "<!doctype html>"
 	"<html>"
@@ -156,13 +160,84 @@ const char *css = 	"*{box-sizing:border-box}"
 	"}";
 
 const char *js =
+	"var ws;"
+	"let pos=0, dur=0;"
+	"const playlist=document.querySelector('.playlist');"
 	"function cur(e) {"
 	" if (e) {e.preventDefault()}"
 	" let cur = document.querySelector('#current');"
 	" if (cur) {cur.scrollIntoView(); window.scrollBy(0, -100);}"
+	"};"
+	"function b(x){return x=='on'};"
+	"function c(p, c){"
+	" const l=document.createElement('li');"
+	" if(c){l.id='current'};"
+	" const b=document.createElement('button');"
+	" b.type='submit'; b.name='jump'; b.value=p;"
+	" b.innerText=p;"
+	" l.appendChild(b);"
+	" playlist.appendChild(l);"
 	"}"
+	"function d(t){"
+	" const [, type, payload] = t.split(/^(.):(.*)$/);"
+	" if (type=='s'){"
+	"  let s=payload.split(' ');"
+	"  pos=s[0], dur=s[1];"
+	" } else if (type=='S') {"
+	"  const btn=document.querySelector('#toggle');"
+	"  if (payload=='playing') {"
+	"   btn.innerHTML='"ICON_PAUSE"';"
+	"   btn.value='pause';"
+	"  } else {"
+	"   btn.innerHTML='"ICON_PLAY"';"
+	"   btn.value='play';"
+	"  }"
+	" } else if (type=='r') {"
+	"  const btn=document.querySelector('#rone');"
+	"  btn.className=b(payload)?'mode-active':'';"
+	" } else if (type=='R') {"
+	"  const btn=document.querySelector('#rall');"
+	"  btn.className=b(payload)?'mode-active':'';"
+	" } else if (type=='c') {"
+	/* consume */
+	" } else if (type=='x') {"
+	"  playlist.innerHTML='';"
+	" } else if (type=='A') {"
+	"  c(payload, true);"
+	" } else if (type=='a') {"
+	"  c(payload, false);"
+	" } else if (type=='C') {"
+	"  const t=document.querySelector('.controls>p>a');"
+	"  t.innerText = payload.replace(/.*\\//, '');"
+	"  cur();"
+	" } else {"
+	"  console.log('unknown:',t);"
+	" }"
+	"};"
+	"function w(){"
+	" ws = new WebSocket((location.protocol=='http:'?'ws://':'wss://')"
+	"  + location.host + '/ws');"
+	" ws.addEventListener('open', () => console.log('ws: connected'));"
+	" ws.addEventListener('close', () => console.log('ws: closed'));"
+	" ws.addEventListener('message', e => d(e.data))"
+	"};"
+	"w();"
 	"cur();"
-	"document.querySelector('.controls a').addEventListener('click',cur)";
+	"document.querySelector('.controls a').addEventListener('click',cur);"
+	"document.querySelectorAll('form').forEach(f => {"
+	" f.action='/a/'+f.getAttribute('action');"
+	" f.addEventListener('submit', e => {"
+	"  e.preventDefault();"
+	"  const fd = new FormData(f);"
+	"  if (e.submitter && e.submitter.value && e.submitter.value != '')"
+	"   fd.append(e.submitter.name, e.submitter.value);"
+	"  fetch(f.action, {"
+	"   method:'POST',"
+	"   body: new URLSearchParams(fd)"
+	"  })"
+	"  .catch(x => console.log('failed to submit form:', x));"
+	" });"
+	"});";
 
 const char *foot = "<script src='/app.js?v=0'></script></body></html>";
 
@@ -234,17 +309,109 @@ url_decode(char *url)
 	return (0);
 }
 
+static int
+dispatch_event(const char *msg)
+{
+	struct client	*clt;
+	size_t		 len;
+	int		 ret = 0;
+
+	len = strlen(msg);
+	TAILQ_FOREACH(clt, &clients, clients) {
+		if (!clt->ws || clt->done || clt->err)
+			continue;
+
+		if (ws_compose(clt, WST_TEXT, msg, len) == -1)
+			ret = -1;
+
+		ev_add(clt->bio.fd, POLLIN|POLLOUT, client_ev, clt);
+	}
+
+	return (ret);
+}
+
+static int
+dispatch_event_status(void)
+{
+	const char	*status;
+	char		 buf[PATH_MAX + 2];
+	int		 r;
+
+	switch (player_status.status) {
+	case STATE_STOPPED: status = "stopped"; break;
+	case STATE_PLAYING: status = "playing"; break;
+	case STATE_PAUSED:  status = "paused";  break;
+	default: status = "unknown";
+	}
+
+	r = snprintf(buf, sizeof(buf), "S:%s", status);
+	if (r < 0 || (size_t)r >= sizeof(buf)) {
+		log_warn("snprintf");
+		return -1;
+	}
+	dispatch_event(buf);
+
+	r = snprintf(buf, sizeof(buf), "r:%s",
+	    player_status.mode.repeat_one == MODE_ON ? "on" : "off");
+	if (r < 0 || (size_t)r >= sizeof(buf)) {
+		log_warn("snprintf");
+		return -1;
+	}
+	dispatch_event(buf);
+
+	r = snprintf(buf, sizeof(buf), "R:%s",
+	    player_status.mode.repeat_all == MODE_ON ? "on" : "off");
+	if (r < 0 || (size_t)r >= sizeof(buf)) {
+		log_warn("snprintf");
+		return -1;
+	}
+	dispatch_event(buf);
+
+	r = snprintf(buf, sizeof(buf), "c:%s",
+	    player_status.mode.consume == MODE_ON ? "on" : "off");
+	if (r < 0 || (size_t)r >= sizeof(buf)) {
+		log_warn("snprintf");
+		return -1;
+	}
+	dispatch_event(buf);
+
+	r = snprintf(buf, sizeof(buf), "C:%s", player_status.path);
+	if (r < 0 || (size_t)r >= sizeof(buf)) {
+		log_warn("snprintf");
+		return -1;
+	}
+	dispatch_event(buf);
+
+	return 0;
+}
+
+static int
+dispatch_event_track(struct player_status *ps)
+{
+	char		 p[PATH_MAX + 2];
+	int		 r;
+
+	r = snprintf(p, sizeof(p), "%c:%s",
+	    ps->status == STATE_PLAYING ? 'A' : 'a', ps->path);
+	if (r < 0 || (size_t)r >= sizeof(p))
+		return (-1);
+
+	return dispatch_event(p);
+}
+
 static void
 imsg_dispatch(int fd, int ev, void *d)
 {
 	static ssize_t		 off;
 	static int		 off_found;
+	char			 seekmsg[128];
 	struct imsg		 imsg;
 	struct player_status	 ps;
 	struct player_event	 event;
 	const char		*msg;
 	ssize_t			 n;
 	size_t			 datalen;
+	int			 r;
 
 	if (ev & (POLLIN|POLLHUP)) {
 		if ((n = imsg_read(&ibuf)) == -1 && errno != EAGAIN)
@@ -306,6 +473,14 @@ imsg_dispatch(int fd, int ev, void *d)
 			case IMSG_CTL_SEEK:
 				position = event.position;
 				duration = event.duration;
+				r = snprintf(seekmsg, sizeof(seekmsg),
+				    "s:%lld %lld", (long long)position,
+				    (long long)duration);
+				if (r < 0 || (size_t)r >= sizeof(seekmsg)) {
+					log_warn("snprintf failed");
+					break;
+				}
+				dispatch_event(seekmsg);
 				break;
 
 			default:
@@ -316,6 +491,10 @@ imsg_dispatch(int fd, int ev, void *d)
 
 		case IMSG_CTL_SHOW:
 			if (datalen == 0) {
+				if (playlist_tmp.len == 0) {
+					dispatch_event("x:");
+					off = -1;
+				}
 				playlist_swap(&playlist_tmp, off);
 				memset(&playlist_tmp, 0, sizeof(playlist_tmp));
 				off = 0;
@@ -327,6 +506,9 @@ imsg_dispatch(int fd, int ev, void *d)
 			memcpy(&ps, imsg.data, sizeof(ps));
 			if (ps.path[sizeof(ps.path) - 1] != '\0')
 				fatalx("corrupted IMSG_CTL_SHOW");
+			if (playlist_tmp.len == 0)
+				dispatch_event("x:");
+			dispatch_event_track(&ps);
 			playlist_push(&playlist_tmp, ps.path);
 			if (ps.status == STATE_PLAYING)
 				off_found = 1;
@@ -341,6 +523,7 @@ imsg_dispatch(int fd, int ev, void *d)
 			if (player_status.path[sizeof(player_status.path) - 1]
 			    != '\0')
 				fatalx("corrupted IMSG_CTL_STATUS");
+			dispatch_event_status();
 			break;
 		}
 	}
@@ -414,7 +597,7 @@ render_controls(struct client *clt)
 		" enctype='"FORM_URLENCODED"'>") == -1 ||
 	    http_writes(clt, "<button type=submit name=ctl value=prev>"
 		ICON_PREV"</button>") == -1 ||
-	    http_fmt(clt, "<button type=submit name=ctl value=%s>"
+	    http_fmt(clt, "<button id='toggle' type=submit name=ctl value=%s>"
 		"%s</button>", playing ? "pause" : "play",
 		playing ? ICON_PAUSE : ICON_PLAY) == -1 ||
 	    http_writes(clt, "<button type=submit name=ctl value=next>"
@@ -422,9 +605,9 @@ render_controls(struct client *clt)
 	    http_writes(clt, "</form>") == -1 ||
 	    http_writes(clt, "<form action=mode method=post"
 		" enctype='"FORM_URLENCODED"'>") == -1 ||
-	    http_fmt(clt, "<button%s type=submit name=mode value=all>"
+	    http_fmt(clt, "<button%s id=rall type=submit name=mode value=all>"
 		ICON_REPEAT_ALL"</button>", ac) == -1 ||
-	    http_fmt(clt, "<button%s type=submit name=mode value=one>"
+	    http_fmt(clt, "<button%s id=rone type=submit name=mode value=one>"
 		ICON_REPEAT_ONE"</button>", oc) == -1 ||
 	    http_writes(clt, "</form>") == -1 ||
 	    http_writes(clt, "</section>") == -1)
@@ -489,7 +672,10 @@ route_jump(struct client *clt)
 	if (!found)
 		goto badreq;
 
-	http_reply(clt, 302, "See Other", "/");
+	if (!strncmp(clt->req.path, "/a/", 2))
+		http_reply(clt, 200, "OK", "text/plain");
+	else
+		http_reply(clt, 302, "See Other", "/");
 	return;
 
  badreq:
@@ -532,7 +718,10 @@ route_controls(struct client *clt)
 	if (!found)
 		goto badreq;
 
-	http_reply(clt, 302, "See Other", "/");
+	if (!strncmp(clt->req.path, "/a/", 2))
+		http_reply(clt, 200, "OK", "text/plain");
+	else
+		http_reply(clt, 302, "See Other", "/");
 	return;
 
  badreq:
@@ -574,12 +763,65 @@ route_mode(struct client *clt)
 	if (!found)
 		goto badreq;
 
-	http_reply(clt, 302, "See Other", "/");
+	if (!strncmp(clt->req.path, "/a/", 2))
+		http_reply(clt, 200, "OK", "text/plain");
+	else
+		http_reply(clt, 302, "See Other", "/");
 	return;
 
  badreq:
 	http_reply(clt, 400, "Bad Request", "text/plain");
 	http_writes(clt, "Bad Request.\n");
+}
+
+static void
+route_handle_ws(struct client *clt)
+{
+	struct buffer	*rbuf = &clt->bio.rbuf;
+	int		 type;
+	size_t		 len;
+
+	if (ws_read(clt, &type, &len) == -1) {
+		if (errno != EAGAIN) {
+			log_warn("ws_read");
+			clt->done = 1;
+		}
+		return;
+	}
+
+	switch (type) {
+	case WST_PING:
+		ws_compose(clt, WST_PONG, rbuf->buf, len);
+		break;
+	case WST_TEXT:
+		/* log_info("<<< %.*s", (int)len, rbuf->buf); */
+		break;
+	case WST_CLOSE:
+		/* TODO send a close too (ack) */
+		clt->done = 1;
+		break;
+	default:
+		log_info("got unexpected ws frame type 0x%02x", type);
+		break;
+	}
+
+	buf_drain(rbuf, len);
+}
+
+static void
+route_init_ws(struct client *clt)
+{
+	if (!(clt->req.flags & (R_CONNUPGR|R_UPGRADEWS|R_WSVERSION)) ||
+	    clt->req.secret == NULL) {
+		http_reply(clt, 400, "Bad Request", "text/plain");
+		http_writes(clt, "Invalid websocket handshake.\r\n");
+		return;
+	}
+
+	clt->ws = 1;
+	clt->done = 0;
+	clt->route = route_handle_ws;
+	http_reply(clt, 101, "Switching Protocols", NULL);
 }
 
 static void
@@ -609,9 +851,16 @@ route_dispatch(struct client *clt)
 		route_fn	 route;
 	} routes[] = {
 		{ METHOD_GET,	"/",		&route_home },
+
 		{ METHOD_POST,	"/jump",	&route_jump },
 		{ METHOD_POST,	"/ctrls",	&route_controls },
 		{ METHOD_POST,	"/mode",	&route_mode },
+
+		{ METHOD_POST,	"/a/jump",	&route_jump },
+		{ METHOD_POST,	"/a/ctrls",	&route_controls },
+		{ METHOD_POST,	"/a/mode",	&route_mode },
+
+		{ METHOD_GET,	"/ws",		&route_init_ws },
 
 		{ METHOD_GET,	"/style.css",	&route_assets },
 		{ METHOD_GET,	"/app.js",	&route_assets },
@@ -693,6 +942,7 @@ client_ev(int fd, int ev, void *d)
 
  err:
 	ev_del(fd);
+	TAILQ_REMOVE(&clients, clt, clients);
 	http_free(clt);
 }
 
@@ -713,6 +963,8 @@ web_accept(int psock, int ev, void *d)
 		close(sock);
 		return;
 	}
+
+	TAILQ_INSERT_TAIL(&clients, clt, clients);
 
 	client_ev(sock, POLLIN, clt);
 	return;
@@ -738,6 +990,7 @@ main(int argc, char **argv)
 	int		 ch, v, amused_sock, fd;
 	int		 verbose = 0;
 
+	TAILQ_INIT(&clients);
 	setlocale(LC_ALL, NULL);
 
 	log_init(1, LOG_DAEMON);

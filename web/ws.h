@@ -23,62 +23,18 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-enum http_method {
-	METHOD_UNKNOWN,
-	METHOD_GET,
-	METHOD_POST,
-};
-
-enum http_version {
-	HTTP_1_0,
-	HTTP_1_1,
-};
-
-struct bufio;
-
-struct request {
-	char	*path;
-	int	 method;
-	int	 version;
-	char	*secret;
-	char	*ctype;
-	char	*body;
-	size_t	 clen;
-
-#define R_CONNUPGR  0x01
-#define R_UPGRADEWS 0x02
-#define R_WSVERSION 0x04
-	int	 flags;
+enum {
+	WST_UNKNOWN = -1,
+	WST_CONT = 0x00,
+	WST_TEXT = 0x01,
+	WST_BINARY = 0x02,
+	WST_CLOSE = 0x08,
+	WST_PING = 0x09,
+	WST_PONG = 0x0A,
 };
 
 struct client;
-typedef void (*route_fn)(struct client *);
 
-TAILQ_HEAD(clthead, client);
-struct client {
-	char		buf[1024];
-	size_t		len;
-	struct bufio	bio;
-	struct request	req;
-	int		err;
-	int		chunked;
-	int		ws;		/* if talking ws:// */
-	int		reqdone;	/* done parsing the request */
-	int		done;		/* done handling the client */
-	route_fn	route;
-
-	TAILQ_ENTRY(client) clients;
-};
-
-int	http_init(struct client *, int);
-int	http_parse(struct client *);
-int	http_read(struct client *);
-int	http_reply(struct client *, int, const char *, const char *);
-int	http_flush(struct client *);
-int	http_write(struct client *, const char *, size_t);
-int	http_writes(struct client *, const char *);
-int	http_fmt(struct client *, const char *, ...);
-int	http_urlescape(struct client *, const char *);
-int	http_htmlescape(struct client *, const char *);
-int	http_close(struct client *);
-void	http_free(struct client *);
+int	ws_accept_hdr(const char *, char *, size_t);
+int	ws_read(struct client *, int *, size_t *);
+int	ws_compose(struct client *, int, const void *, size_t);

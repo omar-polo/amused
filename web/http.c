@@ -39,6 +39,7 @@
 #include "bufio.h"
 #include "http.h"
 #include "log.h"
+#include "ws.h"
 #include "xmalloc.h"
 
 #ifndef nitems
@@ -134,6 +135,38 @@ http_parse(struct client *clt)
 			}
 		}
 
+		if (!strncasecmp(line, "Connection:", 11)) {
+			line += 11;
+			line += strspn(line, " \t");
+			if (!strcasecmp(line, "upgrade"))
+				req->flags |= R_CONNUPGR;
+		}
+
+		if (!strncasecmp(line, "Upgrade:", 8)) {
+			line += 8;
+			line += strspn(line, " \t");
+			if (!strcasecmp(line, "websocket"))
+				req->flags |= R_UPGRADEWS;
+		}
+
+		if (!strncasecmp(line, "Sec-WebSocket-Version:", 22)) {
+			line += 22;
+			line += strspn(line, " \t");
+			if (strcmp(line, "13") != 0) {
+				log_warnx("unsupported websocket version %s",
+				    line);
+				errno = EINVAL;
+				return -1;
+			}
+			req->flags |= R_WSVERSION;
+		}
+
+		if (!strncasecmp(line, "Sec-WebSocket-Key:", 18)) {
+			line += 18;
+			line += strspn(line, " \t");
+			req->secret = xstrdup(line);
+		}
+
 		buf_drain(rbuf, endln - rbuf->buf + 2);
 	}
 
@@ -188,8 +221,17 @@ int
 http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 {
 	const char	*version, *location = NULL;
+	char		 b32[32] = "";
 
 	log_debug("> %d %s", code, reason);
+
+	if (code == 101) {
+		if (ws_accept_hdr(clt->req.secret, b32, sizeof(b32)) == -1) {
+			clt->err = 1;
+			return -1;
+		}
+		clt->chunked = 0;
+	}
 
 	if (code >= 300 && code < 400) {
 		location = ctype;
@@ -214,6 +256,12 @@ http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 	if (clt->chunked && bufio_compose_str(&clt->bio,
 	    "Transfer-Encoding: chunked\r\n") == -1)
 		goto err;
+	if (code == 101) {
+		if (bufio_compose_fmt(&clt->bio, "Upgrade: websocket\r\n"
+		    "Connection: Upgrade\r\n"
+		    "Sec-WebSocket-Accept: %s\r\n", b32) == -1)
+			goto err;
+	}
 	if (bufio_compose(&clt->bio, "\r\n", 2) == -1)
 		goto err;
 
@@ -384,6 +432,7 @@ void
 http_free(struct client *clt)
 {
 	free(clt->req.path);
+	free(clt->req.secret);
 	free(clt->req.ctype);
 	free(clt->req.body);
 	bufio_free(&clt->bio);

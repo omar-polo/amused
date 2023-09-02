@@ -2,11 +2,13 @@
 
 PROG =		amused-web
 
-SOURCES =	web.c bufio.c http.c ../ev.c ../log.c ../playlist.c ../xmalloc.c
+SOURCES =	web.c bufio.c http.c ws.c \
+		../ev.c ../log.c ../playlist.c ../xmalloc.c
 
 OBJS =		${SOURCES:.c=.o}
 
-DISTFILES =	Makefile amused-web.1 bufio.c bufio.h http.c http.h web.c web.h
+DISTFILES =	Makefile amused-web.1 bufio.c bufio.h http.c http.h \
+		web.c web.h ws.c ws.h
 
 all: ${PROG}
 
