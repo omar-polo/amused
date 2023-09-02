@@ -925,12 +925,12 @@ client_ev(int fd, int ev, void *d)
 		goto again;
 	}
 
-	if (!clt->done)
+	if (!clt->done && !clt->err)
 		clt->route(clt);
 
  again:
 	ev = bufio_pollev(&clt->bio);
-	if (ev == POLLIN && clt->done) {
+	if (ev == POLLIN && (clt->done || clt->err)) {
 		goto err; /* done with this client */
 	}
 
