@@ -188,7 +188,6 @@ int
 http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 {
 	const char	*version, *location = NULL;
-	int		 r;
 
 	log_debug("> %d %s", code, reason);
 
@@ -201,25 +200,22 @@ http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 	if (clt->req.version == HTTP_1_0)
 		version = "HTTP/1.0";
 
-	r = bufio_compose_fmt(&clt->bio, "%s %d %s\r\n"
+	if (bufio_compose_fmt(&clt->bio, "%s %d %s\r\n"
 	    "Connection: close\r\n"
-	    "Cache-Control: no-store\r\n"
-	    "%s%s%s"
-	    "%s%s%s"
-	    "%s"
-	    "\r\n",
-	    version, code, reason,
-	    ctype == NULL ? "" : "Content-Type: ",
-	    ctype == NULL ? "" : ctype,
-	    ctype == NULL ? "" : "\r\n",
-	    location == NULL ? "" : "Location: ",
-	    location == NULL ? "" : location,
-	    location == NULL ? "" : "\r\n",
-	    clt->chunked ? "Transfer-Encoding: chunked\r\n" : "");
-	if (r == -1) {
-		clt->err = 1;
-		return -1;
-	}
+	    "Cache-Control: no-store\r\n",
+	    version, code, reason) == -1)
+		goto err;
+	if (ctype != NULL &&
+	    bufio_compose_fmt(&clt->bio, "Content-Type: %s\r\n", ctype) == -1)
+		goto err;
+	if (location != NULL &&
+	    bufio_compose_fmt(&clt->bio, "Location: %s\r\n", location) == -1)
+		goto err;
+	if (clt->chunked && bufio_compose_str(&clt->bio,
+	    "Transfer-Encoding: chunked\r\n") == -1)
+		goto err;
+	if (bufio_compose(&clt->bio, "\r\n", 2) == -1)
+		goto err;
 
 	bufio_set_chunked(&clt->bio, clt->chunked);
 
@@ -233,6 +229,10 @@ http_reply(struct client *clt, int code, const char *reason, const char *ctype)
 	}
 
 	return 0;
+
+ err:
+	clt->err = 1;
+	return -1;
 }
 
 int
