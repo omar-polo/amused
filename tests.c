@@ -201,6 +201,15 @@ main(void)
 	return 0;
 }
 #endif /* TEST_FTS */
+#if TEST_GETDTABLECOUNT
+#include <unistd.h>
+
+int
+main(void)
+{
+	return getdtablecount();
+}
+#endif /* TEST_GETDTABLECOUNT */
 #if TEST_GETEXECNAME
 #include <stdlib.h>
 
