@@ -436,15 +436,12 @@ __HEREDOC__
 
 	rm -f test-${1}.d
 
-	if [ -n "${pkgcfs}" -o -n "${pkglib}" ]
-	then
+	if [ -n "${pkgcfs}" -o -n "${pkglib}" ]; then
 		CFLAGS="${CFLAGS} ${pkgcfs}"
 		eval "LDADD_${2}=\"${pkglib}\""
-	elif [ -n "${extralib}" ]
-	then
+	elif [ -n "${extralib}" ]; then
 		eval "LDADD_${2}=\"${5}\""
-	elif [ -n "${4}" ]
-	then
+	elif [ -n "${4}" ]; then
 		eval "LDADD_${2}=\"${4}\""
 	fi
 
