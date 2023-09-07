@@ -837,6 +837,18 @@ main(void)
 }
 
 #endif /* TEST_SYS_TREE */
+#if TEST_TIMESPECSUB
+#include <sys/time.h>
+
+int
+main(void)
+{
+	struct timespec a = {0, 0}, b = {0, 0}, c;
+
+	timespecsub(&a, &b, &c);
+	return c.tv_sec;
+}
+#endif /* TEST_TIMESPECSUB */
 #if TEST_UNVEIL
 #include <unistd.h>
 

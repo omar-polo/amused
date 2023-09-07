@@ -245,6 +245,7 @@ HAVE_STRTONUM=
 HAVE_SYS_FILE=
 HAVE_SYS_QUEUE=
 HAVE_SYSTRACE=0
+HAVE_TIMESPECSUB=
 HAVE_UNVEIL=
 HAVE___PROGNAME=
 
@@ -562,6 +563,7 @@ runtest strnlen		STRNLEN				  || true
 runtest strtonum	STRTONUM			  || true
 runtest sys_queue	SYS_QUEUE			  || true
 runtest sys_file	SYS_FILE			  || true
+runtest timespecsub	TIMESPECSUB			  || true
 runtest unveil		UNVEIL				  || true
 runtest __progname	__PROGNAME			  || true
 
@@ -754,6 +756,7 @@ cat << __HEREDOC__
 #define HAVE_SYS_FILE ${HAVE_SYS_FILE}
 #define HAVE_SYS_QUEUE ${HAVE_SYS_QUEUE}
 #define HAVE_SYSTRACE ${HAVE_SYSTRACE}
+#define HAVE_TIMESPECSUB ${HAVE_TIMESPECSUB}
 #define HAVE_UNVEIL ${HAVE_UNVEIL}
 #define HAVE___PROGNAME ${HAVE___PROGNAME}
 
@@ -940,6 +943,11 @@ cat << __HEREDOC__
 
 extern int BSDopterr, BSDoptind, BSDoptopt, BSDoptreset;
 extern char *BSDoptarg;
+#endif
+
+#if !HAVE_TIMESPECSUB
+struct timespec;
+void timespecsub(struct timespec *, struct timespec *, struct timespec *);
 #endif
 
 #endif /*!OCONFIGURE_CONFIG_H*/

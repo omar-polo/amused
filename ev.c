@@ -36,19 +36,6 @@
 
 #include "ev.h"
 
-#ifndef timespecsub
-static void
-timespecsub(struct timespec *a, struct timespec *b, struct timespec *ret)
-{
-	ret->tv_sec = a->tv_sec - b->tv_sec;
-	ret->tv_nsec = a->tv_nsec - b->tv_nsec;
-	if (ret->tv_nsec < 0) {
-		ret->tv_sec--;
-		ret->tv_nsec += 1000000000L;
-	}
-}
-#endif
-
 struct evcb {
 	void		(*cb)(int, int, void *);
 	void		*udata;
