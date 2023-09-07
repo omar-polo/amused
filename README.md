@@ -20,6 +20,7 @@ The dependencies are:
  - libvorbis
  - opusfile
  - libsndio or libasound (ALSA)
+ - libmd (optional; needed on linux and only for amused-web)
 
 Then, to build:
 
