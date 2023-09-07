@@ -200,6 +200,8 @@ const char *js =
 	/* consume */
 	" } else if (type=='x') {"
 	"  playlist.innerHTML='';"
+	" } else if (type=='X') {"
+	"  dofilt();" /* done with the list */
 	" } else if (type=='A') {"
 	"  c(payload, true);"
 	" } else if (type=='a') {"
@@ -235,7 +237,35 @@ const char *js =
 	"  })"
 	"  .catch(x => console.log('failed to submit form:', x));"
 	" });"
-	"});";
+	"});"
+	"const sb = document.createElement('section');"
+	"sb.className = 'searchbox';"
+	"const filter = document.createElement('input');"
+	"filter.type = 'search';"
+	"filter.setAttribute('aria-label', 'Filter Playlist');"
+	"filter.placeholder = 'Filter Playlist';"
+	"sb.append(filter);"
+	"document.querySelector('main').prepend(sb);"
+	"function dofilt() {"
+	" let t = filter.value.toLowerCase();"
+	" document.querySelectorAll('.playlist li').forEach(e => {"
+	"  if (e.querySelector('button').value.toLowerCase().indexOf(t) == -1)"
+	"    e.setAttribute('hidden', 'true');"
+	"  else"
+	"    e.removeAttribute('hidden');"
+	" });"
+	"};"
+	"function dbc(fn, wait) {"
+	" let tout;"
+	" return function() {"
+	"  let later = () => {tout = null; fn()};"
+	"  clearTimeout(tout);"
+	"  if (!tout) fn();"
+	"  tout = setTimeout(later, wait);"
+	" };"
+	"};"
+	"filter.addEventListener('input', dbc(dofilt, 400));"
+	;
 
 const char *foot = "<script src='/app.js?v=0'></script></body></html>";
 
@@ -494,6 +524,7 @@ imsg_dispatch(int fd, int ev, void *d)
 					off = -1;
 				} else if (playlist_tmp.len == off)
 					off = -1;
+				dispatch_event("X:");
 				playlist_swap(&playlist_tmp, off);
 				memset(&playlist_tmp, 0, sizeof(playlist_tmp));
 				off = 0;
@@ -621,12 +652,6 @@ route_home(struct client *clt)
 		return;
 
 	if (http_writes(clt, "<main>") == -1)
-		return;
-
-	if (http_writes(clt, "<section class=searchbox>"
-	    "<input type=search name=filter aria-label='Filter playlist'"
-	    " placeholder='Filter playlist' id=search />"
-	    "</section>") == -1)
 		return;
 
 	render_controls(clt);
