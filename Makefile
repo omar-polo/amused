@@ -1,4 +1,4 @@
-.PHONY: all clean distclean install
+.PHONY: all web clean distclean install install-web
 
 VERSION =	0.13
 PROG =		amused
@@ -55,8 +55,12 @@ ${PROG}: ${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_LIB_IMSG} \
 		${LDADD_DECODERS} ${LDADD_LIB_SOCKET} ${LDADD_BACKEND}
 
+web:
+	${MAKE} -C web
+
 clean:
 	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}
+	-${MAKE} -C web clean
 
 distclean: clean
 	rm -f Makefile.configure config.h config.h.old config.log config.log.old
@@ -67,9 +71,13 @@ install:
 	${INSTALL_PROGRAM} ${PROG} ${DESTDIR}${BINDIR}
 	${INSTALL_MAN} amused.1 ${DESTDIR}${MANDIR}/man1/${PROG}.1
 
+install-web:
+	${MAKE} -C web install
+
 install-local:
 	mkdir -p ${HOME}/bin
 	${INSTALL_PROGRAM} ${PROG} ${HOME}/bin
+	${MAKE} -C web install-local
 
 uninstall:
 	rm ${DESTDIR}${BINDIR}/${PROG}
