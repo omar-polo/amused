@@ -27,6 +27,11 @@ Then, to build:
 	$ make
 	# make install # eventually
 
+To compile the web control interface, amused-web, run:
+
+	$ make web
+	# make install-web # eventually
+
 The build can be customized by passing arguments to the configure
 script or by using a `configure.local` file; see `./configure -h`
 and [`configure.local.example`](configure.local.example) for more
@@ -34,7 +39,7 @@ information.
 
 For each library the `configure` script first tries to see if they're
 available without any extra flags, then tries again with some
-hard-coded flags (e.g. `-lflac` for flac) and finally resorts to
+hard-coded flags (e.g. `-lFLAC` for flac) and finally resorts to
 pkg-config if available.  pkg-config auto-detection can be disable by
 passing `PKG_CONFIG=false` (or the empty string)
 
