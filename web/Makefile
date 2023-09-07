@@ -22,7 +22,7 @@ include ../Makefile.configure
 
 ${PROG}: ${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_IMSG} \
-		${LDADD_LIB_SOCKET}
+		${LDADD_LIB_MD} ${LDADD_LIB_SOCKET}
 
 clean:
 	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}

@@ -68,6 +68,7 @@ Variables available:
     LDADD_LIBOPUSFILE      linker flags for libopusfile
     LDADD_LIBVORBISFILE    linker flags for libvorbisfile
     LDADD_SNDIO            linker flags for libsndio
+    LDADD_LIB_MD           linker flags for libmd
     LDADD_LIBSOCKET        linker flags for libsocket
     LDFLAGS                extra linker flags
     CPPFLAGS               C preprocessors flags
@@ -142,6 +143,7 @@ LDADD_LIB_MPG123=
 LDADD_LIB_VORBISFILE=
 LDADD_LIB_ASOUND=
 LDADD_LIB_SNDIO=
+LDADD_LIB_MD=
 LDADD_LIB_SOCKET=
 LDADD_STATIC=
 CPPFLAGS=
@@ -252,6 +254,8 @@ while [ $# -gt 0 ]; do
 		LDADD_SNDIO="$val" ;;
 	LDADD_LIBSOCKET)
 		LDADD_LIBSOCKET="$val" ;;
+	LDADD_LIB_MD)
+		LDADD_LIB_MD="$val" ;;
 	LDFLAGS)
 		LDFLAGS="$val" ;;
 	CPPFLAGS)
@@ -306,6 +310,7 @@ HAVE_LIB_OPUSFILE=
 HAVE_LIB_VORBISFILE=
 HAVE_LIB_ASOUND=
 HAVE_LIB_SNDIO=
+HAVE_LIB_LIB_MD=
 HAVE_LIB_SOCKET=
 HAVE_MEMMEM=
 HAVE_MEMRCHR=
@@ -503,6 +508,7 @@ runtest lib_mpg123	LIB_MPG123 "" "" "-lmpg123" "libmpg123" || true
 runtest lib_opusfile	LIB_OPUSFILE "" "" "-lopusfile"	"opusfile"  || true
 runtest lib_vorbisfile	LIB_VORBISFILE "" "" "-lvorbisfile" "vorbisfile" || true
 
+runtest lib_md		LIB_MD "" "" "-lmd" "libmd"	  || true
 runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
 runtest memmem		MEMMEM			  	  || true
 runtest memrchr		MEMRCHR			  	  || true
@@ -941,6 +947,7 @@ LDADD		 = ${LDADD}
 LDADD_IMSG	 = ${LDADD_IMSG}
 LDADD_DECODERS	 = ${LDADD_LIB_FLAC} ${LDADD_LIB_MPG123} ${LDADD_LIB_OPUSFILE} \
 			${LDADD_LIB_VORBISFILE}
+LDADD_LIB_MD	 = ${LDADD_LIB_MD}
 LDADD_LIB_SOCKET = ${LDADD_LIB_SOCKET}
 LDADD_BACKEND	 = ${LDADD_LIB_SNDIO} ${LDADD_LIB_ASOUND}
 LDADD_STATIC	 = ${LDADD_STATIC}

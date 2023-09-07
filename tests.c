@@ -942,3 +942,20 @@ main(void)
 	return 0;
 }
 #endif /* TEST_LIB_SNDIO */
+#if TEST_LIB_MD
+#include <sys/types.h>
+#include <sha1.h>
+
+int
+main(void)
+{
+	SHA1_CTX ctx;
+	char result[SHA1_DIGEST_STRING_LENGTH];
+
+	SHA1Init(&ctx);
+	SHA1Update(&ctx, (const unsigned char *)"abcd", 4);
+	SHA1End(&ctx, result);
+
+	return 0;
+}
+#endif /* TEST_LIB_MD */
