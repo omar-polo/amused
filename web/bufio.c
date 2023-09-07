@@ -65,6 +65,18 @@ buf_grow(struct buffer *buf)
 }
 
 int
+buf_write(struct buffer *buf, const void *d, size_t len)
+{
+	if (buf->len + len > buf->cap) {
+		if (buf_grow(buf) == -1)
+			return (-1);
+	}
+	memcpy(buf->buf + buf->len, d, len);
+	buf->len += len;
+	return (0);
+}
+
+int
 buf_has_line(struct buffer *buf, const char *nl)
 {
 	return (memmem(buf->buf, buf->len, nl, strlen(nl)) != NULL);

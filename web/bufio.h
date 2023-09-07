@@ -38,6 +38,7 @@ struct bufio {
 };
 
 int	buf_init(struct buffer *);
+int	buf_write(struct buffer *, const void *, size_t);
 int	buf_has_line(struct buffer *, const char *);
 void	buf_drain(struct buffer *, size_t);
 void	buf_drain_line(struct buffer *, const char *);

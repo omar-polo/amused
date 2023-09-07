@@ -46,6 +46,8 @@
 #define nitems(x) (sizeof(x)/sizeof(x[0]))
 #endif
 
+#define HTTP_MAX_UPLOAD 4096
+
 int
 http_init(struct client *clt, int fd)
 {
@@ -125,7 +127,7 @@ http_parse(struct client *clt)
 		if (!strncasecmp(line, "Content-Length:", 15)) {
 			line += 15;
 			line += strspn(line, " \t");
-			clt->req.clen = strtonum(line, 0, LONG_MAX,
+			clt->req.clen = strtonum(line, 0, HTTP_MAX_UPLOAD,
 			    &errstr);
 			if (errstr) {
 				log_warnx("content-length is %s: %s",
@@ -185,36 +187,36 @@ http_parse(struct client *clt)
 int
 http_read(struct client *clt)
 {
-	struct request *req = &clt->req;
-	size_t	 left;
-	size_t	 nr;
+	struct request	*req = &clt->req;
+	struct buffer	*rbuf = &clt->bio.rbuf;
+	size_t		 left;
 
-	if (req->clen > sizeof(clt->buf) - 1) {
-		log_warnx("POST has more data then what can be accepted");
+	/* clients may have sent more data than advertised */
+	if (req->clen < rbuf->len)
+		left = 0;
+	else
+		left = req->clen - rbuf->len;
+
+	if (left > 0) {
+		errno = EAGAIN;
 		return -1;
 	}
 
-	/* clients may have sent more data than advertised */
-	if (req->clen < clt->len)
-		left = 0;
-	else
-		left = req->clen - clt->len;
-
-	if (left > 0) {
-		nr = bufio_drain(&clt->bio, clt->buf + clt->len, left);
-		clt->len += nr;
-		if (nr < left) {
-			errno = EAGAIN;
-			return -1;
-		}
-	}
-
-	clt->buf[clt->len] = '\0';
-	while (clt->len > 0 && (clt->buf[clt->len - 1] == '\r' ||
-	    (clt->buf[clt->len - 1] == '\n')))
-		clt->buf[--clt->len] = '\0';
+	buf_write(rbuf, "", 1); /* append a NUL byte */
+	while (rbuf->len > 0 && (rbuf->buf[rbuf->len - 1] == '\r' ||
+	    (rbuf->buf[rbuf->len - 1] == '\n')))
+		rbuf->buf[--rbuf->len] = '\0';
 
 	return 0;
+}
+
+void
+http_postdata(struct client *clt, char **data, size_t *len)
+{
+	if (data)
+		*data = clt->bio.rbuf.buf;
+	if (len)
+		*len = clt->bio.rbuf.len;
 }
 
 int

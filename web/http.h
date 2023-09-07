@@ -73,6 +73,7 @@ struct client {
 int	http_init(struct client *, int);
 int	http_parse(struct client *);
 int	http_read(struct client *);
+void	http_postdata(struct client *, char **, size_t *);
 int	http_reply(struct client *, int, const char *, const char *);
 int	http_flush(struct client *);
 int	http_write(struct client *, const char *, size_t);

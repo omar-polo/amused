@@ -673,7 +673,7 @@ route_jump(struct client *clt)
 	char			*form, *field;
 	int			 found = 0;
 
-	form = clt->buf;
+	http_postdata(clt, &form, NULL);
 	while ((field = strsep(&form, "&")) != NULL) {
 		if (url_decode(field) == -1)
 			goto badreq;
@@ -713,7 +713,7 @@ route_controls(struct client *clt)
 	char		*form, *field;
 	int		 cmd, found = 0;
 
-	form = clt->buf;
+	http_postdata(clt, &form, NULL);
 	while ((field = strsep(&form, "&")) != NULL) {
 		if (url_decode(field) == -1)
 			goto badreq;
@@ -762,7 +762,7 @@ route_mode(struct client *clt)
 
 	pm.repeat_one = pm.repeat_all = pm.consume = MODE_UNDEF;
 
-	form = clt->buf;
+	http_postdata(clt, &form, NULL);
 	while ((field = strsep(&form, "&")) != NULL) {
 		if (url_decode(field) == -1)
 			goto badreq;
