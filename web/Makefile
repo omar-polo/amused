@@ -57,8 +57,12 @@ dist:
 # these .d files are produced during the first build if the compiler
 # supports it.
 
+-include bufio.d
 -include http.d
 -include web.d
+-include ws.d
+-include ../compats.d
+-include ../ev.d
 -include ../log.d
 -include ../playlist.d
 -include ../xmalloc.d
