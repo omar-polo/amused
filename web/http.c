@@ -218,7 +218,8 @@ http_read(struct client *clt)
 }
 
 int
-http_reply(struct client *clt, int code, const char *reason, const char *ctype)
+http_reply(struct client *clt, int code, const char *reason,
+    const char *ctype)
 {
 	const char	*version, *location = NULL;
 	char		 b32[32] = "";
