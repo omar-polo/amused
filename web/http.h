@@ -56,8 +56,9 @@ typedef void (*route_fn)(struct client *);
 
 TAILQ_HEAD(clthead, client);
 struct client {
-	char		buf[1024];
+	char		*buf;
 	size_t		len;
+	size_t		cap;
 	struct bufio	bio;
 	struct request	req;
 	int		err;

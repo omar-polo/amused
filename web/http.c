@@ -316,8 +316,24 @@ http_write(struct client *clt, const char *d, size_t len)
 	if (clt->err)
 		return -1;
 
+	if (!clt->bio.chunked) {
+		if (bufio_compose(&clt->bio, d, len) == -1) {
+			clt->err = 1;
+			return -1;
+		}
+		return 0;
+	}
+
+	if (clt->buf == NULL) {
+		clt->cap = 1024;
+		if ((clt->buf = malloc(clt->cap)) == NULL) {
+			clt->err = 1;
+			return -1;
+		}
+	}
+
 	while (len > 0) {
-		avail = sizeof(clt->buf) - clt->len;
+		avail = clt->cap - clt->len;
 		if (avail > len)
 			avail = len;
 
@@ -325,7 +341,7 @@ http_write(struct client *clt, const char *d, size_t len)
 		clt->len += avail;
 		len -= avail;
 		d += avail;
-		if (clt->len == sizeof(clt->buf)) {
+		if (clt->len == clt->cap) {
 			if (http_flush(clt) == -1)
 				return -1;
 		}
@@ -437,6 +453,7 @@ http_close(struct client *clt)
 void
 http_free(struct client *clt)
 {
+	free(clt->buf);
 	free(clt->req.path);
 	free(clt->req.secret);
 	free(clt->req.ctype);
