@@ -248,27 +248,27 @@ http_reply(struct client *clt, int code, const char *reason,
 	if (clt->req.version == HTTP_1_0)
 		version = "HTTP/1.0";
 
-	if (bufio_compose_fmt(&clt->bio, "%s %d %s\r\n"
+	if (http_fmt(clt, "%s %d %s\r\n"
 	    "Connection: close\r\n"
 	    "Cache-Control: no-store\r\n",
 	    version, code, reason) == -1)
 		goto err;
 	if (ctype != NULL &&
-	    bufio_compose_fmt(&clt->bio, "Content-Type: %s\r\n", ctype) == -1)
+	    http_fmt(clt, "Content-Type: %s\r\n", ctype) == -1)
 		goto err;
 	if (location != NULL &&
-	    bufio_compose_fmt(&clt->bio, "Location: %s\r\n", location) == -1)
+	    http_fmt(clt, "Location: %s\r\n", location) == -1)
 		goto err;
-	if (clt->chunked && bufio_compose_str(&clt->bio,
-	    "Transfer-Encoding: chunked\r\n") == -1)
+	if (clt->chunked &&
+	    http_writes(clt, "Transfer-Encoding: chunked\r\n") == -1)
 		goto err;
 	if (code == 101) {
-		if (bufio_compose_fmt(&clt->bio, "Upgrade: websocket\r\n"
+		if (http_fmt(clt, "Upgrade: websocket\r\n"
 		    "Connection: Upgrade\r\n"
 		    "Sec-WebSocket-Accept: %s\r\n", b32) == -1)
 			goto err;
 	}
-	if (bufio_compose(&clt->bio, "\r\n", 2) == -1)
+	if (http_write(clt, "\r\n", 2) == -1)
 		goto err;
 
 	bufio_set_chunked(&clt->bio, clt->chunked);
