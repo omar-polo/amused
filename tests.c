@@ -234,7 +234,7 @@ main(void)
 	return progname == NULL;
 }
 #endif /* TEST_GETPROGNAME */
-#if TEST_IMSG
+#if TEST_LIB_IMSG
 #include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/uio.h>
@@ -250,7 +250,7 @@ main(void)
 	imsg_clear(&ibuf);
 	return 0;
 }
-#endif /* TEST_IMSG */
+#endif /* TEST_LIB_IMSG */
 #if TEST_INFTIM
 /*
  * Linux doesn't (always?) have this.

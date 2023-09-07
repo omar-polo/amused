@@ -21,7 +21,7 @@ include ../Makefile.configure
 # --- targets ---
 
 ${PROG}: ${OBJS}
-	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_IMSG} \
+	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_LIB_IMSG} \
 		${LDADD_LIB_MD} ${LDADD_LIB_SOCKET}
 
 clean:

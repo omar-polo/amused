@@ -321,7 +321,7 @@ getprogname(void)
 }
 #endif
 #endif /* !HAVE_GETPROGNAME */
-#if !HAVE_IMSG
+#if !HAVE_LIB_IMSG
 /*	$OpenBSD: imsg-buffer.c,v 1.16 2023/06/19 17:19:50 claudio Exp $	*/
 /*	$OpenBSD: imsg.c,v 1.19 2023/06/19 17:19:50 claudio Exp $	*/
 
@@ -1123,7 +1123,7 @@ imsg_clear(struct imsgbuf *ibuf)
 	while ((fd = imsg_get_fd(ibuf)) != -1)
 		close(fd);
 }
-#endif /* HAVE_IMSG */
+#endif /* HAVE_LIB_IMSG */
 #if !HAVE_MEMMEM
 /*-
  * Copyright (c) 2005 Pascal Gloor <pascal.gloor@spale.com>

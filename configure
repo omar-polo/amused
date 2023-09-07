@@ -61,17 +61,20 @@ The options are as follows:
 Variables available:
 
     BACKEND                audio backend to use; can be "sndio" or "alsa"
-    LDADD                  generic linker flags
-    LDADD_IMSG             linker flags for libimsg
-    LDADD_LIBFLAC          linker flags for libflac
-    LDADD_LIBMPG123        linker flags for libmpg123
-    LDADD_LIBOPUSFILE      linker flags for libopusfile
-    LDADD_LIBVORBISFILE    linker flags for libvorbisfile
-    LDADD_SNDIO            linker flags for libsndio
-    LDADD_LIB_MD           linker flags for libmd
-    LDADD_LIBSOCKET        linker flags for libsocket
-    LDFLAGS                extra linker flags
+    CC                     C compiler
+    CFLAGS                 generic C compiler flags
     CPPFLAGS               C preprocessors flags
+    LDADD                  generic linker flags
+    LDADD_LIB_ASOUND       linker flags for libasound
+    LDADD_LIB_FLAC         linker flags for libflac
+    LDADD_LIB_IMSG         linker flags for libimsg
+    LDADD_LIB_MD           linker flags for libmd
+    LDADD_LIB_MPG123       linker flags for libmpg123
+    LDADD_LIB_OPUSFILE     linker flags for libopusfile
+    LDADD_LIB_SNDIO        linker flags for libsndio
+    LDADD_LIB_SOCKET       linker flags for libsocket
+    LDADD_LIB_VORBISFILE   linker flags for libvorbisfile
+    LDFLAGS                extra linker flags
     DESTDIR                destination directory
     PREFIX                 where to install files
     MANDIR                 where to install man pages (PREFIX/man)
@@ -137,14 +140,15 @@ CFLAGS="${CFLAGS} -g -W -Wall -Wextra -Wmissing-prototypes"
 CFLAGS="${CFLAGS} -Wstrict-prototypes -Wmissing-declarations"
 CFLAGS="${CFLAGS} -Wno-unused-parameter -Wno-sign-compare -Wno-pointer-sign"
 LDADD=
-LDADD_IMSG=
-LDADD_LIB_FLAC=
-LDADD_LIB_MPG123=
-LDADD_LIB_VORBISFILE=
 LDADD_LIB_ASOUND=
-LDADD_LIB_SNDIO=
+LDADD_LIB_FLAC=
+LDADD_LIB_IMSG=
 LDADD_LIB_MD=
+LDADD_LIB_MPG123=
+LDADD_LIB_OPUSFILE=
+LDADD_LIB_SNDIO=
 LDADD_LIB_SOCKET=
+LDADD_LIB_VORBISFILE=
 LDADD_STATIC=
 CPPFLAGS=
 LDFLAGS=
@@ -193,6 +197,58 @@ command -v pkg-config 2>/dev/null 1>&2 && {
 }
 
 #----------------------------------------------------------------------
+# These are the values that will be pushed into config.h after we test
+# for whether they're supported or not.
+# Each of these must have a runtest(), below.
+# Please sort by alpha, for clarity.
+# You WANT to change this.
+#----------------------------------------------------------------------
+
+HAVE_CAPSICUM=
+HAVE_ERR=
+HAVE_EXPLICIT_BZERO=
+HAVE_FLOCK=
+HAVE_FREEZERO=
+HAVE_GETDTABLECOUNT=
+HAVE_GETEXECNAME=
+HAVE_GETPROGNAME=
+HAVE_INFTIM=
+HAVE_LANDLOCK=
+HAVE_LIB_ASOUND=
+HAVE_LIB_FLAC=
+HAVE_LIB_IMSG=
+HAVE_LIB_MD=
+HAVE_LIB_MPG123=
+HAVE_LIB_OPUSFILE=
+HAVE_LIB_SNDIO=
+HAVE_LIB_SOCKET=
+HAVE_LIB_VORBISFILE=
+HAVE_MEMMEM=
+HAVE_MEMRCHR=
+HAVE_MEMSET_S=
+HAVE_OPTRESET=
+HAVE_PATH_MAX=
+HAVE_PLEDGE=
+HAVE_PROGRAM_INVOCATION_SHORT_NAME=
+HAVE_PR_SET_NAME=
+HAVE_REALLOCARRAY=
+HAVE_RECALLOCARRAY=
+HAVE_SANDBOX_INIT=
+HAVE_SETPROCTITLE=
+HAVE_SIO_FLUSH=
+HAVE_SOCK_NONBLOCK=
+HAVE_STRLCAT=
+HAVE_STRLCPY=
+HAVE_STRNDUP=
+HAVE_STRNLEN=
+HAVE_STRTONUM=
+HAVE_SYS_FILE=
+HAVE_SYS_QUEUE=
+HAVE_SYSTRACE=0
+HAVE_UNVEIL=
+HAVE___PROGNAME=
+
+#----------------------------------------------------------------------
 # Allow certain variables to be overriden on the command line.
 #----------------------------------------------------------------------
 
@@ -238,24 +294,50 @@ while [ $# -gt 0 ]; do
 			echo "unknown audio backend: $val" 1>&2
 			exit 1
 		esac ;;
+	CC)
+		CC="$val" ;;
+	CFLAGS)
+		CFLAGS="$val" ;;
 	LDADD)
 		LDADD="$val" ;;
-	LDADD_IMSG)
-		LDADD_IMSG="$val" ;;
-	LDADD_LIBFLAC)
-		LDADD_LIBFLAC="$val" ;;
-	LDADD_LIBMPG123)
-		LDADD_LIBMPG123="$val" ;;
-	LDADD_LIBOPUSFILE)
-		LDADD_LIBOPUSFILE="$val" ;;
-	LDADD_LIBVORBISFILE)
-		LDADD_LIBVORBISFILE="$val" ;;
-	LDADD_SNDIO)
-		LDADD_SNDIO="$val" ;;
-	LDADD_LIBSOCKET)
-		LDADD_LIBSOCKET="$val" ;;
+	LDADD_LIB_ASOUND)
+		LDADD_LIB_ASOUND="$val"
+		HAVE_LIB_ASOUND=1
+		BACKEND=alsa
+		;;
+	LDADD_LIB_FLAC)
+		LDADD_LIB_FLAC="$val"
+		HAVE_LIB_FLAC=1
+		;;
+	LDADD_LIB_IMSG)
+		LDADD_LIB_IMSG="$val"
+		HAVE_LIB_IMSG=1
+		;;
 	LDADD_LIB_MD)
-		LDADD_LIB_MD="$val" ;;
+		LDADD_LIB_MD="$val"
+		HAVE_LIB_MD=1
+		;;
+	LDADD_LIB_MPG123)
+		LDADD_LIB_MPG123="$val"
+		HAVE_LIB_MPG123=1
+		;;
+	LDADD_LIB_OPUSFILE)
+		LDADD_LIB_OPUSFILE="$val"
+		HAVE_LIB_OPUSFILE=1
+		;;
+	LDADD_LIB_SNDIO)
+		LDADD_LIB_SNDIO="$val"
+		HAVE_LIB_SNDIO=1
+		BACKEND=sndio
+		;;
+	LDADD_LIB_SOCKET)
+		LDADD_LIB_SOCKET="$val"
+		HAVE_LIB_SOCKET=1
+		;;
+	LDADD_LIB_VORBISFILE)
+		LDADD_LIB_VORBISFILE="$val"
+		HAVE_LIB_VORBISFILE=1
+		;;
 	LDFLAGS)
 		LDFLAGS="$val" ;;
 	CPPFLAGS)
@@ -283,59 +365,6 @@ while [ $# -gt 0 ]; do
 		exit 1
 	esac
 done
-
-
-#----------------------------------------------------------------------
-# These are the values that will be pushed into config.h after we test
-# for whether they're supported or not.
-# Each of these must have a runtest(), below.
-# Please sort by alpha, for clarity.
-# You WANT to change this.
-#----------------------------------------------------------------------
-
-HAVE_CAPSICUM=
-HAVE_ERR=
-HAVE_EXPLICIT_BZERO=
-HAVE_FLOCK=
-HAVE_FREEZERO=
-HAVE_GETDTABLECOUNT=
-HAVE_GETEXECNAME=
-HAVE_GETPROGNAME=
-HAVE_INFTIM=
-HAVE_IMSG=
-HAVE_LANDLOCK=
-HAVE_LIB_FLAC=
-HAVE_LIB_MPG123=
-HAVE_LIB_OPUSFILE=
-HAVE_LIB_VORBISFILE=
-HAVE_LIB_ASOUND=
-HAVE_LIB_SNDIO=
-HAVE_LIB_LIB_MD=
-HAVE_LIB_SOCKET=
-HAVE_MEMMEM=
-HAVE_MEMRCHR=
-HAVE_MEMSET_S=
-HAVE_OPTRESET=
-HAVE_PATH_MAX=
-HAVE_PLEDGE=
-HAVE_PROGRAM_INVOCATION_SHORT_NAME=
-HAVE_PR_SET_NAME=
-HAVE_REALLOCARRAY=
-HAVE_RECALLOCARRAY=
-HAVE_SANDBOX_INIT=
-HAVE_SETPROCTITLE=
-HAVE_SIO_FLUSH=
-HAVE_SOCK_NONBLOCK=
-HAVE_STRLCAT=
-HAVE_STRLCPY=
-HAVE_STRNDUP=
-HAVE_STRNLEN=
-HAVE_STRTONUM=
-HAVE_SYS_FILE=
-HAVE_SYS_QUEUE=
-HAVE_SYSTRACE=0
-HAVE_UNVEIL=
-HAVE___PROGNAME=
 
 #----------------------------------------------------------------------
 # Allow configure.local to override all variables, default settings,
@@ -369,9 +398,14 @@ COMP="${CC} ${CFLAGS} ${CPPFLAGS} -Wno-unused -Werror"
 # Arguments: lower-case test name, manual value
 
 ismanual() {
-	[ -z "${3}" ] && return 1
-	echo "${1}: manual (HAVE_${2}=${3})" 1>&2
-	echo "${1}: manual (HAVE_${2}=${3})" 1>&3
+	eval _manual=\${LDADD_${2}}
+	if [ -z "$_manual" ]; then
+		eval _manual=\${HAVE_${2}}
+	fi
+
+	[ -z "${_manual}" ] && return 1
+	echo "${1}: manual (${_manual})" 1>&2
+	echo "${1}: manual (${_manual})" 1>&3
 	echo 1>&3
 	return 0
 }
@@ -459,8 +493,7 @@ __HEREDOC__
 # additional LDADD, alternative LDADD, pkg-config name.
 
 runtest() {
-	eval _manual=\${HAVE_${2}}
-	ismanual "${1}" "${2}" "${_manual}" && return 0
+	ismanual "${1}" "${2}" && return 0
 	singletest "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" && return 0
 	echo "${1}: no" 1>&2
 	eval HAVE_${2}=0
@@ -496,17 +529,18 @@ runtest freezero	FREEZERO			  || true
 runtest getdtablecount	GETDTABLECOUNT			  || true
 runtest getexecname	GETEXECNAME			  || true
 runtest getprogname	GETPROGNAME			  || true
-runtest imsg		IMSG "" "" "-lutil"		  || true
 runtest INFTIM		INFTIM				  || true
 runtest landlock	LANDLOCK			  || true
+
+runtest lib_imsg	LIB_IMSG "" "" "-lutil"		  || true
+runtest lib_md		LIB_MD "" "" "-lmd" "libmd"	  || true
+runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
 
 runtest lib_flac	LIB_FLAC "" "" "-lFLAC" "flac"	  || true
 runtest lib_mpg123	LIB_MPG123 "" "" "-lmpg123" "libmpg123" || true
 runtest lib_opusfile	LIB_OPUSFILE "" "" "-lopusfile"	"opusfile"  || true
 runtest lib_vorbisfile	LIB_VORBISFILE "" "" "-lvorbisfile" "vorbisfile" || true
 
-runtest lib_md		LIB_MD "" "" "-lmd" "libmd"	  || true
-runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
 runtest memmem		MEMMEM			  	  || true
 runtest memrchr		MEMRCHR			  	  || true
 runtest memset_s	MEMSET_S			  || true
@@ -624,7 +658,7 @@ __HEREDOC__
 # someting that pulls in support for size_t.
 # Our function declarations are standalone, so specify them here.
 
-if [ ${HAVE_IMSG} -eq 0 -o \
+if [ ${HAVE_LIB_IMSG} -eq 0 -o \
      ${HAVE_MEMMEM} -eq 0 -o \
      ${HAVE_MEMRCHR} -eq 0 -o \
      ${HAVE_REALLOCARRAY} -eq 0 -o \
@@ -695,7 +729,7 @@ cat << __HEREDOC__
 #define HAVE_GETDTABLECOUNT ${HAVE_GETDTABLECOUNT}
 #define HAVE_GETEXECNAME ${HAVE_GETEXECNAME}
 #define HAVE_GETPROGNAME ${HAVE_GETPROGNAME}
-#define HAVE_IMSG ${HAVE_IMSG}
+#define HAVE_LIB_IMSG ${HAVE_LIB_IMSG}
 #define HAVE_INFTIM ${HAVE_INFTIM}
 #define HAVE_LANDLOCK ${HAVE_LANDLOCK}
 #define HAVE_MEMMEM ${HAVE_MEMMEM}
@@ -874,7 +908,7 @@ fi
 
 echo "#include <sys/uio.h>"
 echo "#include <stdint.h>"
-if [ ${HAVE_IMSG} -eq 0 ]; then
+if [ ${HAVE_LIB_IMSG} -eq 0 ]; then
 	echo "#include \"imsg.h\""
 else
 	echo "#include <imsg.h>"
@@ -941,7 +975,7 @@ CC		 = ${CC}
 CFLAGS		 = ${CFLAGS}
 CPPFLAGS	 = ${CPPFLAGS}
 LDADD		 = ${LDADD}
-LDADD_IMSG	 = ${LDADD_IMSG}
+LDADD_LIB_IMSG	 = ${LDADD_LIB_IMSG}
 LDADD_DECODERS	 = ${LDADD_LIB_FLAC} ${LDADD_LIB_MPG123} ${LDADD_LIB_OPUSFILE} \
 			${LDADD_LIB_VORBISFILE}
 LDADD_LIB_MD	 = ${LDADD_LIB_MD}
