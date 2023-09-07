@@ -687,7 +687,6 @@ route_jump(struct client *clt)
 		if (strlcpy(path, field, sizeof(path)) >= sizeof(path))
 			goto badreq;
 
-		log_warnx("path is %s", path);
 		imsg_compose(&ibuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
 		ev_add(ibuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
