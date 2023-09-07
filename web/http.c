@@ -233,6 +233,9 @@ http_reply(struct client *clt, int code, const char *reason,
 			clt->err = 1;
 			return -1;
 		}
+		free(clt->req.secret);
+		clt->req.secret = NULL;
+
 		clt->chunked = 0;
 	}
 
