@@ -1107,7 +1107,7 @@ main(int argc, char **argv)
 	if (pledge("stdio inet", NULL) == -1)
 		err(1, "pledge");
 
-	log_info("starting");
+	log_info("listening on port %s", port);
 	ev_loop();
 	return (1);
 }
