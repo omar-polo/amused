@@ -2,7 +2,7 @@
 - few configure enhancements: allow CC, CFLAGS and LDADD_LIB_* as args too
 - fix the compat test for getdtablecount(3)
 - drop the dependency on libevent
-- add amused-web to control amused remotely (optional; needs libm on linux)
+- add amused-web to control amused remotely (optional; needs libmd on linux)
 - contrib/amusing: use fancy unicode characters for the buttons
 - unbreak percentage relative seeking
 - contrib/amused-monitor: fix handling of non-ASCII characters (finally!)
