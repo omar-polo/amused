@@ -22,6 +22,7 @@ OBJS =		${SOURCES:.c=.o} audio_${BACKEND}.o
 
 HEADERS =	amused.h \
 		control.h \
+		ev.h \
 		log.h \
 		playlist.h \
 		xmalloc.h
@@ -96,6 +97,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 	cd .dist/${DISTNAME} && chmod 755 configure
 	cd .dist/${DISTNAME} && cp -R ../../contrib . && \
 		chmod 755 contrib/amused-monitor
+	${MAKE} -C web DESTDIR=${PWD}/.dist/${DISTNAME}/web dist
 	cd .dist && tar zcf ../$@ ${DISTNAME}
 	rm -rf .dist/
 

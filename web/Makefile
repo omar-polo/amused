@@ -8,7 +8,7 @@ SOURCES =	web.c bufio.c http.c ws.c \
 OBJS =		${SOURCES:.c=.o}
 
 DISTFILES =	Makefile amused-web.1 bufio.c bufio.h http.c http.h \
-		web.c web.h ws.c ws.h
+		web.c ws.c ws.h
 
 all: ${PROG}
 
@@ -49,8 +49,8 @@ uninstall:
 # --- maintainer targets ---
 
 dist:
-	mkdir -p ${DESTDIR}/web
-	${INSTALL} -m 0644 ${DISTFILES} ${DESTDIR}/web
+	mkdir -p ${DESTDIR}/
+	${INSTALL} -m 0644 ${DISTFILES} ${DESTDIR}/
 
 # --- dependency management ---
 
