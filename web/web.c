@@ -929,7 +929,7 @@ client_ev(int fd, int ev, void *d)
 
 	if (ev & POLLOUT) {
 		if (bufio_write(&clt->bio) == -1 && errno != EAGAIN) {
-			log_warn("bufio_read");
+			log_warn("bufio_write");
 			goto err;
 		}
 	}
