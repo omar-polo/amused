@@ -67,7 +67,7 @@ audio_setup(unsigned int bits, unsigned int rate, unsigned int channels,
 		log_warnx("can't handle %d bits", bits);
 		return -1;
 	}
-	
+
 	bpf *= channels;
 
 	err = snd_pcm_set_params(pcm, fmt, SND_PCM_ACCESS_RW_INTERLEAVED,
