@@ -19,7 +19,7 @@ The dependencies are:
  - libmpg123
  - libvorbis
  - opusfile
- - libsndio or libasound (ALSA)
+ - libsndio or libasound (ALSA) or libao
  - libmd (optional; needed on linux and only for amused-web)
 
 Then, to build:
@@ -53,7 +53,7 @@ instructed to use libbsd exclusively as follows:
 To force the use of one specific audio backend and not simply the first
 one found, pass `--backend` as:
 
-	$ ./configure --backend=alsa # or sndio
+	$ ./configure --backend=alsa # or sndio, or ao
 
 
 ## Usage
