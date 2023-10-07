@@ -27,6 +27,7 @@
 #include <net/if.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
 #include <stdio.h>
@@ -64,14 +65,20 @@ int
 control_init(char *path)
 {
 	struct sockaddr_un	 sun;
-	int			 fd;
+	int			 fd, flags;
 	mode_t			 old_umask;
 
-	if ((fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK,
-	    0)) == -1) {
+	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		log_warn("%s: socket", __func__);
 		return (-1);
 	}
+
+	if ((flags = fcntl(fd, F_GETFL)) == -1 ||
+	    fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+		fatal("fcntl(O_NONBLOCK)");
+
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
+		fatal("fcntl(CLOEXEC)");
 
 	memset(&sun, 0, sizeof(sun));
 	sun.sun_family = AF_UNIX;

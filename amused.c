@@ -243,7 +243,7 @@ static __dead void
 amused_main(void)
 {
 	int	 pipe_main2player[2];
-	int	 control_fd;
+	int	 control_fd, flags;
 
 	log_init(debug, LOG_DAEMON);
 	log_setverbose(verbose);
@@ -252,9 +252,18 @@ amused_main(void)
 	if (!debug)
 		daemon(1, 0);
 
-	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK,
-	    PF_UNSPEC, pipe_main2player) == -1)
+	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, pipe_main2player) == -1)
 		fatal("socketpair");
+
+	if ((flags = fcntl(pipe_main2player[0], F_GETFL)) == -1 ||
+	    fcntl(pipe_main2player[0], F_SETFL, flags | O_NONBLOCK) == -1 ||
+	    (flags = fcntl(pipe_main2player[1], F_GETFL)) == -1 ||
+	    fcntl(pipe_main2player[1], F_SETFL, flags | O_NONBLOCK) == -1)
+		fatal("fcntl(O_NONBLOCK)");
+
+	if (fcntl(pipe_main2player[0], F_SETFD, FD_CLOEXEC) == -1 ||
+	    fcntl(pipe_main2player[1], F_SETFD, FD_CLOEXEC) == -1)
+		fatal("fcntl(CLOEXEC)");
 
 	player_pid = start_child(PROC_PLAYER, pipe_main2player[1]);
 
