@@ -60,16 +60,18 @@ The options are as follows:
 
 Variables available:
 
-    BACKEND                audio backend to use; can be "sndio" or "alsa"
+    BACKEND                audio backend to use; can be "sndio", "ao" or "alsa"
     CC                     C compiler
     CFLAGS                 generic C compiler flags
     CPPFLAGS               C preprocessors flags
     LDADD                  generic linker flags
+    LDADD_LIB_AO           linker flags for libao
     LDADD_LIB_ASOUND       linker flags for libasound
     LDADD_LIB_FLAC         linker flags for libflac
     LDADD_LIB_IMSG         linker flags for libimsg
     LDADD_LIB_MD           linker flags for libmd
     LDADD_LIB_MPG123       linker flags for libmpg123
+    LDADD_LIB_PTHREAD      linker flags for pthread
     LDADD_LIB_OPUSFILE     linker flags for libopusfile
     LDADD_LIB_SNDIO        linker flags for libsndio
     LDADD_LIB_SOCKET       linker flags for libsocket
@@ -140,11 +142,13 @@ CFLAGS="${CFLAGS} -g -W -Wall -Wextra -Wmissing-prototypes"
 CFLAGS="${CFLAGS} -Wstrict-prototypes -Wmissing-declarations"
 CFLAGS="${CFLAGS} -Wno-unused-parameter -Wno-sign-compare -Wno-pointer-sign"
 LDADD=
+LDADD_LIB_AO=
 LDADD_LIB_ASOUND=
 LDADD_LIB_FLAC=
 LDADD_LIB_IMSG=
 LDADD_LIB_MD=
 LDADD_LIB_MPG123=
+LDADD_LIB_PTHREAD=
 LDADD_LIB_OPUSFILE=
 LDADD_LIB_SNDIO=
 LDADD_LIB_SOCKET=
@@ -290,6 +294,7 @@ while [ $# -gt 0 ]; do
 	BACKEND)
 		case "$val" in
 		alsa)	BACKEND=alsa ;;
+		ao)	BACKEND=ao ;;
 		sndio)	BACKEND=sndio ;;
 		*)
 			echo "unknown audio backend: $val" 1>&2
@@ -301,6 +306,11 @@ while [ $# -gt 0 ]; do
 		CFLAGS="$val" ;;
 	LDADD)
 		LDADD="$val" ;;
+	LDADD_LIB_AO)
+		LDADD_LIB_AO="$val"
+		HAVE_LIB_AO=1
+		BACKEND=ao
+		;;
 	LDADD_LIB_ASOUND)
 		LDADD_LIB_ASOUND="$val"
 		HAVE_LIB_ASOUND=1
@@ -321,6 +331,10 @@ while [ $# -gt 0 ]; do
 	LDADD_LIB_MPG123)
 		LDADD_LIB_MPG123="$val"
 		HAVE_LIB_MPG123=1
+		;;
+	LDADD_LIB_PTHREAD)
+		LDADD_LIB_PTHREAD="$val"
+		HAVE_LIB_PTHREAD=1
 		;;
 	LDADD_LIB_OPUSFILE)
 		LDADD_LIB_OPUSFILE="$val"
@@ -567,7 +581,7 @@ runtest timespecsub	TIMESPECSUB			  || true
 runtest unveil		UNVEIL				  || true
 runtest __progname	__PROGNAME			  || true
 
-if [ $BACKEND != alsa ]; then # auto or sndio
+if [ $BACKEND = auto -o $BACKEND = sndio ]; then
 	runtest lib_sndio LIB_SNDIO "" "" "-lsndio" "sndio" || true
 	runtest sio_flush SIO_FLUSH "" "" "${LDADD_LIB_SNDIO}" || true
 
@@ -584,19 +598,39 @@ else
 	HAVE_SIO_FLUSH=0
 fi
 
-if [ $BACKEND != sndio ]; then # auto or alsa
+if [ $BACKEND = auto -o $BACKEND = alsa ]; then
 	runtest lib_asound LIB_ASOUND "" "" "-lasound" "alsa" || true
 	if [ "${HAVE_LIB_ASOUND}" -eq 0 ]; then
 		if [ $BACKEND = alsa ]; then
 			echo "Fatal: missing libasound" 1>&2
 			echo "Fatal: missing libasound" 1>&3
+			exit 1
+		fi
+	fi
+	BACKEND=alsa
+fi
+
+if [ $BACKEND = auto -o $BACKEND = ao ]; then
+	runtest lib_ao LIB_AO "" "" "-lao" "ao" || true
+	if [ "${HAVE_LIB_AO}" -eq 0 ]; then
+		if [ $BACKEND = ao ]; then
+			echo "Fatal: missing libao" 1>&2
+			echo "Fatal: missing libao" 1>&3
 		else
-			echo "Fatal: missing libasound or libsndio" 1>&2
-			echo "Fatal: missing libasound or libsndio" 1>&3
+			echo "Fatal: missing libasound, libao or libsndio" 1>&2
+			echo "Fatal: missing libasound, libao or libsndio" 1>&3
 		fi
 		exit 1
 	fi
-	BACKEND=alsa
+	BACKEND=ao
+
+	runtest pthread LIB_PTHREAD "" "-pthread" || true
+	if [ "${HAVE_LIB_PTHREAD}" -eq 0 ]; then
+		echo "Fatal: missing pthread" 1>&2
+		echo "Fatal: missing pthread" 1>&3
+		exit 1
+	fi
+	CFLAGS="${CFLAGS} -pthread"
 fi
 
 if [ "${HAVE_LIB_FLAC}" -eq 0 -o \
@@ -988,7 +1022,8 @@ LDADD_DECODERS	 = ${LDADD_LIB_FLAC} ${LDADD_LIB_MPG123} ${LDADD_LIB_OPUSFILE} \
 			${LDADD_LIB_VORBISFILE}
 LDADD_LIB_MD	 = ${LDADD_LIB_MD}
 LDADD_LIB_SOCKET = ${LDADD_LIB_SOCKET}
-LDADD_BACKEND	 = ${LDADD_LIB_SNDIO} ${LDADD_LIB_ASOUND}
+LDADD_BACKEND	 = ${LDADD_LIB_SNDIO} ${LDADD_LIB_ASOUND} ${LDADD_LIB_AO} \
+			${LDADD_LIB_PTHREAD}
 LDADD_STATIC	 = ${LDADD_STATIC}
 LDFLAGS		 = ${LDFLAGS}
 STATIC		 = ${STATIC}

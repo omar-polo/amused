@@ -40,6 +40,7 @@ DISTFILES =	CHANGES \
 		${HEADERS} \
 		${SOURCES} \
 		audio_alsa.c \
+		audio_ao.c \
 		audio_sndio.c
 
 all: ${PROG}
@@ -108,6 +109,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 
 -include amused.d
 -include audio_alsa.d
+-include audio_ao.d
 -include audio_sndio.d
 -include compats.d
 -include control.d

@@ -896,6 +896,18 @@ main(void)
 	return 0;
 }
 #endif/* TEST_LIB_MPG123 */
+#if TEST_LIB_PTHREAD
+#include <stdlib.h>
+#include <pthread.h>
+
+int
+main(void)
+{
+	pthread_mutex_t mutex;
+
+	return (pthread_mutex_init(&mutex, NULL));
+}
+#endif/* TEST_LIB_PTHREAD */
 #if TEST_LIB_OPUSFILE
 #include <stdio.h>
 #include <opusfile.h>
@@ -928,6 +940,18 @@ main(void)
 	return 0;
 }
 #endif /* TEST_LIB_VORBISFILE */
+#if TEST_LIB_AO
+#include <stdio.h>
+#include <string.h>
+#include <ao/ao.h>
+
+int
+main(void)
+{
+	ao_initialize();
+	return (0);
+}
+#endif /* TEST_LIB_AO */
 #if TEST_LIB_ASOUND
 #include <alsa/asoundlib.h>
 
