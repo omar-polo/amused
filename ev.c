@@ -160,9 +160,17 @@ ev_sigdispatch(int fd, int ev, void *data)
 int
 ev_signal(int sig, void (*cb)(int, int, void *), void *udata)
 {
+	int		 flags;
+
 	if (base->sigpipe[0] == -1) {
-		if (pipe2(base->sigpipe, O_NONBLOCK) == -1)
+		/* pipe2(2) is not available everywhere... sigh */
+		if (pipe(base->sigpipe) == -1)
 			return -1;
+
+		if ((flags = fcntl(base->sigpipe[1], F_GETFL)) == -1 ||
+		    fcntl(base->sigpipe[1], F_SETFL, flags | O_NONBLOCK) == -1)
+			return -1;
+
 		if (ev_add(base->sigpipe[0], POLLIN, ev_sigdispatch, NULL)
 		    == -1)
 			return -1;
