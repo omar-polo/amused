@@ -34,6 +34,7 @@ DISTFILES =	CHANGES \
 		amused.1 \
 		configure \
 		configure.local.example \
+		endian.h \
 		imsg.h \
 		queue.h \
 		tests.c \
