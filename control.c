@@ -135,14 +135,13 @@ control_listen(int fd)
 void
 control_accept(int listenfd, int event, void *bula)
 {
-	int			 connfd;
+	int			 connfd, flags;
 	socklen_t		 len;
 	struct sockaddr_un	 sun;
 	struct ctl_conn		*c;
 
 	len = sizeof(sun);
-	if ((connfd = accept4(listenfd, (struct sockaddr *)&sun, &len,
-	    SOCK_CLOEXEC | SOCK_NONBLOCK)) == -1) {
+	if ((connfd = accept(listenfd, (struct sockaddr *)&sun, &len)) == -1) {
 		/*
 		 * Pause accept if we are out of file descriptors, or
 		 * libevent will haunt us here too.
@@ -157,6 +156,12 @@ control_accept(int listenfd, int event, void *bula)
 			log_warn("%s: accept4", __func__);
 		return;
 	}
+
+	if ((flags = fcntl(connfd, F_GETFL)) == -1 ||
+	    fcntl(connfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		fatal("fcntl(O_NONBLOCK)");
+	if (fcntl(connfd, F_SETFD, FD_CLOEXEC) == -1)
+		fatal("fcntl(CLOEXEC)");
 
 	if ((c = calloc(1, sizeof(struct ctl_conn))) == NULL) {
 		log_warn("%s: calloc", __func__);
