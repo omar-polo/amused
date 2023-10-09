@@ -1,4 +1,4 @@
-#include "../../config.h"
+#include "config.h"
 
 #if HAVE_SYS_ENDIAN_H
 # include <sys/endian.h>
