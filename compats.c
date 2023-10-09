@@ -349,6 +349,7 @@ getprogname(void)
 
 #include <limits.h>
 #include <errno.h>
+#include <endian.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
