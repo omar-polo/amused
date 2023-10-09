@@ -637,6 +637,10 @@ if [ $BACKEND = auto -o $BACKEND = ao ]; then
 	CFLAGS="${CFLAGS} -pthread"
 fi
 
+if [ "${HAVE_ENDIAN_H}" -eq 0 ]; then
+	CFLAGS="${CFLAGS} -I."
+fi
+
 if [ "${HAVE_LIB_FLAC}" -eq 0 -o \
      "${HAVE_LIB_MPG123}" -eq 0 -o \
      "${HAVE_LIB_OPUSFILE}" -eq 0 -o \
