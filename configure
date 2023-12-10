@@ -137,10 +137,13 @@ fi
 
 BACKEND=auto
 CC=`printf "all:\\n\\t@echo \\\$(CC)\\n" | make ${MAKE_FLAGS} -sf -`
+CXX=`printf "all:\\n\\t@echo \\\$(CXX)\\n" | make ${MAKE_FLAGS} -sf -`
 CFLAGS=`printf "all:\\n\\t@echo \\\$(CFLAGS)\\n" | make ${MAKE_FLAGS} -sf -`
 CFLAGS="${CFLAGS} -g -W -Wall -Wextra -Wmissing-prototypes"
 CFLAGS="${CFLAGS} -Wstrict-prototypes -Wmissing-declarations"
 CFLAGS="${CFLAGS} -Wno-unused-parameter -Wno-sign-compare -Wno-pointer-sign"
+CXXFLAGS=`printf "all:\\n\\t@echo \\\$(CXXFLAGS)\\n" | make ${MAKE_FLAGS} -sf -`
+CXXFLAGS="${CXXFLAGS} -g -W -Wall -Wextra -Wno-unused-parameter"
 LDADD=
 LDADD_LIB_AO=
 LDADD_LIB_ASOUND=
@@ -298,6 +301,7 @@ while [ $# -gt 0 ]; do
 		case "$val" in
 		alsa)	BACKEND=alsa ;;
 		ao)	BACKEND=ao ;;
+		oboe)	BACKEND=oboe ;;
 		sndio)	BACKEND=sndio ;;
 		*)
 			echo "unknown audio backend: $val" 1>&2
@@ -307,6 +311,8 @@ while [ $# -gt 0 ]; do
 		CC="$val" ;;
 	CFLAGS)
 		CFLAGS="$val" ;;
+	CXXFLAGS)
+		CXXFLAGS="$val" ;;
 	LDADD)
 		LDADD="$val" ;;
 	LDADD_LIB_AO)
@@ -535,8 +541,9 @@ runtest() {
 
 if runtest -MMD _MMD -MMD; then
 	CFLAGS="${CFLAGS} -MMD"
-	echo "adding -MMD to CFLAGS" 1>&2
-	echo "adding -MMD to CFLAGS" 1>&3
+	CXXFLAGS="${CXXFLAGS} -MMD"
+	echo "adding -MMD to CFLAGS and CXXFLAGS" 1>&2
+	echo "adding -MMD to CFLAGS and CXXFLAGS" 1>&3
 fi
 
 runtest capsicum	CAPSICUM			  || true
@@ -639,6 +646,18 @@ if [ $BACKEND = auto -o $BACKEND = ao ]; then
 	CFLAGS="${CFLAGS} -pthread"
 fi
 
+if [ $BACKEND = auto -o $BACKEND = oboe ]; then
+	runtest pthread LIB_PTHREAD "" "-pthread" || true
+	if [ "${HAVE_LIB_PTHREAD}" -eq 0 ]; then
+		echo "Fatal: missing pthread" 1>&2
+		echo "Fatal: missing pthread" 1>&3
+		exit 1
+	fi
+	CFLAGS="${CFLAGS} -pthread"
+
+	LDADD="${LDADD} -lstdc++ -lm -llog -lOpenSLES"
+fi
+
 if [ "${HAVE_ENDIAN_H}" -eq 0 ]; then
 	CFLAGS="${CFLAGS} -I."
 fi
@@ -668,14 +687,19 @@ cat << __HEREDOC__
 #ifndef OCONFIGURE_CONFIG_H
 #define OCONFIGURE_CONFIG_H
 
+/* the oboe (android) backend uses c++ */
+#ifndef __ANDROID__
 #ifdef __cplusplus
 # error "Do not use C++: this is a C application."
 #endif
+#endif /* __ANDROID__ */
 #if !defined(__GNUC__) || (__GNUC__ < 4)
 # define __attribute__(x)
 #endif
 #if defined(__linux__) || defined(__MINT__)
-# define _GNU_SOURCE /* memmem, memrchr, setresuid... */
+# ifndef __ANDROID__
+#  define _GNU_SOURCE /* memmem, memrchr, setresuid... */
+# endif
 # define _DEFAULT_SOURCE /* le32toh, crypt, ... */
 #endif
 #if defined(__NetBSD__)
@@ -1032,6 +1056,7 @@ cat << __HEREDOC__
 BACKEND		 = ${BACKEND}
 CC		 = ${CC}
 CFLAGS		 = ${CFLAGS}
+CXXFLAGS	 = ${CXXFLAGS}
 CPPFLAGS	 = ${CPPFLAGS}
 LDADD		 = ${LDADD}
 LDADD_LIB_IMSG	 = ${LDADD_LIB_IMSG}
