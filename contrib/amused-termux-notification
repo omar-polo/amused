@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# XXX
+amused="$HOME/bin/amused -s $HOME/amused.sock"
+
+notify() {
+	path="$($amused status -f path)"
+	base="${path##*/}"
+	name="${base%.*}"
+
+	termux-notification -i amused --ongoing -t "$name" -c "$path" \
+		--type media \
+		--media-next     "$amused next" \
+		--media-pause    "$amused pause" \
+		--media-play     "$amused play" \
+		--media-previous "$amused prev"
+}
+
+notify
+$amused monitor jump,next,pause,play,prev,stop | while read line; do
+	notify
+done

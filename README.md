@@ -103,9 +103,12 @@ tip: use `termux-setup-storage` to access the android storage in
 `~/storage`.
 
 amused-web works and can be used to control the playback, but as amused
-doesn't respond to the events (notifications, calls, headsets buttons,
-other apps playing music, etc...) it's not particularly handy to be
-used.
+doesn't respond to the events (calls, headsets buttons, other apps
+playing music, etc...) it's not particularly handy to be used.
+
+contrib/amused-termux-notification shows a persistent notification with
+the song file name and buttons to control the playback, making slightly
+more nicer to use amused on android.
 
 [oboe]: https://github.com/google/oboe/
 [termux]: https://termux.dev/en/
