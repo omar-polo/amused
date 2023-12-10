@@ -210,6 +210,15 @@ main(void)
 	return getdtablecount();
 }
 #endif /* TEST_GETDTABLECOUNT */
+#if TEST_GETDTABLESIZE
+#include <unistd.h>
+
+int
+main(void)
+{
+	return getdtablesize();
+}
+#endif /* TEST_GETDTABLESIZE */
 #if TEST_GETEXECNAME
 #include <stdlib.h>
 

@@ -268,6 +268,16 @@ explicit_bzero(void *p, size_t n)
 
 #endif /* HAVE_MEMSET_S */
 #endif /* !HAVE_EXPLICIT_BZERO */
+#if !HAVE_GETDTABLESIZE
+/* public domain */
+#include <unistd.h>
+
+int
+getdtablesize(void)
+{
+	return sysconf(_SC_OPEN_MAX);
+}
+#endif /* !HAVE_GETDTABLESIZE */
 #if !HAVE_GETPROGNAME
 /*
  * Copyright (c) 2016 Nicholas Marriott <nicholas.marriott@gmail.com>

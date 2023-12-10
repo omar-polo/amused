@@ -215,6 +215,7 @@ HAVE_EXPLICIT_BZERO=
 HAVE_FLOCK=
 HAVE_FREEZERO=
 HAVE_GETDTABLECOUNT=
+HAVE_GETDTABLESIZE=
 HAVE_GETEXECNAME=
 HAVE_GETPROGNAME=
 HAVE_INFTIM=
@@ -545,6 +546,7 @@ runtest explicit_bzero	EXPLICIT_BZERO			  || true
 runtest flock		FLOCK				  || true
 runtest freezero	FREEZERO			  || true
 runtest getdtablecount	GETDTABLECOUNT			  || true
+runtest getdtablesize	GETDTABLESIZE			  || true
 runtest getexecname	GETEXECNAME			  || true
 runtest getprogname	GETPROGNAME			  || true
 runtest INFTIM		INFTIM				  || true
@@ -772,6 +774,7 @@ cat << __HEREDOC__
 #define HAVE_FLOCK ${HAVE_FLOCK}
 #define HAVE_FREEZERO ${HAVE_FREEZERO}
 #define HAVE_GETDTABLECOUNT ${HAVE_GETDTABLECOUNT}
+#define HAVE_GETDTABLESIZE ${HAVE_GETDTABLESIZE}
 #define HAVE_GETEXECNAME ${HAVE_GETEXECNAME}
 #define HAVE_GETPROGNAME ${HAVE_GETPROGNAME}
 #define HAVE_LIB_IMSG ${HAVE_LIB_IMSG}
@@ -974,6 +977,10 @@ cat << __HEREDOC__
 #if !HAVE_GETDTABLECOUNT
 /* XXX: on linux it should be possible to inspect /proc/self/fd/ */
 #define getdtablecount() (0)
+#endif
+
+#if !HAVE_GETDTABLESIZE
+int	 getdtablesize(void);
 #endif
 
 #if !HAVE_OPTRESET
