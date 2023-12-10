@@ -344,8 +344,14 @@ main(int argc, char **argv)
 	if (proc == PROC_PLAYER)
 		exit(player(debug, verbose));
 
-	if (csock == NULL)
-		xasprintf(&csock, "/tmp/amused-%d", getuid());
+	if (csock == NULL) {
+		const char *tmpdir;
+
+		if ((tmpdir = getenv("TMPDIR")) == NULL)
+			tmpdir = "/tmp";
+
+		xasprintf(&csock, "%s/amused-%d", tmpdir, getuid());
+	}
 
 	if (argc > 0)
 		debug = 0;

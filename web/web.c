@@ -1048,8 +1048,14 @@ main(int argc, char **argv)
 
 	log_setverbose(verbose);
 
-	if (sock == NULL)
-		xasprintf(&sock, "/tmp/amused-%d", getuid());
+	if (sock == NULL) {
+		const char *tmpdir;
+
+		if ((tmpdir = getenv("TMPDIR")) == NULL)
+			tmpdir = "/tmp";
+
+		xasprintf(&sock, "%s/amused-%d", tmpdir, getuid());
+	}
 
 	signal(SIGPIPE, SIG_IGN);
 
