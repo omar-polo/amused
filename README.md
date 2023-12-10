@@ -85,3 +85,27 @@ directory.
 
 I wrote a bit more about the background of amused [in a blog
 post](https://www.omarpolo.com/post/amused.html).
+
+
+## Building on Android (termux) -- Experimental
+
+amused can be built on android using the oboe [oboe][oboe] backend,
+although this has only been tested so far under [termux][termux].
+First, oboe needs to be built locally.  Then build amused with:
+
+	$ ./configure BACKEND=oboe \
+		CXXFLAGS="-I /path/to/oboe/include" \
+		LDADD="/path/to/liboboe.a"
+	[...]
+	$ make
+
+tip: use `termux-setup-storage` to access the android storage in
+`~/storage`.
+
+amused-web works and can be used to control the playback, but as amused
+doesn't respond to the events (notifications, calls, headsets buttons,
+other apps playing music, etc...) it's not particularly handy to be
+used.
+
+[oboe]: https://github.com/google/oboe/
+[termux]: https://termux.dev/en/
