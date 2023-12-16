@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# XXX
-amused="$HOME/bin/amused -s $HOME/amused.sock"
+amused="${AMUSED:-amused}"
 
 notify() {
 	path="$($amused status -f path)"
