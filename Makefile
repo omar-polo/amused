@@ -1,6 +1,6 @@
 .PHONY: all web clean distclean install install-web
 
-VERSION =	0.14
+VERSION =	0.15
 PROG =		amused
 DISTNAME =	${PROG}-${VERSION}
 
