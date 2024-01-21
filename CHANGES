@@ -1,3 +1,12 @@
+* amused 0.14; 2024-01-21
+- amused-web: fix typo in error message
+- add a libao audio backend
+- add an audio backend for android (using oboe)
+- add contrib/amused-termux-notification (for android)
+- honour $TMPDIR if set
+- update bundled imsg
+- switched to the new imsg APIs
+
 * amused 0.13; 2023-09-09
 - few configure enhancements: allow CC, CFLAGS and LDADD_LIB_* as args too
 - fix the compat test for getdtablecount(3)
