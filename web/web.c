@@ -437,6 +437,7 @@ imsg_dispatch(int fd, int ev, void *d)
 	static int		 off_found;
 	char			 seekmsg[128];
 	struct imsg		 imsg;
+	struct ibuf		 ibuf;
 	struct player_status	 ps;
 	struct player_event	 event;
 	const char		*msg;
@@ -467,8 +468,10 @@ imsg_dispatch(int fd, int ev, void *d)
 
 		switch (imsg.hdr.type) {
 		case IMSG_CTL_ERR:
-			msg = imsg.data;
-			if (datalen == 0 || msg[datalen - 1] != '\0')
+			if (imsg_get_ibuf(&imsg, &ibuf) == -1 ||
+			    (datalen = ibuf_size(&ibuf)) == 0 ||
+			    (msg = ibuf_data(&ibuf)) == NULL ||
+			    msg[datalen - 1] != '\0')
 				fatalx("malformed error message");
 			log_warnx("error: %s", msg);
 			break;
@@ -480,9 +483,8 @@ imsg_dispatch(int fd, int ev, void *d)
 			break;
 
 		case IMSG_CTL_MONITOR:
-			if (datalen != sizeof(event))
+			if (imsg_get_data(&imsg, &event, sizeof(event)) == -1)
 				fatalx("corrupted IMSG_CTL_MONITOR");
-			memcpy(&event, imsg.data, sizeof(event));
 			switch (event.event) {
 			case IMSG_CTL_PLAY:
 			case IMSG_CTL_PAUSE:
@@ -522,7 +524,7 @@ imsg_dispatch(int fd, int ev, void *d)
 			break;
 
 		case IMSG_CTL_SHOW:
-			if (datalen == 0) {
+			if (imsg_get_len(&imsg) == 0) {
 				if (playlist_tmp.len == 0) {
 					dispatch_event("x:");
 					off = -1;
@@ -535,9 +537,8 @@ imsg_dispatch(int fd, int ev, void *d)
 				off_found = 0;
 				break;
 			}
-			if (datalen != sizeof(ps))
+			if (imsg_get_data(&imsg, &ps, sizeof(ps)) == -1)
 				fatalx("corrupted IMSG_CTL_SHOW");
-			memcpy(&ps, imsg.data, sizeof(ps));
 			if (ps.path[sizeof(ps.path) - 1] != '\0')
 				fatalx("corrupted IMSG_CTL_SHOW");
 			if (playlist_tmp.len == 0)
@@ -551,9 +552,9 @@ imsg_dispatch(int fd, int ev, void *d)
 			break;
 
 		case IMSG_CTL_STATUS:
-			if (datalen != sizeof(player_status))
+			if (imsg_get_data(&imsg, &player_status,
+			    sizeof(player_status)) == -1)
 				fatalx("corrupted IMSG_CTL_STATUS");
-			memcpy(&player_status, imsg.data, datalen);
 			if (player_status.path[sizeof(player_status.path) - 1]
 			    != '\0')
 				fatalx("corrupted IMSG_CTL_STATUS");

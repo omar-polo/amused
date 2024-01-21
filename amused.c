@@ -103,6 +103,7 @@ main_dispatch_player(int sig, int event, void *d)
 	struct imsgev	*iev = d;
 	struct imsgbuf	*imsgbuf = &iev->imsgbuf;
 	struct imsg	 imsg;
+	struct ibuf	 ibuf;
 	size_t		 datalen;
 	ssize_t		 n;
 	int		 shut = 0;
@@ -126,32 +127,28 @@ main_dispatch_player(int sig, int event, void *d)
 		if (n == 0)	/* No more messages. */
 			break;
 
-		datalen = IMSG_DATA_SIZE(imsg);
 		switch (imsg.hdr.type) {
 		case IMSG_POS:
-			if (datalen != sizeof(current_position))
-				fatalx("IMSG_POS: got wrong size (%zu vs %zu)",
-				    datalen, sizeof(current_position));
-			memcpy(&current_position, imsg.data,
-			    sizeof(current_position));
+			if (imsg_get_data(&imsg, &current_position,
+			    sizeof(current_position)) == -1)
+				fatalx("IMSG_POS: got wrong size");
 			if (current_position < 0)
 				current_position = -1;
 			control_notify(IMSG_CTL_SEEK);
 			break;
 		case IMSG_LEN:
-			if (datalen != sizeof(current_duration))
-				fatalx("IMSG_LEN: got wrong size (%zu vs %zu)",
-				    datalen, sizeof(current_duration));
-			memcpy(&current_duration, imsg.data,
-			    sizeof(current_duration));
+			if (imsg_get_data(&imsg, &current_duration,
+			    sizeof(current_duration)) == -1)
+				fatalx("IMSG_LEN: got wrong size");
 			if (current_duration < 0)
 				current_duration = -1;
 			break;
 		case IMSG_ERR:
-			if (datalen == 0)
+			if (imsg_get_ibuf(&imsg, &ibuf) == -1 ||
+			    (datalen = ibuf_size(&ibuf)) == 0)
 				errstr = "unknown error";
 			else {
-				errstr = imsg.data;
+				errstr = ibuf_data(&ibuf);
 				errstr[datalen-1] = '\0';
 			}
 			log_warnx("%s; skipping %s", errstr, current_song);
@@ -425,17 +422,14 @@ main_play_song(const char *path)
 void
 main_playlist_jump(struct imsgev *iev, struct imsg *imsg)
 {
-	size_t datalen;
 	char arg[PATH_MAX];
 	const char *song;
 
-	datalen = IMSG_DATA_SIZE(*imsg);
-	if (datalen != sizeof(arg)) {
+	if (imsg_get_data(imsg, arg, sizeof(arg)) == -1) {
 		main_senderr(iev, "wrong size");
 		return;
 	}
 
-	memcpy(arg, imsg->data, sizeof(arg));
 	if (arg[sizeof(arg)-1] != '\0') {
 		main_senderr(iev, "data corrupted");
 		return;
@@ -521,18 +515,15 @@ void
 main_enqueue(int tx, struct playlist *px, struct imsgev *iev,
     struct imsg *imsg)
 {
-	size_t datalen;
 	char path[PATH_MAX];
 	const char *err = NULL;
 
-	datalen = IMSG_DATA_SIZE(*imsg);
-	if (datalen != sizeof(path)) {
+	if (imsg_get_data(imsg, path, sizeof(path)) == -1) {
 		err = "data size mismatch";
 		goto err;
 	}
 
-	memcpy(path, imsg->data, sizeof(path));
-	if (path[datalen-1] != '\0') {
+	if (path[sizeof(path)-1] != '\0') {
 		err = "malformed data";
 		goto err;
 	}

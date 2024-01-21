@@ -378,11 +378,10 @@ control_dispatch_imsg(int fd, int event, void *bula)
 			main_playlist_jump(&c->iev, &imsg);
 			break;
 		case IMSG_CTL_MODE:
-			if (IMSG_DATA_SIZE(imsg) != sizeof(mode)) {
+			if (imsg_get_data(&imsg, &mode, sizeof(mode)) == -1) {
 				log_warnx("%s: got wrong size", __func__);
 				break;
 			}
-			memcpy(&mode, imsg.data, sizeof(mode));
 			consume = new_mode(consume, mode.consume);
 			repeat_all = new_mode(repeat_all, mode.repeat_all);
 			repeat_one = new_mode(repeat_one, mode.repeat_one);
@@ -413,11 +412,10 @@ control_dispatch_imsg(int fd, int event, void *bula)
 				main_senderr(&c->iev, "locked");
 				break;
 			}
-			if (IMSG_DATA_SIZE(imsg) != sizeof(off)) {
+			if (imsg_get_data(&imsg, &off, sizeof(off)) == -1) {
 				main_senderr(&c->iev, "wrong size");
 				break;
 			}
-			memcpy(&off, imsg.data, sizeof(off));
 			playlist_swap(&control_state.play, off);
 			memset(&control_state.play, 0,
 			    sizeof(control_state.play));
@@ -430,11 +428,10 @@ control_dispatch_imsg(int fd, int event, void *bula)
 			c->monitor = 1;
 			break;
 		case IMSG_CTL_SEEK:
-			if (IMSG_DATA_SIZE(imsg) != sizeof(seek)) {
+			if (imsg_get_data(&imsg, &seek, sizeof(seek)) == -1) {
 				main_senderr(&c->iev, "wrong size");
 				break;
 			}
-			memcpy(&seek, imsg.data, sizeof(seek));
 			main_seek(&seek);
 			break;
 		default:

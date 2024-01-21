@@ -215,12 +215,14 @@ load_files(struct parse_result *res, int *ret)
 static const char *
 imsg_strerror(struct imsg *imsg)
 {
+	struct ibuf ibuf;
 	size_t datalen;
 	const char *msg;
 
-	datalen = IMSG_DATA_SIZE(*imsg);
-	msg = imsg->data;
-	if (datalen == 0 || msg[datalen-1] != '\0')
+	if (imsg_get_ibuf(imsg, &ibuf) == -1 ||
+	    (datalen = ibuf_size(&ibuf)) == 0 ||
+	    (msg = ibuf_data(&ibuf)) == NULL ||
+	    msg[datalen - 1] != '\0')
 		fatalx("malformed error message");
 
 	return msg;
@@ -361,7 +363,6 @@ ctlaction(struct parse_result *res)
 	struct imsg imsg;
 	struct player_status ps;
 	struct player_event ev;
-	size_t datalen;
 	ssize_t n;
 	int i, ret = 0, done = 1;
 
@@ -498,8 +499,6 @@ ctlaction(struct parse_result *res)
 				break;
 			}
 
-			datalen = IMSG_DATA_SIZE(imsg);
-
 			switch (res->action) {
 			case ADD:
 				if (res->files[i] == NULL)
@@ -515,13 +514,13 @@ ctlaction(struct parse_result *res)
 				done = res->files[i] == NULL;
 				break;
 			case SHOW:
-				if (datalen == 0) {
+				if (imsg_get_len(&imsg) == 0) {
 					done = 1;
 					break;
 				}
-				if (datalen != sizeof(ps))
+				if (imsg_get_data(&imsg, &ps, sizeof(ps))
+				    == -1)
 					fatalx("data size mismatch");
-				memcpy(&ps, imsg.data, sizeof(ps));
 				if (ps.path[sizeof(ps.path) - 1] != '\0')
 					fatalx("received corrupted data");
 				if (res->pretty) {
@@ -543,9 +542,9 @@ ctlaction(struct parse_result *res)
 					fatalx("invalid message %d",
 					    imsg.hdr.type);
 
-				if (datalen != sizeof(ps))
+				if (imsg_get_data(&imsg, &ps, sizeof(ps))
+				    == -1)
 					fatalx("data size mismatch");
-				memcpy(&ps, imsg.data, sizeof(ps));
 				if (ps.path[sizeof(ps.path) - 1] != '\0')
 					fatalx("received corrupted data");
 
@@ -571,10 +570,10 @@ ctlaction(struct parse_result *res)
 					fatalx("invalid message %d",
 					    imsg.hdr.type);
 
-				if (datalen != sizeof(ev))
+				if (imsg_get_data(&imsg, &ev, sizeof(ev))
+				    == -1)
 					fatalx("data size mismatch");
 
-				memcpy(&ev, imsg.data, sizeof(ev));
 				if (ev.event < 0 || ev.event > IMSG__LAST)
 					fatalx("received corrupted data");
 

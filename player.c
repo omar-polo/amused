@@ -142,9 +142,8 @@ again:
 	case IMSG_CTL_SEEK:
 		if (s == NULL)
 			break;
-		if (IMSG_DATA_SIZE(imsg) != sizeof(seek))
+		if (imsg_get_data(&imsg, &seek, sizeof(seek)) == -1)
 			fatalx("wrong size for seek ctl");
-		memcpy(&seek, imsg.data, sizeof(seek));
 		if (seek.percent)
 			*s = (double)seek.offset * (double)duration / 100.0;
 		else
