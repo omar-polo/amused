@@ -466,7 +466,7 @@ imsg_dispatch(int fd, int ev, void *d)
 
 		datalen = IMSG_DATA_SIZE(imsg);
 
-		switch (imsg.hdr.type) {
+		switch (imsg_get_type(&imsg)) {
 		case IMSG_CTL_ERR:
 			if (imsg_get_ibuf(&imsg, &ibuf) == -1 ||
 			    (datalen = ibuf_size(&ibuf)) == 0 ||

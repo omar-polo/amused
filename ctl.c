@@ -364,7 +364,7 @@ ctlaction(struct parse_result *res)
 	struct player_status ps;
 	struct player_event ev;
 	ssize_t n;
-	int i, ret = 0, done = 1;
+	int i, type, ret = 0, done = 1;
 
 	if (pledge("stdio", NULL) == -1)
 		fatal("pledge");
@@ -491,7 +491,8 @@ ctlaction(struct parse_result *res)
 			if (n == 0)
 				break;
 
-			if (imsg.hdr.type == IMSG_CTL_ERR) {
+			type = imsg_get_type(&imsg);
+			if (type == IMSG_CTL_ERR) {
 				log_warnx("%s: %s", res->ctl->name,
 				    imsg_strerror(&imsg));
 				ret = 1;
@@ -505,11 +506,10 @@ ctlaction(struct parse_result *res)
 					fatalx("received more replies than "
 					    "files enqueued.");
 
-				if (imsg.hdr.type == IMSG_CTL_ADD)
+				if (type == IMSG_CTL_ADD)
 					log_debug("enqueued %s", res->files[i]);
 				else
-					fatalx("invalid message %d",
-					    imsg.hdr.type);
+					fatalx("invalid message %d", type);
 				i++;
 				done = res->files[i] == NULL;
 				break;
@@ -538,9 +538,8 @@ ctlaction(struct parse_result *res)
 			case PREV:
 			case JUMP:
 			case MODE:
-				if (imsg.hdr.type != IMSG_CTL_STATUS)
-					fatalx("invalid message %d",
-					    imsg.hdr.type);
+				if (type != IMSG_CTL_STATUS)
+					fatalx("invalid message %d", type);
 
 				if (imsg_get_data(&imsg, &ps, sizeof(ps))
 				    == -1)
@@ -552,23 +551,21 @@ ctlaction(struct parse_result *res)
 				done = 1;
 				break;
 			case LOAD:
-				if (imsg.hdr.type == IMSG_CTL_ADD)
+				if (type == IMSG_CTL_ADD)
 					break;
-				if (imsg.hdr.type == IMSG_CTL_COMMIT) {
+				if (type == IMSG_CTL_COMMIT) {
 					done = 1;
 					break;
 				}
 
-				if (imsg.hdr.type != IMSG_CTL_BEGIN)
-					fatalx("invalid message %d",
-					    imsg.hdr.type);
+				if (type != IMSG_CTL_BEGIN)
+					fatalx("invalid message %d", type);
 
 				load_files(res, &ret);
 				break;
 			case MONITOR:
-				if (imsg.hdr.type != IMSG_CTL_MONITOR)
-					fatalx("invalid message %d",
-					    imsg.hdr.type);
+				if (type != IMSG_CTL_MONITOR)
+					fatalx("invalid message %d", type);
 
 				if (imsg_get_data(&imsg, &ev, sizeof(ev))
 				    == -1)

@@ -125,8 +125,8 @@ again:
 		goto again;
 	}
 
-	ret = imsg.hdr.type;
-	switch (imsg.hdr.type) {
+	ret = imsg_get_type(&imsg);
+	switch (ret) {
 	case IMSG_PLAY:
 		if (nextfd != -1)
 			fatalx("track already enqueued");
@@ -154,7 +154,7 @@ again:
 			*s = 0;
 		break;
 	default:
-		fatalx("unknown imsg %d", imsg.hdr.type);
+		fatalx("unknown imsg %d", ret);
 	}
 
 	imsg_free(&imsg);

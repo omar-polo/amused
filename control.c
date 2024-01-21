@@ -276,6 +276,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 	struct player_mode	 mode;
 	struct player_seek	 seek;
 	ssize_t		 	 n, off;
+	int			 type;
 
 	if ((c = control_connbyfd(fd)) == NULL) {
 		log_warnx("%s: fd %d: not found", __func__, fd);
@@ -306,7 +307,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 		if (n == 0)
 			break;
 
-		switch (imsg.hdr.type) {
+		switch (type = imsg_get_type(&imsg)) {
 		case IMSG_CTL_PLAY:
 			switch (play_state) {
 			case STATE_STOPPED:
@@ -320,7 +321,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 				main_send_player(IMSG_RESUME, -1, NULL ,0);
 				break;
 			}
-			control_notify(imsg.hdr.type);
+			control_notify(type);
 			break;
 		case IMSG_CTL_TOGGLE_PLAY:
 			switch (play_state) {
@@ -345,14 +346,14 @@ control_dispatch_imsg(int fd, int event, void *bula)
 				break;
 			play_state = STATE_PAUSED;
 			main_send_player(IMSG_PAUSE, -1, NULL, 0);
-			control_notify(imsg.hdr.type);
+			control_notify(type);
 			break;
 		case IMSG_CTL_STOP:
 			if (play_state == STATE_STOPPED)
 				break;
 			play_state = STATE_STOPPED;
 			main_send_player(IMSG_STOP, -1, NULL, 0);
-			control_notify(imsg.hdr.type);
+			control_notify(type);
 			break;
 		case IMSG_CTL_FLUSH:
 			playlist_truncate();
@@ -365,12 +366,12 @@ control_dispatch_imsg(int fd, int event, void *bula)
 			main_send_status(&c->iev);
 			break;
 		case IMSG_CTL_NEXT:
-			control_notify(imsg.hdr.type);
+			control_notify(type);
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_advance();
 			break;
 		case IMSG_CTL_PREV:
-			control_notify(imsg.hdr.type);
+			control_notify(type);
 			main_send_player(IMSG_STOP, -1, NULL, 0);
 			main_playlist_previous();
 			break;
@@ -385,7 +386,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 			consume = new_mode(consume, mode.consume);
 			repeat_all = new_mode(repeat_all, mode.repeat_all);
 			repeat_one = new_mode(repeat_one, mode.repeat_one);
-			control_notify(imsg.hdr.type);
+			control_notify(type);
 			break;
 		case IMSG_CTL_BEGIN:
 			if (control_state.tx != -1) {
@@ -405,7 +406,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 			main_enqueue(control_state.tx != -1,
 			   &control_state.play,&c->iev, &imsg);
 			if (control_state.tx == -1)
-				control_notify(imsg.hdr.type);
+				control_notify(type);
 			break;
 		case IMSG_CTL_COMMIT:
 			if (control_state.tx != imsgbuf->fd) {
@@ -422,7 +423,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 			control_state.tx = -1;
 			imsg_compose_event(&c->iev, IMSG_CTL_COMMIT, 0, 0, -1,
 			    NULL, 0);
-			control_notify(imsg.hdr.type);
+			control_notify(type);
 			break;
 		case IMSG_CTL_MONITOR:
 			c->monitor = 1;
@@ -436,7 +437,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
-			    imsg.hdr.type);
+			    type);
 			break;
 		}
 		imsg_free(&imsg);

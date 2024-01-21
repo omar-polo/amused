@@ -127,7 +127,7 @@ main_dispatch_player(int sig, int event, void *d)
 		if (n == 0)	/* No more messages. */
 			break;
 
-		switch (imsg.hdr.type) {
+		switch (imsg_get_type(&imsg)) {
 		case IMSG_POS:
 			if (imsg_get_data(&imsg, &current_position,
 			    sizeof(current_position)) == -1)
@@ -172,7 +172,7 @@ main_dispatch_player(int sig, int event, void *d)
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,
-			    imsg.hdr.type);
+			    imsg_get_type(&imsg));
 			break;
 		}
 		imsg_free(&imsg);
