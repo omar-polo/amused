@@ -169,10 +169,10 @@ control_accept(int listenfd, int event, void *bula)
 		return;
 	}
 
-	imsg_init(&c->iev.ibuf, connfd);
+	imsg_init(&c->iev.imsgbuf, connfd);
 	c->iev.handler = control_dispatch_imsg;
 	c->iev.events = POLLIN;
-	ev_add(c->iev.ibuf.fd, c->iev.events, c->iev.handler, &c->iev);
+	ev_add(c->iev.imsgbuf.fd, c->iev.events, c->iev.handler, &c->iev);
 
 	TAILQ_INSERT_TAIL(&ctl_conns, c, entry);
 }
@@ -183,7 +183,7 @@ control_connbyfd(int fd)
 	struct ctl_conn	*c;
 
 	TAILQ_FOREACH(c, &ctl_conns, entry) {
-		if (c->iev.ibuf.fd == fd)
+		if (c->iev.imsgbuf.fd == fd)
 			break;
 	}
 
@@ -196,7 +196,7 @@ control_connbypid(pid_t pid)
 	struct ctl_conn	*c;
 
 	TAILQ_FOREACH(c, &ctl_conns, entry) {
-		if (c->iev.ibuf.pid == pid)
+		if (c->iev.imsgbuf.pid == pid)
 			break;
 	}
 
@@ -214,16 +214,16 @@ control_close(int fd)
 	}
 
 	/* abort the transaction if running by this user */
-	if (control_state.tx != -1 && c->iev.ibuf.fd == control_state.tx) {
+	if (control_state.tx != -1 && c->iev.imsgbuf.fd == control_state.tx) {
 		playlist_free(&control_state.play);
 		control_state.tx = -1;
 	}
 
-	msgbuf_clear(&c->iev.ibuf.w);
+	msgbuf_clear(&c->iev.imsgbuf.w);
 	TAILQ_REMOVE(&ctl_conns, c, entry);
 
-	ev_del(c->iev.ibuf.fd);
-	close(c->iev.ibuf.fd);
+	ev_del(c->iev.imsgbuf.fd);
+	close(c->iev.imsgbuf.fd);
 
 	/* Some file descriptors are available again. */
 	if (ev_timer_pending()) {
@@ -271,6 +271,7 @@ void
 control_dispatch_imsg(int fd, int event, void *bula)
 {
 	struct ctl_conn		*c;
+	struct imsgbuf		*imsgbuf;
 	struct imsg		 imsg;
 	struct player_mode	 mode;
 	struct player_seek	 seek;
@@ -281,22 +282,24 @@ control_dispatch_imsg(int fd, int event, void *bula)
 		return;
 	}
 
+	imsgbuf = &c->iev.imsgbuf;
+
 	if (event & POLLIN) {
-		if (((n = imsg_read(&c->iev.ibuf)) == -1 && errno != EAGAIN) ||
+		if (((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN) ||
 		    n == 0) {
 			control_close(fd);
 			return;
 		}
 	}
 	if (event & POLLOUT) {
-		if (msgbuf_write(&c->iev.ibuf.w) <= 0 && errno != EAGAIN) {
+		if (msgbuf_write(&imsgbuf->w) <= 0 && errno != EAGAIN) {
 			control_close(fd);
 			return;
 		}
 	}
 
 	for (;;) {
-		if ((n = imsg_get(&c->iev.ibuf, &imsg)) == -1) {
+		if ((n = imsg_get(imsgbuf, &imsg)) == -1) {
 			control_close(fd);
 			return;
 		}
@@ -390,13 +393,13 @@ control_dispatch_imsg(int fd, int event, void *bula)
 				main_senderr(&c->iev, "locked");
 				break;
 			}
-			control_state.tx = c->iev.ibuf.fd;
+			control_state.tx = imsgbuf->fd;
 			imsg_compose_event(&c->iev, IMSG_CTL_BEGIN, 0, 0, -1,
 			    NULL, 0);
 			break;
 		case IMSG_CTL_ADD:
 			if (control_state.tx != -1 &&
-			    control_state.tx != c->iev.ibuf.fd) {
+			    control_state.tx != imsgbuf->fd) {
 				main_senderr(&c->iev, "locked");
 				break;
 			}
@@ -406,7 +409,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 				control_notify(imsg.hdr.type);
 			break;
 		case IMSG_CTL_COMMIT:
-			if (control_state.tx != c->iev.ibuf.fd) {
+			if (control_state.tx != imsgbuf->fd) {
 				main_senderr(&c->iev, "locked");
 				break;
 			}

@@ -35,7 +35,7 @@
 
 struct pollfd		*player_pfds;
 int			 player_nfds;
-static struct imsgbuf	*ibuf;
+static struct imsgbuf	*imsgbuf;
 
 static int nextfd = -1;
 static int64_t samples;
@@ -67,8 +67,8 @@ player_setduration(int64_t d)
 
 	duration = d;
 	seconds = duration / current_rate;
-	imsg_compose(ibuf, IMSG_LEN, 0, 0, -1, &seconds, sizeof(seconds));
-	imsg_flush(ibuf);
+	imsg_compose(imsgbuf, IMSG_LEN, 0, 0, -1, &seconds, sizeof(seconds));
+	imsg_flush(imsgbuf);
 }
 
 static void
@@ -82,8 +82,8 @@ player_onmove(void *arg, int delta)
 		reported = samples;
 		sec = samples / current_rate;
 
-		imsg_compose(ibuf, IMSG_POS, 0, 0, -1, &sec, sizeof(sec));
-		imsg_flush(ibuf);
+		imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &sec, sizeof(sec));
+		imsg_flush(imsgbuf);
 	}
 }
 
@@ -108,17 +108,17 @@ player_dispatch(int64_t *s, int wait)
 		return IMSG_STOP;
 
 again:
-	if ((n = imsg_get(ibuf, &imsg)) == -1)
+	if ((n = imsg_get(imsgbuf, &imsg)) == -1)
 		fatal("imsg_get");
 	if (n == 0) {
 		if (!wait)
 			return -1;
 
-		pfd.fd = ibuf->fd;
+		pfd.fd = imsgbuf->fd;
 		pfd.events = POLLIN;
 		if (poll(&pfd, 1, INFTIM) == -1)
 			fatal("poll");
-		if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
+		if ((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN)
 			fatal("imsg_read");
 		if (n == 0)
 			fatalx("pipe closed");
@@ -170,15 +170,15 @@ player_senderr(const char *errstr)
 	if (errstr != NULL)
 		len = strlen(errstr) + 1;
 
-	imsg_compose(ibuf, IMSG_ERR, 0, 0, -1, errstr, len);
-	imsg_flush(ibuf);
+	imsg_compose(imsgbuf, IMSG_ERR, 0, 0, -1, errstr, len);
+	imsg_flush(imsgbuf);
 }
 
 static void
 player_sendeof(void)
 {
-	imsg_compose(ibuf, IMSG_EOF, 0, 0, -1, NULL, 0);
-	imsg_flush(ibuf);
+	imsg_compose(imsgbuf, IMSG_EOF, 0, 0, -1, NULL, 0);
+	imsg_flush(imsgbuf);
 }
 
 static int
@@ -193,8 +193,8 @@ player_playnext(const char **errstr)
 
 	/* reset samples and set position to zero */
 	samples = 0;
-	imsg_compose(ibuf, IMSG_POS, 0, 0, -1, &samples, sizeof(samples));
-	imsg_flush(ibuf);
+	imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &samples, sizeof(samples));
+	imsg_flush(imsgbuf);
 
 	r = read(fd, buf, sizeof(buf));
 
@@ -319,8 +319,8 @@ player(int debug, int verbose)
 	player_pfds[0].events = POLLIN;
 	player_pfds[0].fd = 3;
 
-	ibuf = xmalloc(sizeof(*ibuf));
-	imsg_init(ibuf, 3);
+	imsgbuf = xmalloc(sizeof(*imsgbuf));
+	imsg_init(imsgbuf, 3);
 
 	signal(SIGINT, player_signal_handler);
 	signal(SIGTERM, player_signal_handler);

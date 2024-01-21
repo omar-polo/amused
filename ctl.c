@@ -36,7 +36,7 @@
 #include "playlist.h"
 #include "xmalloc.h"
 
-static struct imsgbuf	*ibuf;
+static struct imsgbuf	*imsgbuf;
 char			 cwd[PATH_MAX];
 
 static int	ctl_noarg(struct parse_result *, int, char **);
@@ -164,8 +164,8 @@ parse(struct parse_result *res, int argc, char **argv)
 	res->ctl = ctl;
 
 	status = ctl->main(res, argc, argv);
-	close(ibuf->fd);
-	free(ibuf);
+	close(imsgbuf->fd);
+	free(imsgbuf);
 	return status;
 }
 
@@ -196,7 +196,7 @@ load_files(struct parse_result *res, int *ret)
 		}
 
 		i++;
-		imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
+		imsg_compose(imsgbuf, IMSG_CTL_ADD, 0, 0, -1,
 		    path, sizeof(path));
 	}
 
@@ -206,9 +206,9 @@ load_files(struct parse_result *res, int *ret)
 	fclose(res->fp);
 	res->fp = NULL;
 
-	imsg_compose(ibuf, IMSG_CTL_COMMIT, 0, 0, -1,
+	imsg_compose(imsgbuf, IMSG_CTL_COMMIT, 0, 0, -1,
 	    &curr, sizeof(curr));
-	imsg_flush(ibuf);
+	imsg_flush(imsgbuf);
 	return 0;
 }
 
@@ -370,26 +370,26 @@ ctlaction(struct parse_result *res)
 
 	switch (res->action) {
 	case PLAY:
-		imsg_compose(ibuf, IMSG_CTL_PLAY, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_PLAY, 0, 0, -1, NULL, 0);
 		if (verbose) {
-			imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+			imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0, -1,
 			    NULL, 0);
 			done = 0;
 		}
 		break;
 	case PAUSE:
-		imsg_compose(ibuf, IMSG_CTL_PAUSE, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_PAUSE, 0, 0, -1, NULL, 0);
 		break;
 	case TOGGLE:
-		imsg_compose(ibuf, IMSG_CTL_TOGGLE_PLAY, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_TOGGLE_PLAY, 0, 0, -1, NULL, 0);
 		if (verbose) {
-			imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+			imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0, -1,
 			    NULL, 0);
 			done = 0;
 		}
 		break;
 	case STOP:
-		imsg_compose(ibuf, IMSG_CTL_STOP, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_STOP, 0, 0, -1, NULL, 0);
 		break;
 	case ADD:
 		done = 0;
@@ -401,54 +401,54 @@ ctlaction(struct parse_result *res)
 				continue;
 			}
 
-			imsg_compose(ibuf, IMSG_CTL_ADD, 0, 0, -1,
+			imsg_compose(imsgbuf, IMSG_CTL_ADD, 0, 0, -1,
 			    path, sizeof(path));
 		}
 		ret = i == 0;
 		break;
 	case FLUSH:
-		imsg_compose(ibuf, IMSG_CTL_FLUSH, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_FLUSH, 0, 0, -1, NULL, 0);
 		break;
 	case SHOW:
 		done = 0;
-		imsg_compose(ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
 		break;
 	case STATUS:
 		done = 0;
-		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 		break;
 	case NEXT:
-		imsg_compose(ibuf, IMSG_CTL_NEXT, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_NEXT, 0, 0, -1, NULL, 0);
 		if (verbose) {
-			imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+			imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0, -1,
 			    NULL, 0);
 			done = 0;
 		}
 		break;
 	case PREV:
-		imsg_compose(ibuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
 		if (verbose) {
-			imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+			imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0, -1,
 			    NULL, 0);
 			done = 0;
 		}
 		break;
 	case LOAD:
 		done = 0;
-		imsg_compose(ibuf, IMSG_CTL_BEGIN, 0, 0, -1, NULL, 0);
+		imsg_compose(imsgbuf, IMSG_CTL_BEGIN, 0, 0, -1, NULL, 0);
 		break;
 	case JUMP:
 		done = 0;
 		memset(path, 0, sizeof(path));
 		strlcpy(path, res->files[0], sizeof(path));
-		imsg_compose(ibuf, IMSG_CTL_JUMP, 0, 0, -1,
+		imsg_compose(imsgbuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
 		break;
 	case MODE:
 		done = 0;
-		imsg_compose(ibuf, IMSG_CTL_MODE, 0, 0, -1,
+		imsg_compose(imsgbuf, IMSG_CTL_MODE, 0, 0, -1,
 		    &res->mode, sizeof(res->mode));
-		imsg_compose(ibuf, IMSG_CTL_STATUS, 0, 0, -1,
+		imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0, -1,
 		    &res->mode, sizeof(res->mode));
 		res->status_format = "mode:oneline";
 		if (verbose)
@@ -456,14 +456,14 @@ ctlaction(struct parse_result *res)
 		break;
 	case MONITOR:
 		done = 0;
-		imsg_compose(ibuf, IMSG_CTL_MONITOR, 0, 0, -1,
+		imsg_compose(imsgbuf, IMSG_CTL_MONITOR, 0, 0, -1,
 		    NULL, 0);
 		break;
 	case RESTART:
 		memset(&res->seek, 0, sizeof(res->seek));
 		/* fallthrough */
 	case SEEK:
-		imsg_compose(ibuf, IMSG_CTL_SEEK, 0, 0, -1, &res->seek,
+		imsg_compose(imsgbuf, IMSG_CTL_SEEK, 0, 0, -1, &res->seek,
 		    sizeof(res->seek));
 		break;
 	case NONE:
@@ -475,17 +475,17 @@ ctlaction(struct parse_result *res)
 	if (ret != 0)
 		goto end;
 
-	imsg_flush(ibuf);
+	imsg_flush(imsgbuf);
 
 	i = 0;
 	while (!done) {
-		if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
+		if ((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN)
 			fatalx("imsg_read error");
 		if (n == 0)
 			fatalx("pipe closed");
 
 		while (!done) {
-			if ((n = imsg_get(ibuf, &imsg)) == -1)
+			if ((n = imsg_get(imsgbuf, &imsg)) == -1)
 				fatalx("imsg_get error");
 			if (n == 0)
 				break;
@@ -1005,8 +1005,8 @@ ctl(int argc, char **argv)
 	if ((ctl_sock = ctl_connect()) == -1)
 		fatal("can't connect");
 
-	ibuf = xmalloc(sizeof(*ibuf));
-	imsg_init(ibuf, ctl_sock);
+	imsgbuf = xmalloc(sizeof(*imsgbuf));
+	imsg_init(imsgbuf, ctl_sock);
 
 	optreset = 1;
 	optind = 1;

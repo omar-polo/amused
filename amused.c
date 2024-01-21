@@ -59,8 +59,8 @@ main_shutdown(void)
 	int	status;
 
 	/* close pipes. */
-	msgbuf_clear(&iev_player->ibuf.w);
-	close(iev_player->ibuf.fd);
+	msgbuf_clear(&iev_player->imsgbuf.w);
+	close(iev_player->imsgbuf.fd);
 	free(iev_player);
 
 	log_debug("waiting for children to terminate");
@@ -101,27 +101,27 @@ main_dispatch_player(int sig, int event, void *d)
 {
 	char		*errstr;
 	struct imsgev	*iev = d;
-	struct imsgbuf	*ibuf = &iev->ibuf;
+	struct imsgbuf	*imsgbuf = &iev->imsgbuf;
 	struct imsg	 imsg;
 	size_t		 datalen;
 	ssize_t		 n;
 	int		 shut = 0;
 
 	if (event & POLLIN) {
-		if ((n = imsg_read(ibuf)) == -1 && errno != EAGAIN)
+		if ((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN)
 			fatal("imsg_read error");
 		if (n == 0)	/* Connection closed */
 			shut = 1;
 	}
 	if (event & POLLOUT) {
-		if ((n = msgbuf_write(&ibuf->w)) == -1 && errno != EAGAIN)
+		if ((n = msgbuf_write(&imsgbuf->w)) == -1 && errno != EAGAIN)
 			fatal("msgbuf_write");
 		if (n == 0)	/* Connection closed */
 			shut = 1;
 	}
 
 	for (;;) {
-		if ((n = imsg_get(ibuf, &imsg)) == -1)
+		if ((n = imsg_get(imsgbuf, &imsg)) == -1)
 			fatal("imsg_get");
 		if (n == 0)	/* No more messages. */
 			break;
@@ -278,10 +278,10 @@ amused_main(void)
 	ev_signal(SIGTERM, main_sig_handler, NULL);
 
 	iev_player = xmalloc(sizeof(*iev_player));
-	imsg_init(&iev_player->ibuf, pipe_main2player[0]);
+	imsg_init(&iev_player->imsgbuf, pipe_main2player[0]);
 	iev_player->handler = main_dispatch_player;
 	iev_player->events = POLLIN;
-	ev_add(iev_player->ibuf.fd, iev_player->events,
+	ev_add(iev_player->imsgbuf.fd, iev_player->events,
 	    iev_player->handler, iev_player);
 
 	if ((control_fd = control_init(csock)) == -1)
@@ -369,10 +369,10 @@ void
 imsg_event_add(struct imsgev *iev)
 {
 	iev->events = POLLIN;
-	if (iev->ibuf.w.queued)
+	if (iev->imsgbuf.w.queued)
 		iev->events |= POLLOUT;
 
-	ev_add(iev->ibuf.fd, iev->events, iev->handler, iev);
+	ev_add(iev->imsgbuf.fd, iev->events, iev->handler, iev);
 }
 
 int
@@ -381,7 +381,7 @@ imsg_compose_event(struct imsgev *iev, uint16_t type, uint32_t peerid,
 {
 	int ret;
 
-	if ((ret = imsg_compose(&iev->ibuf, type, peerid, pid, fd, data,
+	if ((ret = imsg_compose(&iev->imsgbuf, type, peerid, pid, fd, data,
 	    datalen)) != -1)
 		imsg_event_add(iev);
 

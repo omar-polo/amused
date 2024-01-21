@@ -59,7 +59,7 @@ enum imsg_type {
 };
 
 struct imsgev {
-	struct imsgbuf	 ibuf;
+	struct imsgbuf	 imsgbuf;
 	void		(*handler)(int, int, void *);
 	int		 events;
 };

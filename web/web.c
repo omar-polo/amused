@@ -60,7 +60,7 @@
 #define ICON_PLAY		"⏵"
 
 static struct clthead		 clients;
-static struct imsgbuf		 ibuf;
+static struct imsgbuf		 imsgbuf;
 static struct playlist		 playlist_tmp;
 static struct player_status	 player_status;
 static uint64_t			 position, duration;
@@ -445,20 +445,20 @@ imsg_dispatch(int fd, int ev, void *d)
 	int			 r;
 
 	if (ev & (POLLIN|POLLHUP)) {
-		if ((n = imsg_read(&ibuf)) == -1 && errno != EAGAIN)
+		if ((n = imsg_read(&imsgbuf)) == -1 && errno != EAGAIN)
 			fatal("imsg_read");
 		if (n == 0)
 			fatalx("pipe closed");
 	}
 	if (ev & POLLOUT) {
-		if ((n = msgbuf_write(&ibuf.w)) == -1 && errno != EAGAIN)
+		if ((n = msgbuf_write(&imsgbuf.w)) == -1 && errno != EAGAIN)
 			fatal("msgbuf_write");
 		if (n == 0)
 			fatalx("pipe closed");
 	}
 
 	for (;;) {
-		if ((n = imsg_get(&ibuf, &imsg)) == -1)
+		if ((n = imsg_get(&imsgbuf, &imsg)) == -1)
 			fatal("imsg_get");
 		if (n == 0)
 			break;
@@ -475,7 +475,8 @@ imsg_dispatch(int fd, int ev, void *d)
 
 		case IMSG_CTL_ADD:
 			playlist_free(&playlist_tmp);
-			imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
+			imsg_compose(&imsgbuf, IMSG_CTL_SHOW, 0, 0, -1,
+			    NULL, 0);
 			break;
 
 		case IMSG_CTL_MONITOR:
@@ -487,18 +488,18 @@ imsg_dispatch(int fd, int ev, void *d)
 			case IMSG_CTL_PAUSE:
 			case IMSG_CTL_STOP:
 			case IMSG_CTL_MODE:
-				imsg_compose(&ibuf, IMSG_CTL_STATUS, 0, 0, -1,
-				    NULL, 0);
+				imsg_compose(&imsgbuf, IMSG_CTL_STATUS, 0, 0,
+				    -1, NULL, 0);
 				break;
 
 			case IMSG_CTL_NEXT:
 			case IMSG_CTL_PREV:
 			case IMSG_CTL_JUMP:
 			case IMSG_CTL_COMMIT:
-				imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1,
+				imsg_compose(&imsgbuf, IMSG_CTL_SHOW, 0, 0, -1,
 				    NULL, 0);
-				imsg_compose(&ibuf, IMSG_CTL_STATUS, 0, 0, -1,
-				    NULL, 0);
+				imsg_compose(&imsgbuf, IMSG_CTL_STATUS, 0, 0,
+				    -1, NULL, 0);
 				break;
 
 			case IMSG_CTL_SEEK:
@@ -562,7 +563,7 @@ imsg_dispatch(int fd, int ev, void *d)
 	}
 
 	ev = POLLIN;
-	if (ibuf.w.queued)
+	if (imsgbuf.w.queued)
 		ev |= POLLOUT;
 	ev_add(fd, ev, imsg_dispatch, NULL);
 }
@@ -687,9 +688,9 @@ route_jump(struct client *clt)
 		if (strlcpy(path, field, sizeof(path)) >= sizeof(path))
 			goto badreq;
 
-		imsg_compose(&ibuf, IMSG_CTL_JUMP, 0, 0, -1,
+		imsg_compose(&imsgbuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
-		ev_add(ibuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
+		ev_add(imsgbuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -734,8 +735,8 @@ route_controls(struct client *clt)
 		else
 			goto badreq;
 
-		imsg_compose(&ibuf, cmd, 0, 0, -1, NULL, 0);
-		imsg_flush(&ibuf);
+		imsg_compose(&imsgbuf, cmd, 0, 0, -1, NULL, 0);
+		imsg_flush(&imsgbuf);
 		break;
 	}
 
@@ -779,8 +780,9 @@ route_mode(struct client *clt)
 		else
 			goto badreq;
 
-		imsg_compose(&ibuf, IMSG_CTL_MODE, 0, 0, -1, &pm, sizeof(pm));
-		ev_add(ibuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
+		imsg_compose(&imsgbuf, IMSG_CTL_MODE, 0, 0, -1,
+		    &pm, sizeof(pm));
+		ev_add(imsgbuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -1063,10 +1065,10 @@ main(int argc, char **argv)
 		fatal("ev_init");
 
 	amused_sock = dial(sock);
-	imsg_init(&ibuf, amused_sock);
-	imsg_compose(&ibuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
-	imsg_compose(&ibuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
-	imsg_compose(&ibuf, IMSG_CTL_MONITOR, 0, 0, -1, NULL, 0);
+	imsg_init(&imsgbuf, amused_sock);
+	imsg_compose(&imsgbuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
+	imsg_compose(&imsgbuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
+	imsg_compose(&imsgbuf, IMSG_CTL_MONITOR, 0, 0, -1, NULL, 0);
 	ev_add(amused_sock, POLLIN|POLLOUT, imsg_dispatch, NULL);
 
 	memset(&hints, 0, sizeof(hints));
