@@ -253,10 +253,12 @@ main(void)
 int
 main(void)
 {
-	struct imsgbuf ibuf;
+	struct imsgbuf imsgbuf;
+	struct imsg imsg;
 
-	imsg_init(&ibuf, 3);
-	imsg_clear(&ibuf);
+	imsg_init(&imsgbuf, 3);
+	imsg_clear(&imsgbuf);
+	imsg_get_fd(&imsg);
 	return 0;
 }
 #endif /* TEST_LIB_IMSG */
