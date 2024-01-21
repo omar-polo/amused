@@ -333,10 +333,11 @@ getprogname(void)
 #endif
 #endif /* !HAVE_GETPROGNAME */
 #if !HAVE_LIB_IMSG
-/*	$OpenBSD: imsg-buffer.c,v 1.16 2023/06/19 17:19:50 claudio Exp $	*/
-/*	$OpenBSD: imsg.c,v 1.19 2023/06/19 17:19:50 claudio Exp $	*/
+/*	$OpenBSD: imsg-buffer.c,v 1.18 2023/12/12 15:47:41 claudio Exp $	*/
+/*	$OpenBSD: imsg.c,v 1.23 2023/12/12 15:47:41 claudio Exp $	*/
 
 /*
+ * Copyright (c) 2023 Claudio Jeker <claudio@openbsd.org>
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -352,8 +353,6 @@ getprogname(void)
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -361,6 +360,7 @@ getprogname(void)
 #include <limits.h>
 #include <errno.h>
 #include <endian.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -398,7 +398,7 @@ ibuf_dynamic(size_t len, size_t max)
 {
 	struct ibuf	*buf;
 
-	if (max < len) {
+	if (max == 0 || max < len) {
 		errno = EINVAL;
 		return (NULL);
 	}
@@ -443,7 +443,7 @@ ibuf_reserve(struct ibuf *buf, size_t len)
 {
 	void	*b;
 
-	if (len > SIZE_MAX - buf->wpos) {
+	if (len > SIZE_MAX - buf->wpos || buf->max == 0) {
 		errno = ERANGE;
 		return (NULL);
 	}
@@ -454,7 +454,6 @@ ibuf_reserve(struct ibuf *buf, size_t len)
 
 	b = buf->buf + buf->wpos;
 	buf->wpos += len;
-	memset(b, 0, len);
 	return (b);
 }
 
@@ -471,9 +470,16 @@ ibuf_add(struct ibuf *buf, const void *data, size_t len)
 }
 
 int
+ibuf_add_ibuf(struct ibuf *buf, const struct ibuf *from)
+{
+	return ibuf_add(buf, ibuf_data(from), ibuf_size(from));
+}
+
+/* remove after tree is converted */
+int
 ibuf_add_buf(struct ibuf *buf, const struct ibuf *from)
 {
-	return ibuf_add(buf, from->buf, from->wpos);
+	return ibuf_add_ibuf(buf, from);
 }
 
 int
@@ -523,25 +529,59 @@ ibuf_add_n64(struct ibuf *buf, uint64_t value)
 }
 
 int
+ibuf_add_h16(struct ibuf *buf, uint64_t value)
+{
+	uint16_t v;
+
+	if (value > UINT16_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = value;
+	return ibuf_add(buf, &v, sizeof(v));
+}
+
+int
+ibuf_add_h32(struct ibuf *buf, uint64_t value)
+{
+	uint32_t v;
+
+	if (value > UINT32_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = value;
+	return ibuf_add(buf, &v, sizeof(v));
+}
+
+int
+ibuf_add_h64(struct ibuf *buf, uint64_t value)
+{
+	return ibuf_add(buf, &value, sizeof(value));
+}
+
+int
 ibuf_add_zero(struct ibuf *buf, size_t len)
 {
 	void *b;
 
 	if ((b = ibuf_reserve(buf, len)) == NULL)
 		return (-1);
+	memset(b, 0, len);
 	return (0);
 }
 
 void *
 ibuf_seek(struct ibuf *buf, size_t pos, size_t len)
 {
-	/* only allowed to seek in already written parts */
-	if (len > SIZE_MAX - pos || pos + len > buf->wpos) {
+	/* only allow seeking between rpos and wpos */
+	if (ibuf_size(buf) < pos || SIZE_MAX - pos < len ||
+	    ibuf_size(buf) < pos + len) {
 		errno = ERANGE;
 		return (NULL);
 	}
 
-	return (buf->buf + pos);
+	return (buf->buf + buf->rpos + pos);
 }
 
 int
@@ -602,22 +642,77 @@ ibuf_set_n64(struct ibuf *buf, size_t pos, uint64_t value)
 	return (ibuf_set(buf, pos, &value, sizeof(value)));
 }
 
+int
+ibuf_set_h16(struct ibuf *buf, size_t pos, uint64_t value)
+{
+	uint16_t v;
+
+	if (value > UINT16_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = value;
+	return (ibuf_set(buf, pos, &v, sizeof(v)));
+}
+
+int
+ibuf_set_h32(struct ibuf *buf, size_t pos, uint64_t value)
+{
+	uint32_t v;
+
+	if (value > UINT32_MAX) {
+		errno = EINVAL;
+		return (-1);
+	}
+	v = value;
+	return (ibuf_set(buf, pos, &v, sizeof(v)));
+}
+
+int
+ibuf_set_h64(struct ibuf *buf, size_t pos, uint64_t value)
+{
+	return (ibuf_set(buf, pos, &value, sizeof(value)));
+}
+
 void *
-ibuf_data(struct ibuf *buf)
+ibuf_data(const struct ibuf *buf)
 {
-	return (buf->buf);
+	return (buf->buf + buf->rpos);
 }
 
 size_t
-ibuf_size(struct ibuf *buf)
+ibuf_size(const struct ibuf *buf)
 {
-	return (buf->wpos);
+	return (buf->wpos - buf->rpos);
 }
 
 size_t
-ibuf_left(struct ibuf *buf)
+ibuf_left(const struct ibuf *buf)
 {
+	if (buf->max == 0)
+		return (0);
 	return (buf->max - buf->wpos);
+}
+
+int
+ibuf_truncate(struct ibuf *buf, size_t len)
+{
+	if (ibuf_size(buf) >= len) {
+		buf->wpos = buf->rpos + len;
+		return (0);
+	}
+	if (buf->max == 0) {
+		/* only allow to truncate down */
+		errno = ERANGE;
+		return (-1);
+	}
+	return ibuf_add_zero(buf, len - ibuf_size(buf));
+}
+
+void
+ibuf_rewind(struct ibuf *buf)
+{
+	buf->rpos = 0;
 }
 
 void
@@ -627,14 +722,121 @@ ibuf_close(struct msgbuf *msgbuf, struct ibuf *buf)
 }
 
 void
+ibuf_from_buffer(struct ibuf *buf, void *data, size_t len)
+{
+	memset(buf, 0, sizeof(*buf));
+	buf->buf = data;
+	buf->size = buf->wpos = len;
+	buf->fd = -1;
+}
+
+void
+ibuf_from_ibuf(struct ibuf *buf, const struct ibuf *from)
+{
+	ibuf_from_buffer(buf, ibuf_data(from), ibuf_size(from));
+}
+
+int
+ibuf_get(struct ibuf *buf, void *data, size_t len)
+{
+	if (ibuf_size(buf) < len) {
+		errno = EBADMSG;
+		return (-1);
+	}
+
+	memcpy(data, ibuf_data(buf), len);
+	buf->rpos += len;
+	return (0);
+}
+
+int
+ibuf_get_ibuf(struct ibuf *buf, size_t len, struct ibuf *new)
+{
+	if (ibuf_size(buf) < len) {
+		errno = EBADMSG;
+		return (-1);
+	}
+
+	ibuf_from_buffer(new, ibuf_data(buf), len);
+	buf->rpos += len;
+	return (0);
+}
+
+int
+ibuf_get_n8(struct ibuf *buf, uint8_t *value)
+{
+	return ibuf_get(buf, value, sizeof(*value));
+}
+
+int
+ibuf_get_n16(struct ibuf *buf, uint16_t *value)
+{
+	int rv;
+
+	rv = ibuf_get(buf, value, sizeof(*value));
+	*value = be16toh(*value);
+	return (rv);
+}
+
+int
+ibuf_get_n32(struct ibuf *buf, uint32_t *value)
+{
+	int rv;
+
+	rv = ibuf_get(buf, value, sizeof(*value));
+	*value = be32toh(*value);
+	return (rv);
+}
+
+int
+ibuf_get_n64(struct ibuf *buf, uint64_t *value)
+{
+	int rv;
+
+	rv = ibuf_get(buf, value, sizeof(*value));
+	*value = be64toh(*value);
+	return (rv);
+}
+
+int
+ibuf_get_h16(struct ibuf *buf, uint16_t *value)
+{
+	return ibuf_get(buf, value, sizeof(*value));
+}
+
+int
+ibuf_get_h32(struct ibuf *buf, uint32_t *value)
+{
+	return ibuf_get(buf, value, sizeof(*value));
+}
+
+int
+ibuf_get_h64(struct ibuf *buf, uint64_t *value)
+{
+	return ibuf_get(buf, value, sizeof(*value));
+}
+
+int
+ibuf_skip(struct ibuf *buf, size_t len)
+{
+	if (ibuf_size(buf) < len) {
+		errno = EBADMSG;
+		return (-1);
+	}
+
+	buf->rpos += len;
+	return (0);
+}
+
+void
 ibuf_free(struct ibuf *buf)
 {
 	if (buf == NULL)
 		return;
-#ifdef NOTYET
+	if (buf->max == 0)	/* if buf lives on the stack */
+		abort();	/* abort before causing more harm */
 	if (buf->fd != -1)
 		close(buf->fd);
-#endif
 	freezero(buf->buf, buf->size);
 	free(buf);
 }
@@ -651,15 +853,15 @@ ibuf_fd_get(struct ibuf *buf)
 	int fd;
 
 	fd = buf->fd;
-#ifdef NOTYET
 	buf->fd = -1;
-#endif
 	return (fd);
 }
 
 void
 ibuf_fd_set(struct ibuf *buf, int fd)
 {
+	if (buf->max == 0)	/* if buf lives on the stack */
+		abort();	/* abort before causing more harm */
 	if (buf->fd != -1)
 		close(buf->fd);
 	buf->fd = fd;
@@ -677,8 +879,8 @@ ibuf_write(struct msgbuf *msgbuf)
 	TAILQ_FOREACH(buf, &msgbuf->bufs, entry) {
 		if (i >= IOV_MAX)
 			break;
-		iov[i].iov_base = buf->buf + buf->rpos;
-		iov[i].iov_len = buf->wpos - buf->rpos;
+		iov[i].iov_base = ibuf_data(buf);
+		iov[i].iov_len = ibuf_size(buf);
 		i++;
 	}
 
@@ -717,8 +919,8 @@ msgbuf_drain(struct msgbuf *msgbuf, size_t n)
 	for (buf = TAILQ_FIRST(&msgbuf->bufs); buf != NULL && n > 0;
 	    buf = next) {
 		next = TAILQ_NEXT(buf, entry);
-		if (n >= buf->wpos - buf->rpos) {
-			n -= buf->wpos - buf->rpos;
+		if (n >= ibuf_size(buf)) {
+			n -= ibuf_size(buf);
 			ibuf_dequeue(msgbuf, buf);
 		} else {
 			buf->rpos += n;
@@ -758,8 +960,8 @@ msgbuf_write(struct msgbuf *msgbuf)
 			break;
 		if (i > 0 && buf->fd != -1)
 			break;
-		iov[i].iov_base = buf->buf + buf->rpos;
-		iov[i].iov_len = buf->wpos - buf->rpos;
+		iov[i].iov_base = ibuf_data(buf);
+		iov[i].iov_len = ibuf_size(buf);
 		i++;
 		if (buf->fd != -1)
 			buf0 = buf;
@@ -806,9 +1008,17 @@ again:
 	return (1);
 }
 
+uint32_t
+msgbuf_queuelen(struct msgbuf *msgbuf)
+{
+	return (msgbuf->queued);
+}
+
 static void
 ibuf_enqueue(struct msgbuf *msgbuf, struct ibuf *buf)
 {
+	if (buf->max == 0)	/* if buf lives on the stack */
+		abort();	/* abort before causing more harm */
 	TAILQ_INSERT_TAIL(&msgbuf->bufs, buf, entry);
 	msgbuf->queued++;
 }
@@ -817,35 +1027,34 @@ static void
 ibuf_dequeue(struct msgbuf *msgbuf, struct ibuf *buf)
 {
 	TAILQ_REMOVE(&msgbuf->bufs, buf, entry);
-
-	if (buf->fd != -1) {
-		close(buf->fd);
-		buf->fd = -1;
-	}
-
 	msgbuf->queued--;
 	ibuf_free(buf);
 }
 
 /* imsg.c */
 
+struct imsg_fd {
+	TAILQ_ENTRY(imsg_fd)	entry;
+	int			fd;
+};
+
 int	 imsg_fd_overhead = 0;
 
-static int	 imsg_get_fd(struct imsgbuf *);
+static int	 imsg_dequeue_fd(struct imsgbuf *);
 
 void
-imsg_init(struct imsgbuf *ibuf, int fd)
+imsg_init(struct imsgbuf *imsgbuf, int fd)
 {
-	msgbuf_init(&ibuf->w);
-	memset(&ibuf->r, 0, sizeof(ibuf->r));
-	ibuf->fd = fd;
-	ibuf->w.fd = fd;
-	ibuf->pid = getpid();
-	TAILQ_INIT(&ibuf->fds);
+	msgbuf_init(&imsgbuf->w);
+	memset(&imsgbuf->r, 0, sizeof(imsgbuf->r));
+	imsgbuf->fd = fd;
+	imsgbuf->w.fd = fd;
+	imsgbuf->pid = getpid();
+	TAILQ_INIT(&imsgbuf->fds);
 }
 
 ssize_t
-imsg_read(struct imsgbuf *ibuf)
+imsg_read(struct imsgbuf *imsgbuf)
 {
 	struct msghdr		 msg;
 	struct cmsghdr		*cmsg;
@@ -861,8 +1070,8 @@ imsg_read(struct imsgbuf *ibuf)
 	memset(&msg, 0, sizeof(msg));
 	memset(&cmsgbuf, 0, sizeof(cmsgbuf));
 
-	iov.iov_base = ibuf->r.buf + ibuf->r.wpos;
-	iov.iov_len = sizeof(ibuf->r.buf) - ibuf->r.wpos;
+	iov.iov_base = imsgbuf->r.buf + imsgbuf->r.wpos;
+	iov.iov_len = sizeof(imsgbuf->r.buf) - imsgbuf->r.wpos;
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 	msg.msg_control = &cmsgbuf.buf;
@@ -880,13 +1089,13 @@ again:
 		return (-1);
 	}
 
-	if ((n = recvmsg(ibuf->fd, &msg, 0)) == -1) {
+	if ((n = recvmsg(imsgbuf->fd, &msg, 0)) == -1) {
 		if (errno == EINTR)
 			goto again;
 		goto fail;
 	}
 
-	ibuf->r.wpos += n;
+	imsgbuf->r.wpos += n;
 
 	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
 	    cmsg = CMSG_NXTHDR(&msg, cmsg)) {
@@ -906,7 +1115,7 @@ again:
 				fd = ((int *)CMSG_DATA(cmsg))[i];
 				if (ifd != NULL) {
 					ifd->fd = fd;
-					TAILQ_INSERT_TAIL(&ibuf->fds, ifd,
+					TAILQ_INSERT_TAIL(&imsgbuf->fds, ifd,
 					    entry);
 					ifd = NULL;
 				} else
@@ -922,77 +1131,145 @@ fail:
 }
 
 ssize_t
-imsg_get(struct imsgbuf *ibuf, struct imsg *imsg)
+imsg_get(struct imsgbuf *imsgbuf, struct imsg *imsg)
 {
+	struct imsg		 m;
 	size_t			 av, left, datalen;
 
-	av = ibuf->r.wpos;
+	av = imsgbuf->r.wpos;
 
 	if (IMSG_HEADER_SIZE > av)
 		return (0);
 
-	memcpy(&imsg->hdr, ibuf->r.buf, sizeof(imsg->hdr));
-	if (imsg->hdr.len < IMSG_HEADER_SIZE ||
-	    imsg->hdr.len > MAX_IMSGSIZE) {
+	memcpy(&m.hdr, imsgbuf->r.buf, sizeof(m.hdr));
+	if (m.hdr.len < IMSG_HEADER_SIZE ||
+	    m.hdr.len > MAX_IMSGSIZE) {
 		errno = ERANGE;
 		return (-1);
 	}
-	if (imsg->hdr.len > av)
+	if (m.hdr.len > av)
 		return (0);
-	datalen = imsg->hdr.len - IMSG_HEADER_SIZE;
-	ibuf->r.rptr = ibuf->r.buf + IMSG_HEADER_SIZE;
-	if (datalen == 0)
-		imsg->data = NULL;
-	else if ((imsg->data = malloc(datalen)) == NULL)
-		return (-1);
 
-	if (imsg->hdr.flags & IMSGF_HASFD)
-		imsg->fd = imsg_get_fd(ibuf);
-	else
-		imsg->fd = -1;
+	m.fd = -1;
+	m.buf = NULL;
+	m.data = NULL;
 
-	if (datalen != 0)
-		memcpy(imsg->data, ibuf->r.rptr, datalen);
+	datalen = m.hdr.len - IMSG_HEADER_SIZE;
+	imsgbuf->r.rptr = imsgbuf->r.buf + IMSG_HEADER_SIZE;
+	if (datalen != 0) {
+		if ((m.buf = ibuf_open(datalen)) == NULL)
+			return (-1);
+		if (ibuf_add(m.buf, imsgbuf->r.rptr, datalen) == -1) {
+			/* this should never fail */
+			ibuf_free(m.buf);
+			return (-1);
+		}
+		m.data = ibuf_data(m.buf);
+	}
 
-	if (imsg->hdr.len < av) {
-		left = av - imsg->hdr.len;
-		memmove(&ibuf->r.buf, ibuf->r.buf + imsg->hdr.len, left);
-		ibuf->r.wpos = left;
+	if (m.hdr.flags & IMSGF_HASFD)
+		m.fd = imsg_dequeue_fd(imsgbuf);
+
+	if (m.hdr.len < av) {
+		left = av - m.hdr.len;
+		memmove(&imsgbuf->r.buf, imsgbuf->r.buf + m.hdr.len, left);
+		imsgbuf->r.wpos = left;
 	} else
-		ibuf->r.wpos = 0;
+		imsgbuf->r.wpos = 0;
 
+	*imsg = m;
 	return (datalen + IMSG_HEADER_SIZE);
 }
 
 int
-imsg_compose(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
-    int fd, const void *data, uint16_t datalen)
+imsg_get_ibuf(struct imsg *imsg, struct ibuf *ibuf)
+{
+	if (imsg->buf == NULL) {
+		errno = EBADMSG;
+		return (-1);
+	}
+	return ibuf_get_ibuf(imsg->buf, ibuf_size(imsg->buf), ibuf);
+}
+
+int
+imsg_get_data(struct imsg *imsg, void *data, size_t len)
+{
+	if (len == 0) {
+		errno = EINVAL;
+		return (-1);
+	}
+	if (imsg->buf == NULL || ibuf_size(imsg->buf) != len) {
+		errno = EBADMSG;
+		return (-1);
+	}
+	return ibuf_get(imsg->buf, data, len);
+}
+
+int
+imsg_get_fd(struct imsg *imsg)
+{
+	int fd = imsg->fd;
+
+	imsg->fd = -1;
+	return fd;
+}
+
+uint32_t
+imsg_get_id(struct imsg *imsg)
+{
+	return (imsg->hdr.peerid);
+}
+
+size_t
+imsg_get_len(struct imsg *imsg)
+{
+	if (imsg->buf == NULL)
+		return 0;
+	return ibuf_size(imsg->buf);
+}
+
+pid_t
+imsg_get_pid(struct imsg *imsg)
+{
+	return (imsg->hdr.pid);
+}
+
+uint32_t
+imsg_get_type(struct imsg *imsg)
+{
+	return (imsg->hdr.type);
+}
+
+int
+imsg_compose(struct imsgbuf *imsgbuf, uint32_t type, uint32_t id, pid_t pid,
+    int fd, const void *data, size_t datalen)
 {
 	struct ibuf	*wbuf;
 
-	if ((wbuf = imsg_create(ibuf, type, peerid, pid, datalen)) == NULL)
+	if ((wbuf = imsg_create(imsgbuf, type, id, pid, datalen)) == NULL)
 		return (-1);
 
 	if (imsg_add(wbuf, data, datalen) == -1)
 		return (-1);
 
 	ibuf_fd_set(wbuf, fd);
-	imsg_close(ibuf, wbuf);
+	imsg_close(imsgbuf, wbuf);
 
 	return (1);
 }
 
 int
-imsg_composev(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
+imsg_composev(struct imsgbuf *imsgbuf, uint32_t type, uint32_t id, pid_t pid,
     int fd, const struct iovec *iov, int iovcnt)
 {
 	struct ibuf	*wbuf;
-	int		 i, datalen = 0;
+	int		 i;
+	size_t		 datalen = 0;
 
 	for (i = 0; i < iovcnt; i++)
 		datalen += iov[i].iov_len;
 
-	if ((wbuf = imsg_create(ibuf, type, peerid, pid, datalen)) == NULL)
+	if ((wbuf = imsg_create(imsgbuf, type, id, pid, datalen)) == NULL)
 		return (-1);
 
 	for (i = 0; i < iovcnt; i++)
@@ -1000,16 +1277,20 @@ imsg_composev(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
 			return (-1);
 
 	ibuf_fd_set(wbuf, fd);
-	imsg_close(ibuf, wbuf);
+	imsg_close(imsgbuf, wbuf);
 
 	return (1);
 }
 
+/*
+ * Enqueue imsg with payload from ibuf buf. fd passing is not possible 
+ * with this function.
+ */
 int
-imsg_compose_ibuf(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid,
+imsg_compose_ibuf(struct imsgbuf *imsgbuf, uint32_t type, uint32_t id,
     pid_t pid, struct ibuf *buf)
 {
-	struct ibuf	*wbuf = NULL;
+	struct ibuf	*hdrbuf = NULL;
 	struct imsg_hdr	 hdr;
 	int save_errno;
 
@@ -1021,30 +1302,64 @@ imsg_compose_ibuf(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid,
 	hdr.type = type;
 	hdr.len = ibuf_size(buf) + IMSG_HEADER_SIZE;
 	hdr.flags = 0;
-	hdr.peerid = peerid;
+	hdr.peerid = id;
 	if ((hdr.pid = pid) == 0)
-		hdr.pid = ibuf->pid;
+		hdr.pid = imsgbuf->pid;
 
-	if ((wbuf = ibuf_open(IMSG_HEADER_SIZE)) == NULL)
+	if ((hdrbuf = ibuf_open(IMSG_HEADER_SIZE)) == NULL)
 		goto fail;
-	if (imsg_add(wbuf, &hdr, sizeof(hdr)) == -1)
+	if (imsg_add(hdrbuf, &hdr, sizeof(hdr)) == -1)
 		goto fail;
 
-	ibuf_close(&ibuf->w, wbuf);
-	ibuf_close(&ibuf->w, buf);
+	ibuf_close(&imsgbuf->w, hdrbuf);
+	ibuf_close(&imsgbuf->w, buf);
 	return (1);
 
  fail:
 	save_errno = errno;
 	ibuf_free(buf);
-	ibuf_free(wbuf);
+	ibuf_free(hdrbuf);
 	errno = save_errno;
 	return (-1);
 }
 
+/*
+ * Forward imsg to another channel. Any attached fd is closed.
+ */
+int
+imsg_forward(struct imsgbuf *imsgbuf, struct imsg *msg)
+{
+	struct ibuf	*wbuf;
+	size_t		 len = 0;
+
+	if (msg->fd != -1) {
+		close(msg->fd);
+		msg->fd = -1;
+	}
+
+	if (msg->buf != NULL) {
+		ibuf_rewind(msg->buf);
+		len = ibuf_size(msg->buf);
+	}
+
+	if ((wbuf = imsg_create(imsgbuf, msg->hdr.type, msg->hdr.peerid,
+	    msg->hdr.pid, len)) == NULL)
+		return (-1);
+
+	if (msg->buf != NULL) {
+		if (ibuf_add_buf(wbuf, msg->buf) == -1) {
+			ibuf_free(wbuf);
+			return (-1);
+		}
+	}
+
+	imsg_close(imsgbuf, wbuf);
+	return (1);
+}
+
 struct ibuf *
-imsg_create(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
-    uint16_t datalen)
+imsg_create(struct imsgbuf *imsgbuf, uint32_t type, uint32_t id, pid_t pid,
+    size_t datalen)
 {
 	struct ibuf	*wbuf;
 	struct imsg_hdr	 hdr;
@@ -1057,9 +1372,9 @@ imsg_create(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
 
 	hdr.type = type;
 	hdr.flags = 0;
-	hdr.peerid = peerid;
+	hdr.peerid = id;
 	if ((hdr.pid = pid) == 0)
-		hdr.pid = ibuf->pid;
+		hdr.pid = imsgbuf->pid;
 	if ((wbuf = ibuf_dynamic(datalen, MAX_IMSGSIZE)) == NULL) {
 		return (NULL);
 	}
@@ -1070,7 +1385,7 @@ imsg_create(struct imsgbuf *ibuf, uint32_t type, uint32_t peerid, pid_t pid,
 }
 
 int
-imsg_add(struct ibuf *msg, const void *data, uint16_t datalen)
+imsg_add(struct ibuf *msg, const void *data, size_t datalen)
 {
 	if (datalen)
 		if (ibuf_add(msg, data, datalen) == -1) {
@@ -1081,7 +1396,7 @@ imsg_add(struct ibuf *msg, const void *data, uint16_t datalen)
 }
 
 void
-imsg_close(struct imsgbuf *ibuf, struct ibuf *msg)
+imsg_close(struct imsgbuf *imsgbuf, struct ibuf *msg)
 {
 	struct imsg_hdr	*hdr;
 
@@ -1092,47 +1407,47 @@ imsg_close(struct imsgbuf *ibuf, struct ibuf *msg)
 		hdr->flags |= IMSGF_HASFD;
 	hdr->len = ibuf_size(msg);
 
-	ibuf_close(&ibuf->w, msg);
+	ibuf_close(&imsgbuf->w, msg);
 }
 
 void
 imsg_free(struct imsg *imsg)
 {
-	freezero(imsg->data, imsg->hdr.len - IMSG_HEADER_SIZE);
+	ibuf_free(imsg->buf);
 }
 
 static int
-imsg_get_fd(struct imsgbuf *ibuf)
+imsg_dequeue_fd(struct imsgbuf *imsgbuf)
 {
 	int		 fd;
 	struct imsg_fd	*ifd;
 
-	if ((ifd = TAILQ_FIRST(&ibuf->fds)) == NULL)
+	if ((ifd = TAILQ_FIRST(&imsgbuf->fds)) == NULL)
 		return (-1);
 
 	fd = ifd->fd;
-	TAILQ_REMOVE(&ibuf->fds, ifd, entry);
+	TAILQ_REMOVE(&imsgbuf->fds, ifd, entry);
 	free(ifd);
 
 	return (fd);
 }
 
 int
-imsg_flush(struct imsgbuf *ibuf)
+imsg_flush(struct imsgbuf *imsgbuf)
 {
-	while (ibuf->w.queued)
-		if (msgbuf_write(&ibuf->w) <= 0)
+	while (imsgbuf->w.queued)
+		if (msgbuf_write(&imsgbuf->w) <= 0)
 			return (-1);
 	return (0);
 }
 
 void
-imsg_clear(struct imsgbuf *ibuf)
+imsg_clear(struct imsgbuf *imsgbuf)
 {
 	int	fd;
 
-	msgbuf_clear(&ibuf->w);
-	while ((fd = imsg_get_fd(ibuf)) != -1)
+	msgbuf_clear(&imsgbuf->w);
+	while ((fd = imsg_dequeue_fd(imsgbuf)) != -1)
 		close(fd);
 }
 #endif /* HAVE_LIB_IMSG */
