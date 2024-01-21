@@ -130,7 +130,7 @@ again:
 	case IMSG_PLAY:
 		if (nextfd != -1)
 			fatalx("track already enqueued");
-		if ((nextfd = imsg.fd) == -1)
+		if ((nextfd = imsg_get_fd(&imsg)) == -1)
 			fatalx("%s: got invalid file descriptor", __func__);
 		log_debug("song enqueued");
 		ret = IMSG_STOP;
