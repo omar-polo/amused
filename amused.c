@@ -246,8 +246,8 @@ amused_main(void)
 	log_setverbose(verbose);
 	log_procinit("main");
 
-	if (!debug)
-		daemon(1, 0);
+	if (!debug && daemon(1, 0) == -1)
+		fatal("daemon");
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, pipe_main2player) == -1)
 		fatal("socketpair");
