@@ -818,9 +818,6 @@ else
 	echo
 fi
 
-# Now we handle our HAVE_xxxx values.
-# Most will just be defined as 0 or 1.
-
 if [ ${HAVE_PATH_MAX} -eq 0 ]
 then
 	echo "#define PATH_MAX 4096"
