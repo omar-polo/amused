@@ -129,7 +129,7 @@ ws_accept_hdr(const char *secret, char *out, size_t olen)
 int
 ws_read(struct client *clt, int *type, size_t *len)
 {
-	struct buffer	*rbuf = &clt->bio.rbuf;
+	struct buf	*rbuf = &clt->bio.rbuf;
 	size_t		 i;
 	uint32_t	 mask;
 	uint8_t		 first, second, op, plen;

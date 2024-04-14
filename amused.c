@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,13 +107,13 @@ main_dispatch_player(int sig, int event, void *d)
 	ssize_t		 n;
 	int		 shut = 0;
 
-	if (event & POLLIN) {
+	if (event & EV_READ) {
 		if ((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN)
 			fatal("imsg_read error");
 		if (n == 0)	/* Connection closed */
 			shut = 1;
 	}
-	if (event & POLLOUT) {
+	if (event & EV_WRITE) {
 		if ((n = msgbuf_write(&imsgbuf->w)) == -1 && errno != EAGAIN)
 			fatal("msgbuf_write");
 		if (n == 0)	/* Connection closed */
@@ -277,7 +276,7 @@ amused_main(void)
 	iev_player = xmalloc(sizeof(*iev_player));
 	imsg_init(&iev_player->imsgbuf, pipe_main2player[0]);
 	iev_player->handler = main_dispatch_player;
-	iev_player->events = POLLIN;
+	iev_player->events = EV_READ;
 	ev_add(iev_player->imsgbuf.fd, iev_player->events,
 	    iev_player->handler, iev_player);
 
@@ -365,9 +364,9 @@ spawn_daemon(void)
 void
 imsg_event_add(struct imsgev *iev)
 {
-	iev->events = POLLIN;
+	iev->events = EV_READ;
 	if (iev->imsgbuf.w.queued)
-		iev->events |= POLLOUT;
+		iev->events |= EV_WRITE;
 
 	ev_add(iev->imsgbuf.fd, iev->events, iev->handler, iev);
 }

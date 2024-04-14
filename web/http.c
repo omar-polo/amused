@@ -61,7 +61,7 @@ http_init(struct client *clt, int fd)
 int
 http_parse(struct client *clt)
 {
-	struct buffer	*rbuf = &clt->bio.rbuf;
+	struct buf	*rbuf = &clt->bio.rbuf;
 	struct request	*req = &clt->req;
 	size_t		 len;
 	uint8_t		*endln;
@@ -188,7 +188,7 @@ int
 http_read(struct client *clt)
 {
 	struct request	*req = &clt->req;
-	struct buffer	*rbuf = &clt->bio.rbuf;
+	struct buf	*rbuf = &clt->bio.rbuf;
 	size_t		 left;
 
 	/* clients may have sent more data than advertised */

@@ -25,12 +25,15 @@
 
 #include "config.h"
 
+#include <sys/time.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -39,6 +42,12 @@
 struct evcb {
 	void		(*cb)(int, int, void *);
 	void		*udata;
+};
+
+struct evtimer {
+	unsigned int	 id;
+	struct timeval	 tv;
+	struct evcb	 cb;
 };
 
 struct evbase {
@@ -53,8 +62,19 @@ struct evbase {
 	int		 sigpipe[2];
 	struct evcb	 sigcb;
 
-	int		 timeout;
-	struct evcb	 toutcb;
+	unsigned int	 tid;
+
+	/*
+	 * Binary heap of timers.  At runtime, new timers are added in
+	 * the ``reserve'', a space after the caninocal end of the
+	 * array, and at the end of every tick they're added to the
+	 * heap.
+	 */
+	struct evtimer	*timers;
+	size_t		 ntimers;
+	size_t		 reserve_from;
+	size_t		 reserve_till;
+	size_t		 timerscap;
 };
 
 static struct evbase	*base;
@@ -98,7 +118,6 @@ ev_init(void)
 
 	base->sigpipe[0] = -1;
 	base->sigpipe[1] = -1;
-	base->timeout = INFTIM;
 
 	if (ev_resize(16) == -1) {
 		free(base->pfds);
@@ -111,16 +130,35 @@ ev_init(void)
 	return 0;
 }
 
+static inline int
+ev2poll(int ev)
+{
+	int	 ret = 0;
+
+	if (ev & EV_READ)
+		ret |= POLLIN;
+	if (ev & EV_WRITE)
+		ret |= POLLOUT;
+
+	return (ret);
+}
+
 int
 ev_add(int fd, int ev, void (*cb)(int, int, void *), void *udata)
 {
-	if (fd >= base->len) {
+	if (fd < 0) {
+		errno = EBADF;
+		return -1;
+	}
+
+	if ((size_t)fd >= base->len) {
 		if (ev_resize(fd + 1) == -1)
 			return -1;
 	}
 
 	base->pfds[fd].fd = fd;
-	base->pfds[fd].events = ev;
+	base->pfds[fd].events = ev2poll(ev);
+	base->pfds[fd].revents = 0;
 
 	base->cbs[fd].cb = cb;
 	base->cbs[fd].udata = udata;
@@ -154,7 +192,7 @@ ev_sigdispatch(int fd, int ev, void *data)
 	if (read(fd, &signo, sizeof(signo)) != sizeof(signo))
 		return;
 
-	base->sigcb.cb(signo, 0, base->sigcb.udata);
+	base->sigcb.cb(signo, EV_SIGNAL, base->sigcb.udata);
 }
 
 int
@@ -171,7 +209,7 @@ ev_signal(int sig, void (*cb)(int, int, void *), void *udata)
 		    fcntl(base->sigpipe[1], F_SETFL, flags | O_NONBLOCK) == -1)
 			return -1;
 
-		if (ev_add(base->sigpipe[0], POLLIN, ev_sigdispatch, NULL)
+		if (ev_add(base->sigpipe[0], EV_READ, ev_sigdispatch, NULL)
 		    == -1)
 			return -1;
 	}
@@ -183,31 +221,148 @@ ev_signal(int sig, void (*cb)(int, int, void *), void *udata)
 	return 0;
 }
 
-int
+unsigned int
 ev_timer(const struct timeval *tv, void (*cb)(int, int, void*), void *udata)
 {
-	base->timeout = INFTIM;
-	if (tv) {
-		base->timeout = tv->tv_sec * 1000;
-		base->timeout += tv->tv_usec / 1000;
+	struct evtimer	*evt;
+	void		*t;
+	size_t		 newcap;
+	unsigned int	 nextid;
+
+	if (tv == NULL) {
+		errno = EINVAL;
+		return 0;
 	}
 
-	base->toutcb.cb = cb;
-	base->toutcb.udata = udata;
+	if (base->reserve_till == base->timerscap) {
+		newcap = base->timerscap + 8;
+		t = recallocarray(base->timers, base->timerscap, newcap,
+		    sizeof(*base->timers));
+		if (t == NULL)
+			return 0;
+		base->timers = t;
+		base->timerscap = newcap;
+	}
 
-	return 0;
+	if ((nextid = ++base->tid) == 0)
+		nextid = ++base->tid;
+
+	evt = &base->timers[base->reserve_till];
+	evt->id = nextid;
+	memcpy(&evt->tv, tv, sizeof(*tv));
+	evt->cb.cb = cb;
+	evt->cb.udata = udata;
+
+	base->reserve_till++;
+	return (nextid);
+}
+
+static int
+find_timer(unsigned int id, size_t *pos)
+{
+	size_t		 i;
+
+	if (id == 0)
+		return (0);
+
+	for (i = 0; i < base->ntimers; ++i) {
+		if (base->timers[i].id == id) {
+			*pos = i;
+			return (1);
+		}
+	}
+
+	for (i = base->reserve_from; i < base->reserve_till; ++i) {
+		if (base->timers[i].id == id) {
+			*pos = i;
+			return (1);
+		}
+	}
+
+	return (0);
 }
 
 int
-ev_timer_pending(void)
+ev_timer_pending(unsigned int id)
 {
-	return base->timeout != INFTIM;
+	size_t		 i;
+
+	return (find_timer(id, &i));
+}
+
+static void
+bubbledown(size_t i)
+{
+	struct evtimer	 tmp;
+	size_t		 l, r, s;
+
+	for (;;) {
+		l = 2 * i + 1;
+		r = 2 * i + 2;
+
+		/* base case: there are no children */
+		if (l >= base->ntimers)
+			return;
+
+		/* find the smaller child */
+		s = r;
+		if (r >= base->ntimers ||
+		    timercmp(&base->timers[l].tv, &base->timers[r].tv, <))
+			s = l;
+
+		/* other base case: it's at the right place */
+		if (timercmp(&base->timers[i].tv, &base->timers[s].tv, <))
+			return;
+
+		/* swap */
+		memcpy(&tmp, &base->timers[s], sizeof(tmp));
+		memcpy(&base->timers[s], &base->timers[i], sizeof(tmp));
+		memcpy(&base->timers[i], &tmp, sizeof(tmp));
+
+		i = s;
+	}
+}
+
+static inline void
+cancel_timer(size_t i)
+{
+	base->ntimers--;
+	if (i != base->ntimers) {
+		memcpy(&base->timers[i], &base->timers[base->ntimers],
+		    sizeof(*base->timers));
+		bubbledown(i);
+	}
+}
+
+int
+ev_timer_cancel(unsigned int id)
+{
+	size_t		 i;
+
+	if (!find_timer(id, &i))
+		return (-1);
+
+	if (i < base->ntimers) {
+		cancel_timer(i);
+		return (0);
+	}
+
+	base->reserve_till--;
+	if (i != base->reserve_till)
+		memcpy(&base->timers[i], &base->timers[base->reserve_till],
+		    sizeof(*base->timers));
+	return (0);
 }
 
 int
 ev_del(int fd)
 {
-	if (fd >= base->len) {
+	if (fd < 0) {
+		errno = EBADF;
+		return -1;
+	}
+
+	if ((size_t)fd >= base->len) {
 		errno = ERANGE;
 		return -1;
 	}
@@ -221,41 +376,123 @@ ev_del(int fd)
 	return 0;
 }
 
+static void
+timerheapify(void)
+{
+	size_t		 i, reserve, gap;
+
+	reserve = base->reserve_till - base->reserve_from;
+	if (reserve == 0)
+		return;
+
+	gap = base->reserve_from - base->ntimers;
+	if (gap != 0) {
+		memmove(&base->timers[base->ntimers],
+		    &base->timers[base->reserve_from],
+		    reserve * sizeof(*base->timers));
+		base->reserve_from -= gap;
+		base->reserve_till -= gap;
+	}
+
+	base->ntimers = base->reserve_till;
+
+	if (base->ntimers < 2)
+		return;
+
+	i = base->ntimers / 2 - 1;
+	for (;;) {
+		bubbledown(i);
+		if (i == 0)
+			break;
+		i--;
+	}
+}
+
+static inline int
+poll2ev(int ev)
+{
+	int r = 0;
+
+	if (ev & (POLLIN|POLLHUP))
+		r |= EV_READ;
+	if (ev & (POLLOUT|POLLWRNORM|POLLWRBAND))
+		r |= EV_WRITE;
+
+	return (r);
+}
+
+int
+ev_step(void)
+{
+	struct timespec	 elapsed, beg, end;
+	struct timeval	 tv, sub, *min;
+	struct evcb	 cb;
+	int		 n, msec;
+	size_t		 i;
+
+	timerheapify();
+	base->reserve_from = base->ntimers;
+	base->reserve_till = base->ntimers;
+
+	min = NULL;
+	msec = -1;
+	if (base->ntimers) {
+		min = &base->timers[0].tv;
+		msec = min->tv_sec * 1000 + (min->tv_usec + 999) / 1000;
+	}
+
+	clock_gettime(CLOCK_MONOTONIC, &beg);
+	if ((n = poll(base->pfds, base->len, msec)) == -1) {
+		if (errno != EINTR)
+			return -1;
+	}
+
+	if (n == 0 && min)
+		memcpy(&tv, min, sizeof(tv));
+	else {
+		clock_gettime(CLOCK_MONOTONIC, &end);
+		timespecsub(&end, &beg, &elapsed);
+		TIMESPEC_TO_TIMEVAL(&tv, &elapsed);
+	}
+
+	for (i = 0; i < base->ntimers && !ev_stop; /* nop */) {
+		timersub(&base->timers[i].tv, &tv, &sub);
+		if (sub.tv_sec <= 0) {
+			/*
+			 * delete the timer before calling its
+			 * callback; protects from timer that
+			 * attempt to delete themselves.
+			 */
+			memcpy(&cb, &base->timers[i].cb, sizeof(cb));
+			cancel_timer(i);
+			cb.cb(-1, EV_TIMEOUT, cb.udata);
+			continue;
+		}
+
+		memcpy(&base->timers[i].tv, &sub, sizeof(sub));
+		i++;
+	}
+
+	for (i = 0; i < base->len && n > 0 && !ev_stop; ++i) {
+		if (base->pfds[i].fd == -1)
+			continue;
+		if (base->pfds[i].revents & (POLLIN|POLLOUT|POLLHUP)) {
+			n--;
+			base->cbs[i].cb(base->pfds[i].fd,
+			    poll2ev(base->pfds[i].revents),
+			    base->cbs[i].udata);
+		}
+	}
+
+	return (0);
+}
+
 int
 ev_loop(void)
 {
-	struct timespec	 elapsed, beg, end;
-	int		 n, em;
-	size_t		 i;
-
 	while (!ev_stop) {
-		clock_gettime(CLOCK_MONOTONIC, &beg);
-		if ((n = poll(base->pfds, base->len, base->timeout)) == -1) {
-			if (errno != EINTR)
-				return -1;
-		}
-		clock_gettime(CLOCK_MONOTONIC, &end);
-
-		timespecsub(&end, &beg, &elapsed);
-		em = elapsed.tv_sec * 1000 + elapsed.tv_nsec / 1000000;
-		if (base->timeout != INFTIM) {
-			if (base->timeout - em < 0 || n == 0) {
-				base->timeout = INFTIM;
-				base->toutcb.cb(-1, 0, base->toutcb.udata);
-			} else
-				base->timeout -= em;
-		}
-
-		for (i = 0; i < base->len && n > 0 && !ev_stop; ++i) {
-			if (base->pfds[i].fd == -1)
-				continue;
-			if (base->pfds[i].revents & (POLLIN|POLLOUT|POLLHUP)) {
-				n--;
-				base->cbs[i].cb(base->pfds[i].fd,
-				    base->pfds[i].revents,
-				    base->cbs[i].udata);
-			}
-		}
+		if (ev_step() == -1)
+			return (-1);
 	}
 
 	return 0;

@@ -44,7 +44,7 @@ uninstall:
 	rm ${DESTDIR}${MANDIR}/man1/${PROG}.1
 
 .c.o:
-	${CC} -I../ ${CFLAGS} -c $< -o $@
+	${CC} -I../ ${CFLAGS} -DBUFIO_WITHOUT_TLS -c $< -o $@
 
 # --- maintainer targets ---
 

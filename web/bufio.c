@@ -27,7 +27,6 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <poll.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -35,10 +34,14 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifndef BUFIO_WITHOUT_TLS
+#include <tls.h>
+#endif
+
 #include "bufio.h"
 
 int
-buf_init(struct buffer *buf)
+buf_init(struct buf *buf)
 {
 	const size_t	 cap = BIO_CHUNK;
 
@@ -50,7 +53,7 @@ buf_init(struct buffer *buf)
 }
 
 static int
-buf_grow(struct buffer *buf)
+buf_grow(struct buf *buf)
 {
 	size_t		 newcap;
 	void		*t;
@@ -65,7 +68,7 @@ buf_grow(struct buffer *buf)
 }
 
 int
-buf_write(struct buffer *buf, const void *d, size_t len)
+buf_write(struct buf *buf, const void *d, size_t len)
 {
 	while (buf->len + len > buf->cap) {
 		if (buf_grow(buf) == -1)
@@ -77,14 +80,32 @@ buf_write(struct buffer *buf, const void *d, size_t len)
 }
 
 int
-buf_has_line(struct buffer *buf, const char *nl)
+buf_has_line(struct buf *buf, const char *nl)
 {
 	return (memmem(buf->buf, buf->len, nl, strlen(nl)) != NULL);
 }
 
-void
-buf_drain(struct buffer *buf, size_t l)
+char *
+buf_getdelim(struct buf *buf, const char *nl, size_t *len)
 {
+	uint8_t	*endl;
+	size_t	 nlen;
+
+	*len = 0;
+
+	nlen = strlen(nl);
+	if ((endl = memmem(buf->buf, buf->len, nl, nlen)) == NULL)
+		return (NULL);
+	*len = endl + nlen - buf->buf;
+	*endl = '\0';
+	return (buf->buf);
+}
+
+void
+buf_drain(struct buf *buf, size_t l)
+{
+	buf->cur = 0;
+
 	if (l >= buf->len) {
 		buf->len = 0;
 		return;
@@ -95,7 +116,7 @@ buf_drain(struct buffer *buf, size_t l)
 }
 
 void
-buf_drain_line(struct buffer *buf, const char *nl)
+buf_drain_line(struct buf *buf, const char *nl)
 {
 	uint8_t		*endln;
 	size_t		 nlen;
@@ -107,7 +128,7 @@ buf_drain_line(struct buffer *buf, const char *nl)
 }
 
 void
-buf_free(struct buffer *buf)
+buf_free(struct buf *buf)
 {
 	free(buf->buf);
 	memset(buf, 0, sizeof(*buf));
@@ -131,11 +152,44 @@ bufio_init(struct bufio *bio)
 void
 bufio_free(struct bufio *bio)
 {
+#ifndef BUFIO_WITHOUT_TLS
+	if (bio->ctx)
+		tls_free(bio->ctx);
+	bio->ctx = NULL;
+#endif
+
 	if (bio->fd != -1)
 		close(bio->fd);
+	bio->fd = -1;
 
 	buf_free(&bio->rbuf);
 	buf_free(&bio->wbuf);
+}
+
+int
+bufio_close(struct bufio *bio)
+{
+#ifndef BUFIO_WITHOUT_TLS
+	if (bio->ctx == NULL)
+		return (0);
+
+	switch (tls_close(bio->ctx)) {
+	case 0:
+		return 0;
+	case TLS_WANT_POLLIN:
+		errno = EAGAIN;
+		bio->wantev = BUFIO_WANT_READ;
+		return (-1);
+	case TLS_WANT_POLLOUT:
+		errno = EAGAIN;
+		bio->wantev = BUFIO_WANT_WRITE;
+		return (-1);
+	default:
+		return (-1);
+	}
+#else
+	return (0);
+#endif
 }
 
 int
@@ -157,22 +211,98 @@ bufio_set_chunked(struct bufio *bio, int chunked)
 	bio->chunked = chunked;
 }
 
-short
-bufio_pollev(struct bufio *bio)
+int
+bufio_starttls(struct bufio *bio, const char *host, int insecure,
+    const uint8_t *cert, size_t certlen, const uint8_t *key, size_t keylen)
+{
+#ifndef BUFIO_WITHOUT_TLS
+	struct tls_config	*conf;
+
+	if ((conf = tls_config_new()) == NULL)
+		return (-1);
+
+	if (insecure) {
+		tls_config_insecure_noverifycert(conf);
+		tls_config_insecure_noverifyname(conf);
+		tls_config_insecure_noverifytime(conf);
+	}
+
+	if (cert && tls_config_set_keypair_mem(conf, cert, certlen,
+	    key, keylen) == -1) {
+		tls_config_free(conf);
+		return (-1);
+	}
+
+	if ((bio->ctx = tls_client()) == NULL) {
+		tls_config_free(conf);
+		return (-1);
+	}
+
+	if (tls_configure(bio->ctx, conf) == -1) {
+		tls_config_free(conf);
+		return (-1);
+	}
+
+	tls_config_free(conf);
+
+	if (tls_connect_socket(bio->ctx, bio->fd, host) == -1)
+		return (-1);
+
+	return (0);
+#else
+	errno = EINVAL;
+	return (-1);
+#endif
+}
+
+int
+bufio_ev(struct bufio *bio)
 {
 	short		 ev;
 
-	ev = POLLIN;
+	if (bio->wantev)
+		return (bio->wantev);
+
+	ev = BUFIO_WANT_READ;
 	if (bio->wbuf.len != 0)
-		ev |= POLLOUT;
+		ev |= BUFIO_WANT_WRITE;
 
 	return (ev);
+}
+
+int
+bufio_handshake(struct bufio *bio)
+{
+#ifndef BUFIO_WITHOUT_TLS
+	if (bio->ctx == NULL) {
+		errno = EINVAL;
+		return (-1);
+	}
+
+	switch (tls_handshake(bio->ctx)) {
+	case 0:
+		return (0);
+	case TLS_WANT_POLLIN:
+		errno = EAGAIN;
+		bio->wantev = BUFIO_WANT_READ;
+		return (-1);
+	case TLS_WANT_POLLOUT:
+		errno = EAGAIN;
+		bio->wantev = BUFIO_WANT_WRITE;
+		return (-1);
+	default:
+		return (-1);
+	}
+#else
+	errno = EINVAL;
+	return (-1);
+#endif
 }
 
 ssize_t
 bufio_read(struct bufio *bio)
 {
-	struct buffer	*rbuf = &bio->rbuf;
+	struct buf	*rbuf = &bio->rbuf;
 	ssize_t		 r;
 
 	assert(rbuf->cap >= rbuf->len);
@@ -180,6 +310,29 @@ bufio_read(struct bufio *bio)
 		if (buf_grow(rbuf) == -1)
 			return (-1);
 	}
+
+#ifndef BUFIO_WITHOUT_TLS
+	if (bio->ctx) {
+		r = tls_read(bio->ctx, rbuf->buf + rbuf->len,
+		    rbuf->cap - rbuf->len);
+		switch (r) {
+		case TLS_WANT_POLLIN:
+			errno = EAGAIN;
+			bio->wantev = BUFIO_WANT_READ;
+			return (-1);
+		case TLS_WANT_POLLOUT:
+			errno = EAGAIN;
+			bio->wantev = BUFIO_WANT_WRITE;
+			return (-1);
+		case -1:
+			return (-1);
+		default:
+			bio->wantev = 0;
+			rbuf->len += r;
+			return (r);
+		}
+	}
+#endif
 
 	r = read(bio->fd, rbuf->buf + rbuf->len, rbuf->cap - rbuf->len);
 	if (r == -1)
@@ -191,7 +344,7 @@ bufio_read(struct bufio *bio)
 size_t
 bufio_drain(struct bufio *bio, void *d, size_t len)
 {
-	struct buffer	*rbuf = &bio->rbuf;
+	struct buf	*rbuf = &bio->rbuf;
 
 	if (len > rbuf->len)
 		len = rbuf->len;
@@ -203,8 +356,29 @@ bufio_drain(struct bufio *bio, void *d, size_t len)
 ssize_t
 bufio_write(struct bufio *bio)
 {
-	struct buffer	*wbuf = &bio->wbuf;
+	struct buf	*wbuf = &bio->wbuf;
 	ssize_t		 w;
+
+#ifndef BUFIO_WITHOUT_TLS
+	if (bio->ctx) {
+		switch (w = tls_write(bio->ctx, wbuf->buf, wbuf->len)) {
+		case TLS_WANT_POLLIN:
+			errno = EAGAIN;
+			bio->wantev = BUFIO_WANT_READ;
+			return (-1);
+		case TLS_WANT_POLLOUT:
+			errno = EAGAIN;
+			bio->wantev = BUFIO_WANT_WRITE;
+			return (-1);
+		case -1:
+			return (-1);
+		default:
+			bio->wantev = 0;
+			buf_drain(wbuf, w);
+			return (w);
+		}
+	}
+#endif
 
 	w = write(bio->fd, wbuf->buf, wbuf->len);
 	if (w == -1)
@@ -216,7 +390,7 @@ bufio_write(struct bufio *bio)
 static int
 bufio_append(struct bufio *bio, const void *d, size_t len)
 {
-	struct buffer	*wbuf = &bio->wbuf;
+	struct buf	*wbuf = &bio->wbuf;
 
 	if (len == 0)
 		return (0);
@@ -276,4 +450,32 @@ bufio_compose_fmt(struct bufio *bio, const char *fmt, ...)
 	r = bufio_compose(bio, str, r);
 	free(str);
 	return (r);
+}
+
+void
+bufio_rewind_cursor(struct bufio *bio)
+{
+	bio->rbuf.cur = 0;
+}
+
+int
+bufio_get_cb(void *d)
+{
+	struct bufio	*bio = d;
+	struct buf	*rbuf = &bio->rbuf;
+
+	if (rbuf->cur >= rbuf->len)
+		return (EOF);
+	return (rbuf->buf[rbuf->cur++]);
+}
+
+int
+bufio_peek_cb(void *d)
+{
+	struct bufio	*bio = d;
+	struct buf	*rbuf = &bio->rbuf;
+
+	if (rbuf->cur >= rbuf->len)
+		return (EOF);
+	return (rbuf->buf[rbuf->cur]);
 }

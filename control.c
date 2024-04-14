@@ -29,7 +29,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +44,7 @@
 
 struct {
 	int		fd;
+	unsigned int	tout;
 	struct playlist	play;
 	int		tx;
 } control_state = {.fd = -1, .tx = -1};
@@ -113,7 +113,8 @@ control_init(char *path)
 static void
 enable_accept(int fd, int ev, void *bula)
 {
-	ev_add(control_state.fd, POLLIN, control_accept, NULL);
+	control_state.tout = 0;
+	ev_add(control_state.fd, EV_READ, control_accept, NULL);
 }
 
 int
@@ -150,7 +151,9 @@ control_accept(int listenfd, int event, void *bula)
 			struct timeval evtpause = { 1, 0 };
 
 			ev_del(control_state.fd);
-			ev_timer(&evtpause, enable_accept, NULL);
+			control_state.tout = ev_timer(&evtpause, enable_accept, NULL);
+			if (control_state.tout == 0)
+				fatal("ev_timer failed");
 		} else if (errno != EWOULDBLOCK && errno != EINTR &&
 		    errno != ECONNABORTED)
 			log_warn("%s: accept4", __func__);
@@ -171,7 +174,7 @@ control_accept(int listenfd, int event, void *bula)
 
 	imsg_init(&c->iev.imsgbuf, connfd);
 	c->iev.handler = control_dispatch_imsg;
-	c->iev.events = POLLIN;
+	c->iev.events = EV_READ;
 	ev_add(c->iev.imsgbuf.fd, c->iev.events, c->iev.handler, &c->iev);
 
 	TAILQ_INSERT_TAIL(&ctl_conns, c, entry);
@@ -226,9 +229,9 @@ control_close(int fd)
 	close(c->iev.imsgbuf.fd);
 
 	/* Some file descriptors are available again. */
-	if (ev_timer_pending()) {
+	if (ev_timer_pending(control_state.tout)) {
 		ev_timer(NULL, NULL, NULL);
-		ev_add(control_state.fd, POLLIN, control_accept, NULL);
+		ev_add(control_state.fd, EV_READ, control_accept, NULL);
 	}
 
 	free(c);
@@ -285,14 +288,14 @@ control_dispatch_imsg(int fd, int event, void *bula)
 
 	imsgbuf = &c->iev.imsgbuf;
 
-	if (event & POLLIN) {
+	if (event & EV_READ) {
 		if (((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN) ||
 		    n == 0) {
 			control_close(fd);
 			return;
 		}
 	}
-	if (event & POLLOUT) {
+	if (event & EV_WRITE) {
 		if (msgbuf_write(&imsgbuf->w) <= 0 && errno != EAGAIN) {
 			control_close(fd);
 			return;

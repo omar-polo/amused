@@ -27,7 +27,6 @@
 #include <limits.h>
 #include <locale.h>
 #include <netdb.h>
-#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -272,6 +271,20 @@ const char *js =
 
 const char *foot = "<script src='/app.js?v=0'></script></body></html>";
 
+static inline int
+bio_ev(struct bufio *bio)
+{
+	int	 ret, ev;
+
+	ret = 0;
+	ev = bufio_ev(bio);
+	if (ev & BUFIO_WANT_READ)
+		ret |= EV_READ;
+	if (ev & BUFIO_WANT_WRITE)
+		ret |= EV_WRITE;
+	return ret;
+}
+
 static int
 dial(const char *sock)
 {
@@ -355,7 +368,7 @@ dispatch_event(const char *msg)
 		if (ws_compose(clt, WST_TEXT, msg, len) == -1)
 			ret = -1;
 
-		ev_add(clt->bio.fd, POLLIN|POLLOUT, client_ev, clt);
+		ev_add(clt->bio.fd, EV_READ|EV_WRITE, client_ev, clt);
 	}
 
 	return (ret);
@@ -445,13 +458,13 @@ imsg_dispatch(int fd, int ev, void *d)
 	size_t			 datalen;
 	int			 r;
 
-	if (ev & (POLLIN|POLLHUP)) {
+	if (ev & EV_READ) {
 		if ((n = imsg_read(&imsgbuf)) == -1 && errno != EAGAIN)
 			fatal("imsg_read");
 		if (n == 0)
 			fatalx("pipe closed");
 	}
-	if (ev & POLLOUT) {
+	if (ev & EV_WRITE) {
 		if ((n = msgbuf_write(&imsgbuf.w)) == -1 && errno != EAGAIN)
 			fatal("msgbuf_write");
 		if (n == 0)
@@ -563,9 +576,9 @@ imsg_dispatch(int fd, int ev, void *d)
 		}
 	}
 
-	ev = POLLIN;
+	ev = EV_READ;
 	if (imsgbuf.w.queued)
-		ev |= POLLOUT;
+		ev |= EV_WRITE;
 	ev_add(fd, ev, imsg_dispatch, NULL);
 }
 
@@ -691,7 +704,7 @@ route_jump(struct client *clt)
 
 		imsg_compose(&imsgbuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
-		ev_add(imsgbuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
+		ev_add(imsgbuf.w.fd, EV_READ|EV_WRITE, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -783,7 +796,7 @@ route_mode(struct client *clt)
 
 		imsg_compose(&imsgbuf, IMSG_CTL_MODE, 0, 0, -1,
 		    &pm, sizeof(pm));
-		ev_add(imsgbuf.w.fd, POLLIN|POLLOUT, imsg_dispatch, NULL);
+		ev_add(imsgbuf.w.fd, EV_READ|EV_WRITE, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -804,7 +817,7 @@ route_mode(struct client *clt)
 static void
 route_handle_ws(struct client *clt)
 {
-	struct buffer	*rbuf = &clt->bio.rbuf;
+	struct buf	*rbuf = &clt->bio.rbuf;
 	int		 type;
 	size_t		 len;
 
@@ -923,14 +936,14 @@ client_ev(int fd, int ev, void *d)
 {
 	struct client	*clt = d;
 
-	if (ev & (POLLIN|POLLHUP)) {
+	if (ev & EV_READ) {
 		if (bufio_read(&clt->bio) == -1 && errno != EAGAIN) {
 			log_warn("bufio_read");
 			goto err;
 		}
 	}
 
-	if (ev & POLLOUT) {
+	if (ev & EV_WRITE) {
 		if (bufio_write(&clt->bio) == -1 && errno != EAGAIN) {
 			log_warn("bufio_write");
 			goto err;
@@ -959,8 +972,8 @@ client_ev(int fd, int ev, void *d)
 		clt->route(clt);
 
  again:
-	ev = bufio_pollev(&clt->bio);
-	if (ev == POLLIN && (clt->done || clt->err)) {
+	ev = bio_ev(&clt->bio);
+	if (ev == EV_READ && (clt->done || clt->err)) {
 		goto err; /* done with this client */
 	}
 
@@ -993,7 +1006,7 @@ web_accept(int psock, int ev, void *d)
 
 	TAILQ_INSERT_TAIL(&clients, clt, clients);
 
-	client_ev(sock, POLLIN, clt);
+	client_ev(sock, EV_READ, clt);
 	return;
 }
 
@@ -1070,7 +1083,7 @@ main(int argc, char **argv)
 	imsg_compose(&imsgbuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
 	imsg_compose(&imsgbuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 	imsg_compose(&imsgbuf, IMSG_CTL_MONITOR, 0, 0, -1, NULL, 0);
-	ev_add(amused_sock, POLLIN|POLLOUT, imsg_dispatch, NULL);
+	ev_add(amused_sock, EV_READ|EV_WRITE, imsg_dispatch, NULL);
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
@@ -1105,7 +1118,7 @@ main(int argc, char **argv)
 		if (listen(fd, 5) == -1)
 			err(1, "listen");
 
-		if (ev_add(fd, POLLIN, web_accept, NULL) == -1)
+		if (ev_add(fd, EV_READ, web_accept, NULL) == -1)
 			fatal("ev_add");
 		nsock++;
 	}
