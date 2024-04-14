@@ -935,19 +935,24 @@ static void
 client_ev(int fd, int ev, void *d)
 {
 	struct client	*clt = d;
+	ssize_t		 ret;
 
 	if (ev & EV_READ) {
-		if (bufio_read(&clt->bio) == -1 && errno != EAGAIN) {
+		if ((ret = bufio_read(&clt->bio)) == -1 && errno != EAGAIN) {
 			log_warn("bufio_read");
 			goto err;
 		}
+		if (ret == 0)
+			goto err;
 	}
 
 	if (ev & EV_WRITE) {
-		if (bufio_write(&clt->bio) == -1 && errno != EAGAIN) {
+		if ((ret = bufio_write(&clt->bio)) == -1 && errno != EAGAIN) {
 			log_warn("bufio_write");
 			goto err;
 		}
+		if (ret == 0)
+			goto err;
 	}
 
 	if (clt->route == NULL) {
