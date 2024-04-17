@@ -387,6 +387,17 @@ bufio_write(struct bufio *bio)
 	return (w);
 }
 
+const char *
+bufio_io_err(struct bufio *bio)
+{
+#ifndef BUFIO_WITHOUT_TLS
+	if (bio->ctx)
+		return tls_error(bio->ctx);
+#endif
+
+	return strerror(errno);
+}
+
 static int
 bufio_append(struct bufio *bio, const void *d, size_t len)
 {
