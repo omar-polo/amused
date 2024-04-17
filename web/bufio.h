@@ -50,7 +50,7 @@ struct bufio {
 #define	BUFIO_WANT_WRITE	0x2
 
 int	buf_init(struct buf *);
-int	buf_write(struct buf *, const void *, size_t);
+int	buf_append(struct buf *, const void *, size_t);
 int	buf_has_line(struct buf *, const char *);
 char	*buf_getdelim(struct buf *, const char *, size_t *);
 void	buf_drain(struct buf *, size_t);

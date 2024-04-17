@@ -202,7 +202,7 @@ http_read(struct client *clt)
 		return -1;
 	}
 
-	buf_write(rbuf, "", 1); /* append a NUL byte */
+	buf_append(rbuf, "", 1);
 	while (rbuf->len > 0 && (rbuf->buf[rbuf->len - 1] == '\r' ||
 	    (rbuf->buf[rbuf->len - 1] == '\n')))
 		rbuf->buf[--rbuf->len] = '\0';

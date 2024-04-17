@@ -68,7 +68,7 @@ buf_grow(struct buf *buf)
 }
 
 int
-buf_write(struct buf *buf, const void *d, size_t len)
+buf_append(struct buf *buf, const void *d, size_t len)
 {
 	while (buf->len + len > buf->cap) {
 		if (buf_grow(buf) == -1)
