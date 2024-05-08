@@ -160,16 +160,4 @@ void		main_seek(struct player_seek *);
 __dead void	usage(void);
 __dead void	ctl(int, char **);
 
-/* player.c */
-int	player_setup(unsigned int, unsigned int, unsigned int);
-void	player_setduration(int64_t);
-void	player_setpos(int64_t);
-int	play(const void *, size_t, int64_t *);
-int	player(int, int);
-
-int	play_oggvorbis(int, const char **);
-int	play_mp3(int, const char **);
-int	play_flac(int, const char **);
-int	play_opus(int, const char **);
-
 #endif

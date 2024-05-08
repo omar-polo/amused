@@ -32,6 +32,7 @@
 #include "amused.h"
 #include "audio.h"
 #include "log.h"
+#include "player.h"
 #include "xmalloc.h"
 
 struct pollfd		*player_pfds;

@@ -26,8 +26,8 @@
 
 #include <FLAC/stream_decoder.h>
 
-#include "amused.h"
 #include "log.h"
+#include "player.h"
 
 struct write_args {
 	FLAC__StreamDecoder *decoder;

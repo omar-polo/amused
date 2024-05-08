@@ -35,6 +35,7 @@
 #include "control.h"
 #include "ev.h"
 #include "log.h"
+#include "player.h"
 #include "playlist.h"
 #include "xmalloc.h"
 

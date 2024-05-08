@@ -27,7 +27,7 @@
 #include <vorbis/codec.h>
 #include <vorbis/vorbisfile.h>
 
-#include "amused.h"
+#include "player.h"
 
 #ifndef nitems
 #define nitems(x) (sizeof(x)/sizeof(x[0]))

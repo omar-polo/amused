@@ -26,7 +26,7 @@
 
 #include <opusfile.h>
 
-#include "amused.h"
+#include "player.h"
 
 #ifndef nitems
 #define nitems(x) (sizeof(x)/sizeof(x[0]))

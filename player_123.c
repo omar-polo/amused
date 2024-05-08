@@ -25,8 +25,8 @@
 
 #include <mpg123.h>
 
-#include "amused.h"
 #include "log.h"
+#include "player.h"
 
 static int
 setup(mpg123_handle *mh)
