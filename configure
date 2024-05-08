@@ -594,6 +594,10 @@ runtest timespecsub	TIMESPECSUB			  || true
 runtest unveil		UNVEIL				  || true
 runtest __progname	__PROGNAME			  || true
 
+if [ $HAVE_LIB_IMSG = 0 ]; then
+	CFLAGS="${CFLAGS} -Icompat/imsg/"
+fi
+
 if [ $BACKEND = auto -o $BACKEND = sndio ]; then
 	runtest lib_sndio LIB_SNDIO "" "" "-lsndio" "sndio" || true
 	runtest sio_flush SIO_FLUSH "" "" "${LDADD_LIB_SNDIO}" || true
@@ -774,8 +778,7 @@ __HEREDOC__
 # someting that pulls in support for size_t.
 # Our function declarations are standalone, so specify them here.
 
-if [ ${HAVE_LIB_IMSG} -eq 0 -o \
-     ${HAVE_MEMMEM} -eq 0 -o \
+if [ ${HAVE_MEMMEM} -eq 0 -o \
      ${HAVE_MEMRCHR} -eq 0 -o \
      ${HAVE_REALLOCARRAY} -eq 0 -o \
      ${HAVE_RECALLOCARRAY} -eq 0 -o \
@@ -976,15 +979,6 @@ else
 	echo "#include <sys/queue.h>"
 	echo
 fi
-
-echo "#include <sys/uio.h>"
-echo "#include <stdint.h>"
-if [ ${HAVE_LIB_IMSG} -eq 0 ]; then
-	echo "#include \"imsg.h\""
-else
-	echo "#include <imsg.h>"
-fi
-echo
 
 cat << __HEREDOC__
 #ifndef __dead

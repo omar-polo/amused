@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <imsg.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>

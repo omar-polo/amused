@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <imsg.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
