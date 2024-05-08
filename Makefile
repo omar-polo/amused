@@ -1,4 +1,4 @@
-.PHONY: all web clean distclean install install-web
+.PHONY: all songmeta web clean distclean install install-songmeta install-web
 
 VERSION =	0.15
 PROG =		amused
@@ -59,11 +59,15 @@ ${PROG}: ${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_LIB_IMSG} \
 		${LDADD_DECODERS} ${LDADD_LIB_SOCKET} ${LDADD_BACKEND}
 
+songmeta:
+	${MAKE} -C songmeta
+
 web:
 	${MAKE} -C web
 
 clean:
 	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}
+	-${MAKE} -C songmeta clean
 	-${MAKE} -C web clean
 
 distclean: clean
@@ -74,6 +78,9 @@ install:
 	mkdir -p ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} ${PROG} ${DESTDIR}${BINDIR}
 	${INSTALL_MAN} amused.1 ${DESTDIR}${MANDIR}/man1/${PROG}.1
+
+install-songmeta:
+	${MAKE} -C songmeta install
 
 install-web:
 	${MAKE} -C web install
@@ -100,6 +107,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 	cd .dist/${DISTNAME} && chmod 755 configure
 	cd .dist/${DISTNAME} && cp -R ../../contrib . && \
 		chmod 755 contrib/amused-monitor
+	${MAKE} -C songmeta DESTDIR=${PWD}/.dist/${DISTNAME}/songmeta dist
 	${MAKE} -C web DESTDIR=${PWD}/.dist/${DISTNAME}/web dist
 	cd .dist && tar zcf ../$@ ${DISTNAME}
 	rm -rf .dist/

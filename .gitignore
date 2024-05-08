@@ -4,6 +4,7 @@ config.h
 config.h.old
 config.log
 config.log.old
+songmeta/songmeta
 web/amused-web
 **/*.d
 **/*.o
