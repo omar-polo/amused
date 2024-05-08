@@ -25,6 +25,8 @@
 
 #include "config.h"
 
+#include <sys/queue.h>
+
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>

@@ -16,11 +16,12 @@
 
 #include "config.h"
 
-#include <limits.h>
+#include <sys/queue.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <imsg.h>
+#include <limits.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>

@@ -17,6 +17,7 @@
 
 #include "config.h"
 
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -24,6 +25,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fnmatch.h>
+#include <imsg.h>
 #include <limits.h>
 #include <locale.h>
 #include <netdb.h>
