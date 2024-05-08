@@ -26,6 +26,7 @@
 
 #include <opusfile.h>
 
+#include "log.h"
 #include "player.h"
 
 #ifndef nitems
@@ -84,7 +85,7 @@ play_opus(int fd, const char **errstr)
 			head = op_head(of, li);
 			if (head->input_sample_rate &&
 			    player_setup(16, head->input_sample_rate, 2) == -1)
-				err(1, "player_setup");
+				fatal("player_setup");
 
 			if (!duration_set) {
 				duration_set = 1;

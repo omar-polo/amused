@@ -27,6 +27,7 @@
 #include <vorbis/codec.h>
 #include <vorbis/vorbisfile.h>
 
+#include "log.h"
 #include "player.h"
 
 #ifndef nitems
@@ -62,7 +63,7 @@ play_oggvorbis(int fd, const char **errstr)
 	 */
 	vi = ov_info(&vf, -1);
 	if (player_setup(16, vi->rate, vi->channels) == -1)
-		err(1, "player_setup");
+		fatal("player_setup");
 
 	player_setduration(ov_time_total(&vf, -1) * vi->rate);
 

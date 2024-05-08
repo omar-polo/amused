@@ -120,7 +120,7 @@ metacb(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *meta,
 		channels = meta->data.stream_info.channels;
 
 		if (player_setup(bits, sample_rate, channels) == -1)
-			err(1, "player_setup");
+			fatal("player_setup");
 
 		player_setduration(meta->data.stream_info.total_samples);
 	}
@@ -164,7 +164,7 @@ play_flac(int fd, const char **errstr)
 	init_status = FLAC__stream_decoder_init_FILE(decoder, f, writecb,
 	    metacb, errcb, &wa);
 	if (init_status != FLAC__STREAM_DECODER_INIT_STATUS_OK)
-		errx(1, "flac decoder: %s",
+		fatalx("flac decoder: %s",
 		    FLAC__StreamDecoderInitStatusString[init_status]);
 
 	ok = FLAC__stream_decoder_process_until_end_of_stream(decoder);

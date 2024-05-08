@@ -298,12 +298,12 @@ dial(const char *sock)
 	sa.sun_family = AF_UNIX;
 	len = strlcpy(sa.sun_path, sock, sizeof(sa.sun_path));
 	if (len >= sizeof(sa.sun_path))
-		err(1, "path too long: %s", sock);
+		fatalx("path too long: %s", sock);
 
 	if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
-		err(1, "socket");
+		fatal("socket");
 	if (connect(s, (struct sockaddr *)&sa, sizeof(sa)) == -1)
-		err(1, "failed to connect to %s", sock);
+		fatal("failed to connect to %s", sock);
 
 	return s;
 }
@@ -1000,7 +1000,7 @@ web_accept(int psock, int ev, void *d)
 	int		 sock;
 
 	if ((sock = accept(psock, NULL, NULL)) == -1) {
-		warn("accept");
+		log_warn("accept");
 		return;
 	}
 	if ((clt = calloc(1, sizeof(*clt))) == NULL ||
@@ -1043,7 +1043,7 @@ main(int argc, char **argv)
 	log_init(1, LOG_DAEMON);
 
 	if (pledge("stdio rpath unix inet dns", NULL) == -1)
-		err(1, "pledge");
+		fatal("pledge");
 
 	while ((ch = getopt(argc, argv, "s:v")) != -1) {
 		switch (ch) {
@@ -1098,7 +1098,7 @@ main(int argc, char **argv)
 	hints.ai_flags = AI_PASSIVE;
 	error = getaddrinfo(host, port, &hints, &res0);
 	if (error)
-		errx(1, "%s", gai_strerror(error));
+		fatal("%s", gai_strerror(error));
 
 	nsock = 0;
 	for (res = res0; res; res = res->ai_next) {
@@ -1123,18 +1123,18 @@ main(int argc, char **argv)
 		}
 
 		if (listen(fd, 5) == -1)
-			err(1, "listen");
+			fatal("listen");
 
 		if (ev_add(fd, EV_READ, web_accept, NULL) == -1)
 			fatal("ev_add");
 		nsock++;
 	}
 	if (nsock == 0)
-		err(1, "%s", cause);
+		fatal("%s", cause);
 	freeaddrinfo(res0);
 
 	if (pledge("stdio inet", NULL) == -1)
-		err(1, "pledge");
+		fatal("pledge");
 
 	log_info("listening on port %s", port);
 	ev_loop();
