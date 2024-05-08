@@ -2,7 +2,7 @@
 
 PROG =		songmeta
 SRCS =		songmeta.c flac.c id3v1.c id3v2.c ogg.c opus.c text.c \
-		vorbis.c ../compats.c
+		vorbis.c ../compats.c ../log.c
 
 OBJS =		${SRCS:.c=.o}
 
@@ -65,3 +65,4 @@ dist:
 -include text.d
 -include vorbis.d
 -include ../compats.d
+-include ../log.d

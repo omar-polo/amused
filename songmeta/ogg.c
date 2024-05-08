@@ -27,11 +27,11 @@
  * Ogg file-format handling.
  */
 
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "log.h"
 #include "ogg.h"
 
 struct ogg {
@@ -57,7 +57,7 @@ readpkt(struct ogg *ogg)
 		return (-1);
 
 	if (memcmp(magic, "OggS", 4) != 0) {
-		warnx("not an ogg file: %s", ogg->name);
+		log_warnx("not an ogg file: %s", ogg->name);
 		return (-1);
 	}
 

@@ -23,13 +23,13 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <err.h>
 #include <endian.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "ogg.h"
+#include "log.h"
 #include "songmeta.h"
 
 int
@@ -47,7 +47,7 @@ opus_match(struct ogg *ogg)
 	if (ogg_read(ogg, &v, 1) != 1)
 		return (-1);
 	if (v < 1 || v > 2) {
-		warnx("unsupported opus version %d", v);
+		log_warnx("unsupported opus version %d", v);
 		return (-1);
 	}
 

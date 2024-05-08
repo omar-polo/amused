@@ -27,11 +27,11 @@
  * FLAC metadata handling.
  */
 
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "log.h"
 #include "songmeta.h"
 
 int
@@ -46,7 +46,7 @@ flac_dump(FILE *fp, const char *name, const char *filter)
 		return (-1);
 
 	if (memcmp(magic, "fLaC", 4) != 0) {
-		warnx("not a flac file %s", name);
+		log_warnx("not a flac file %s", name);
 		return (-1);
 	}
 
@@ -91,7 +91,7 @@ flac_dump(FILE *fp, const char *name, const char *filter)
 			blen = (len[3] << 24)|(len[2] << 16)|(len[1] << 8)|len[0];
 
 			if ((m = malloc(blen + 1)) == NULL)
-				err(1, "malloc");
+				fatal("malloc");
 
 			if (fread(m, 1, blen, fp) != blen) {
 				free(m);
@@ -100,7 +100,7 @@ flac_dump(FILE *fp, const char *name, const char *filter)
 			m[blen] = '\0';
 
 			if ((v = strchr(m, '=')) == NULL) {
-				warnx("missing field name!");
+				log_warnx("missing field name!");
 				free(m);
 				return (-1);
 			}

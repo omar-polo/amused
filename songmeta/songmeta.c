@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#include <err.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -33,6 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "log.h"
 #include "ogg.h"
 #include "songmeta.h"
 
@@ -98,11 +98,11 @@ readprintfield(const char *field, const char *filter, const char *fname,
 			n = sizeof(buf) - 1;
 
 		if ((r = read(fd, buf, n)) == -1) {
-			warn("read");
+			log_warn("read");
 			return (-1);
 		}
 		if (r == 0) {
-			warnx("unexpected EOF");
+			log_warnx("unexpected EOF");
 			return (-1);
 		}
 		buf[r] = '\0';
@@ -127,12 +127,12 @@ dofile(FILE *fp, const char *name, const char *filter)
 	size_t		 r, ret = -1;
 
 	if ((r = fread(buf, 1, sizeof(buf), fp)) < 8) {
-		warn("failed to read %s", name);
+		log_warn("failed to read %s", name);
 		return (-1);
 	}
 
 	if (fseek(fp, 0, SEEK_SET) == -1) {
-		warn("fseek failed in %s", name);
+		log_warn("fseek failed in %s", name);
 		return (-1);
 	}
 
@@ -151,7 +151,7 @@ dofile(FILE *fp, const char *name, const char *filter)
 		}
 
 		if (ogg_rewind(ogg) == -1) {
-			warn("I/O error on %s", name);
+			log_warn("I/O error on %s", name);
 			ogg_close(ogg);
 			return (-1);
 		}
@@ -165,13 +165,13 @@ dofile(FILE *fp, const char *name, const char *filter)
 	}
 
 	if (ferror(fp)) {
-		warn("I/O error on %s", name);
+		log_warn("I/O error on %s", name);
 		return (-1);
 	}
 
 	/* TODO: id3v1? */
 
-	warnx("unknown file format: %s", name);
+	log_warnx("unknown file format: %s", name);
 	return (-1);
 }
 
@@ -184,7 +184,7 @@ main(int argc, char **argv)
 	int		 ret = 0;
 
 	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
+		fatal("pledge");
 
 	while ((ch = getopt(argc, argv, "g:r")) != -1) {
 		switch (ch) {
@@ -206,7 +206,7 @@ main(int argc, char **argv)
 
 	for (; *argv; ++argv) {
 		if ((fp = fopen(*argv, "r")) == NULL) {
-			warn("can't open %s", *argv);
+			log_warn("can't open %s", *argv);
 			ret = 1;
 			continue;
 		}

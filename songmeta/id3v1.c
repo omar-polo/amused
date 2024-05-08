@@ -30,11 +30,11 @@
 #include <sys/stat.h>
 
 #include <ctype.h>
-#include <err.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "log.h"
 #include "songmeta.h"
 
 #define ID3v1_SIZE	128
@@ -49,18 +49,18 @@ id3v1_dump(int fd, const char *name, const char *filter)
 	off_t		 off;
 
 	if (fstat(fd, &sb) == -1) {
-		warn("fstat %s", name);
+		log_warn("fstat %s", name);
 		return (-1);
 	}
 
 	if (sb.st_size < ID3v1_SIZE) {
-		warnx("no id3 section found in %s", name);
+		log_warnx("no id3 section found in %s", name);
 		return (-1);
 	}
 	off = sb.st_size - ID3v1_SIZE;
 	r = pread(fd, id3, ID3v1_SIZE, off);
 	if (r == -1 || r != ID3v1_SIZE) {
-		warn("failed to read id3 section in %s", name);
+		log_warn("failed to read id3 section in %s", name);
 		return (-1);
 	}
 
@@ -122,6 +122,6 @@ id3v1_dump(int fd, const char *name, const char *filter)
 	return (0);
 
  bad:
-	warnx("bad id3 section in %s", name);
+	log_warnx("bad id3 section in %s", name);
 	return (-1);
 }

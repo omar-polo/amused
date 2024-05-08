@@ -31,12 +31,12 @@
 
 #include <ctype.h>
 #include <endian.h>
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "log.h"
 #include "songmeta.h"
 
 #ifndef nitems
@@ -182,7 +182,7 @@ id3v2_dump(int fd, const char *name, const char *filter)
 
 	if ((r = read(fd, hdr, sizeof(hdr))) == -1 ||
 	    r != ID3v2_HDR_SIZE) {
-		warn("read failed: %s", name);
+		log_warn("read failed: %s", name);
 		return (-1);
 	}
 
@@ -211,7 +211,7 @@ id3v2_dump(int fd, const char *name, const char *filter)
 #endif
 
 	if (flags & F_EXPIND) {
-		warnx("don't know how to handle the extended header yet.");
+		log_warnx("don't know how to handle the extended header yet.");
 		return (-1);
 	}
 
@@ -221,7 +221,7 @@ id3v2_dump(int fd, const char *name, const char *filter)
 	while (size > 0) {
 		if ((r = read(fd, hdr, sizeof(hdr))) == -1 ||
 		    r != ID3v2_FRAME_SIZE) {
-			warn("read failed: %s", name);
+			log_warn("read failed: %s", name);
 			return (-1);
 		}
 
@@ -230,7 +230,7 @@ id3v2_dump(int fd, const char *name, const char *filter)
 		if (fsize == 0)
 			break;	/* XXX padding?? */
 		if (fsize + 10 > size) {
-			warnx("bad frame length (%d vs %d)", fsize, size);
+			log_warnx("bad frame length (%d vs %d)", fsize, size);
 			return (-1);
 		}
 		size -= fsize + 10;
@@ -238,7 +238,7 @@ id3v2_dump(int fd, const char *name, const char *filter)
 		f = bsearch(hdr, map, nitems(map), sizeof(map[0]), mapcmp);
 		if (f == NULL) {
 			if (lseek(fd, fsize, SEEK_CUR) == -1) {
-				warn("lseek");
+				log_warn("lseek");
 				return (-1);
 			}
 			continue;
@@ -256,6 +256,6 @@ id3v2_dump(int fd, const char *name, const char *filter)
 	return (0);
 
  bad:
-	warnx("bad ID3v2 section");
+	log_warnx("bad ID3v2 section");
 	return (-1);
 }
