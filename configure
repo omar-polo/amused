@@ -547,7 +547,6 @@ fi
 
 runtest capsicum	CAPSICUM			  || true
 runtest endian_h	ENDIAN_H			  || true
-runtest err		ERR				  || true
 runtest explicit_bzero	EXPLICIT_BZERO			  || true
 runtest flock		FLOCK				  || true
 runtest freezero	FREEZERO			  || true
