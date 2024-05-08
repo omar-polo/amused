@@ -213,7 +213,6 @@ command -v pkg-config 2>/dev/null 1>&2 && {
 
 HAVE_CAPSICUM=
 HAVE_ENDIAN_H=
-HAVE_ERR=
 HAVE_EXPLICIT_BZERO=
 HAVE_FLOCK=
 HAVE_FREEZERO=
@@ -737,7 +736,6 @@ cat << __HEREDOC__
  */
 #define HAVE_CAPSICUM ${HAVE_CAPSICUM}
 #define HAVE_ENDIAN_H ${HAVE_ENDIAN_H}
-#define HAVE_ERR ${HAVE_ERR}
 #define HAVE_EXPLICIT_BZERO ${HAVE_EXPLICIT_BZERO}
 #define HAVE_FLOCK ${HAVE_FLOCK}
 #define HAVE_FREEZERO ${HAVE_FREEZERO}
@@ -809,14 +807,6 @@ if [ ${HAVE_FLOCK} -eq 0 ]; then
 	fi
 fi
 
-if [ ${HAVE_ERR} -eq 0 ]; then
-	echo "#include <stdarg.h> /* err(3) */"
-	echo
-else
-	echo "#include <err.h>"
-	echo
-fi
-
 if [ ${HAVE_PLEDGE} -eq 0 ]; then
 	echo "#define pledge(p, e) (0)"
 	echo
@@ -838,25 +828,6 @@ then
 fi
 
 # Now we do our function declarations for missing functions.
-
-[ ${HAVE_ERR} -eq 0 ] && \
-	cat << __HEREDOC__
-/*
- * Compatibility functions for err(3).
- */
-extern void err(int, const char *, ...) __attribute__((noreturn));
-extern void errc(int, int, const char *, ...) __attribute__((noreturn));
-extern void errx(int, const char *, ...) __attribute__((noreturn));
-extern void verr(int, const char *, va_list) __attribute__((noreturn));
-extern void verrc(int, int, const char *, va_list) __attribute__((noreturn));
-extern void verrx(int, const char *, va_list) __attribute__((noreturn));
-extern void warn(const char *, ...);
-extern void warnx(const char *, ...);
-extern void warnc(int, const char *, ...);
-extern void vwarn(const char *, va_list);
-extern void vwarnc(int, const char *, va_list);
-extern void vwarnx(const char *, va_list);
-__HEREDOC__
 
 [ ${HAVE_EXPLICIT_BZERO} -eq 0 ] && \
 	cat << __HEREDOC__
