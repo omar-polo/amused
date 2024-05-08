@@ -28,6 +28,11 @@ Then, to build:
 	$ make
 	# make install # eventually
 
+To compile the metadata extractor utility, songmeta, run:
+
+	$ make songmeta
+	# make install-songmeta
+
 To compile the web control interface, amused-web, run:
 
 	$ make web
