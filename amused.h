@@ -156,17 +156,6 @@ void		main_send_playlist(struct imsgev *);
 void		main_send_status(struct imsgev *);
 void		main_seek(struct player_seek *);
 
-/* audio_*.c */
-int		audio_open(void (*)(void *, int));
-int		audio_setup(unsigned int, unsigned int, unsigned int,
-		    struct pollfd *, int);
-int		audio_nfds(void);
-int		audio_pollfd(struct pollfd *, int, int);
-int		audio_revents(struct pollfd *, int);
-size_t		audio_write(const void *, size_t);
-int		audio_flush(void);
-int		audio_stop(void);
-
 /* ctl.c */
 __dead void	usage(void);
 __dead void	ctl(int, char **);

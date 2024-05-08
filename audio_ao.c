@@ -24,7 +24,7 @@
 #include <pthread.h>
 #include <string.h>
 
-#include "amused.h"
+#include "audio.h"
 #include "log.h"
 
 static void		(*onmove_cb)(void *, int);

@@ -28,7 +28,7 @@ extern "C" {
 #include <oboe/Oboe.h>
 
 extern "C" {
-#include "amused.h"
+#include "audio.h"
 #include "log.h"
 }
 

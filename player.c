@@ -30,6 +30,7 @@
 #include <unistd.h>
 
 #include "amused.h"
+#include "audio.h"
 #include "log.h"
 #include "xmalloc.h"
 

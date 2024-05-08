@@ -22,7 +22,7 @@
 #include <sndio.h>
 #include <stdio.h>
 
-#include "amused.h"
+#include "audio.h"
 #include "log.h"
 
 static struct sio_hdl		*hdl;

@@ -20,7 +20,7 @@
 
 #include <limits.h>
 
-#include "amused.h"
+#include "audio.h"
 #include "log.h"
 
 static snd_pcm_t	*pcm;
