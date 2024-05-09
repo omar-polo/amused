@@ -2,9 +2,9 @@
 
 PROG =		songmeta
 SRCS =		songmeta.c flac.c id3v1.c id3v2.c ogg.c opus.c text.c \
-		vorbis.c ../compats.c ../log.c
+		vorbis.c ../log.c
 
-OBJS =		${SRCS:.c=.o}
+OBJS =		${SRCS:.c=.o} ${COBJS:=../compat/%}
 
 DISTFILES =	Makefile songmeta.c flac.c id3v1.c id3v2.c ogg.c opus.c \
 		text.c vorbis.c
@@ -43,7 +43,7 @@ uninstall:
 	rm ${DESTDIR}${MANDIR}/man1/${PROG}.1
 
 .c.o:
-	${CC} -I../ ${CFLAGS} -c $< -o $@
+	${CC} -I.. -I../compat ${CFLAGS} -c $< -o $@
 
 # --- maintainer targets ---
 

@@ -5,7 +5,6 @@ PROG =		amused
 DISTNAME =	${PROG}-${VERSION}
 
 SOURCES =	amused.c \
-		compats.c \
 		control.c \
 		ctl.c \
 		ev.c \
@@ -18,7 +17,7 @@ SOURCES =	amused.c \
 		playlist.c \
 		xmalloc.c
 
-OBJS =		${SOURCES:.c=.o} audio_${BACKEND}.o
+OBJS =		${SOURCES:.c=.o} audio_${BACKEND}.o ${COBJS:=compat/%}
 
 HEADERS =	amused.h \
 		control.h \
@@ -93,6 +92,9 @@ install-local:
 uninstall:
 	rm ${DESTDIR}${BINDIR}/${PROG}
 	rm ${DESTDIR}${MANDIR}/man1/${PROG}.1
+
+.c.o:
+	${CC} -I. -Icompat ${CFLAGS} -DBUFIO_WITHOUT_TLS -c $< -o $@
 
 # --- maintainer targets ---
 

@@ -23,8 +23,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "config.h"
-
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>

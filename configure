@@ -232,14 +232,12 @@ HAVE_LIB_SNDIO=
 HAVE_LIB_SOCKET=
 HAVE_LIB_VORBISFILE=
 HAVE_MEMMEM=
-HAVE_MEMRCHR=
 HAVE_MEMSET_S=
 HAVE_OPTRESET=
 HAVE_PATH_MAX=
 HAVE_PLEDGE=
 HAVE_PROGRAM_INVOCATION_SHORT_NAME=
 HAVE_PR_SET_NAME=
-HAVE_REALLOCARRAY=
 HAVE_RECALLOCARRAY=
 HAVE_SANDBOX_INIT=
 HAVE_SETPROCTITLE=
@@ -247,15 +245,11 @@ HAVE_SIO_FLUSH=
 HAVE_SOCK_NONBLOCK=
 HAVE_STRLCAT=
 HAVE_STRLCPY=
-HAVE_STRNDUP=
-HAVE_STRNLEN=
 HAVE_STRTONUM=
 HAVE_SYS_ENDIAN_H=
 HAVE_SYS_FILE=
 HAVE_SYS_QUEUE=
-HAVE_SYSTRACE=0
 HAVE_TIMESPECSUB=
-HAVE_UNVEIL=
 HAVE___PROGNAME=
 
 #----------------------------------------------------------------------
@@ -545,19 +539,25 @@ if runtest -MMD _MMD -MMD; then
 	echo "adding -MMD to CFLAGS and CXXFLAGS" 1>&3
 fi
 
+cobj=""
+
 runtest capsicum	CAPSICUM			  || true
 runtest endian_h	ENDIAN_H			  || true
-runtest explicit_bzero	EXPLICIT_BZERO			  || true
-runtest flock		FLOCK				  || true
-runtest freezero	FREEZERO			  || true
+
+runtest explicit_bzero	EXPLICIT_BZERO	|| cobj="$cojb explicit_bzero.o"
+runtest flock		FLOCK		|| cobj="$cobj floc.o"
+runtest freezero	FREEZERO	|| cobj="$cobj freezero.o"
 runtest getdtablecount	GETDTABLECOUNT			  || true
 runtest getdtablesize	GETDTABLESIZE			  || true
 runtest getexecname	GETEXECNAME			  || true
-runtest getprogname	GETPROGNAME			  || true
+runtest getprogname	GETPROGNAME	|| cobj="$cobj getprogname.o"
 runtest INFTIM		INFTIM				  || true
 runtest landlock	LANDLOCK			  || true
 
-runtest lib_imsg	LIB_IMSG "" "" "-lutil"		  || true
+runtest lib_imsg	LIB_IMSG "" "" "-lutil" || {
+	cobj="$cobj imsg-buffer.o imsg.o"
+}
+
 runtest lib_md		LIB_MD "" "" "-lmd" "libmd"	  || true
 runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
 
@@ -566,30 +566,25 @@ runtest lib_mpg123	LIB_MPG123 "" "" "-lmpg123" "libmpg123" || true
 runtest lib_opusfile	LIB_OPUSFILE "" "" "-lopusfile"	"opusfile"  || true
 runtest lib_vorbisfile	LIB_VORBISFILE "" "" "-lvorbisfile" "vorbisfile" || true
 
-runtest memmem		MEMMEM			  	  || true
-runtest memrchr		MEMRCHR			  	  || true
+runtest memmem		MEMMEM		|| cobj="$cobj memmem.o"
 runtest memset_s	MEMSET_S			  || true
-runtest optreset	OPTRESET			  || true
+runtest optreset	OPTRESET	|| cobj="$cobj getprogname.o"
 runtest PATH_MAX	PATH_MAX			  || true
 runtest pledge		PLEDGE				  || true
 runtest program_invocation_short_name	PROGRAM_INVOCATION_SHORT_NAME || true
 runtest PR_SET_NAME	PR_SET_NAME			  || true
-runtest reallocarray	REALLOCARRAY			  || true
-runtest recallocarray	RECALLOCARRAY			  || true
+runtest recallocarray	RECALLOCARRAY	|| cobj="$cobj recallocarray.o"
 runtest sandbox_init	SANDBOX_INIT	"-Wno-deprecated" || true
-runtest setproctitle	SETPROCTITLE			  || true
+runtest setproctitle	SETPROCTITLE	|| cobj="$cobj setproctitle.o"
 runtest SOCK_NONBLOCK	SOCK_NONBLOCK			  || true
 runtest static		STATIC "" "-static"		  || true
-runtest strlcat		STRLCAT				  || true
-runtest strlcpy		STRLCPY				  || true
-runtest strndup		STRNDUP				  || true
-runtest strnlen		STRNLEN				  || true
-runtest strtonum	STRTONUM			  || true
+runtest strlcat		STRLCAT		|| cobj="$cobj strlcat.o"
+runtest strlcpy		STRLCPY		|| cobj="$cobj strlcpy.o"
+runtest strtonum	STRTONUM	|| cobj="$cobj strtonum.o"
 runtest sys_queue	SYS_QUEUE			  || true
 runtest sys_endian_h	SYS_ENDIAN_H			  || true
 runtest sys_file	SYS_FILE			  || true
-runtest timespecsub	TIMESPECSUB			  || true
-runtest unveil		UNVEIL				  || true
+runtest timespecsub	TIMESPECSUB	|| cobj="$cobj timespecsub.o"
 runtest __progname	__PROGNAME			  || true
 
 if [ $HAVE_LIB_IMSG = 0 ]; then
@@ -662,10 +657,6 @@ if [ $BACKEND = auto -o $BACKEND = oboe ]; then
 	CFLAGS="${CFLAGS} -pthread"
 
 	LDADD="${LDADD} -lstdc++ -lm -llog -lOpenSLES"
-fi
-
-if [ "${HAVE_ENDIAN_H}" -eq 0 ]; then
-	CFLAGS="${CFLAGS} -I."
 fi
 
 if [ "${HAVE_LIB_FLAC}" -eq 0 -o \
@@ -746,14 +737,12 @@ cat << __HEREDOC__
 #define HAVE_INFTIM ${HAVE_INFTIM}
 #define HAVE_LANDLOCK ${HAVE_LANDLOCK}
 #define HAVE_MEMMEM ${HAVE_MEMMEM}
-#define HAVE_MEMRCHR ${HAVE_MEMRCHR}
 #define HAVE_MEMSET_S ${HAVE_MEMSET_S}
 #define HAVE_OPTRESET ${HAVE_OPTRESET}
 #define HAVE_PATH_MAX ${HAVE_PATH_MAX}
 #define HAVE_PLEDGE ${HAVE_PLEDGE}
 #define HAVE_PROGRAM_INVOCATION_SHORT_NAME ${HAVE_PROGRAM_INVOCATION_SHORT_NAME}
 #define HAVE_PR_SET_NAME ${HAVE_PR_SET_NAME}
-#define HAVE_REALLOCARRAY ${HAVE_REALLOCARRAY}
 #define HAVE_RECALLOCARRAY ${HAVE_RECALLOCARRAY}
 #define HAVE_SANDBOX_INIT ${HAVE_SANDBOX_INIT}
 #define HAVE_SETPROCTITLE ${HAVE_SETPROCTITLE}
@@ -761,15 +750,11 @@ cat << __HEREDOC__
 #define HAVE_SOCK_NONBLOCK ${HAVE_SOCK_NONBLOCK}
 #define HAVE_STRLCAT ${HAVE_STRLCAT}
 #define HAVE_STRLCPY ${HAVE_STRLCPY}
-#define HAVE_STRNDUP ${HAVE_STRNDUP}
-#define HAVE_STRNLEN ${HAVE_STRNLEN}
 #define HAVE_STRTONUM ${HAVE_STRTONUM}
 #define HAVE_SYS_ENDIAN_H ${HAVE_SYS_ENDIAN_H}
 #define HAVE_SYS_FILE ${HAVE_SYS_FILE}
 #define HAVE_SYS_QUEUE ${HAVE_SYS_QUEUE}
-#define HAVE_SYSTRACE ${HAVE_SYSTRACE}
 #define HAVE_TIMESPECSUB ${HAVE_TIMESPECSUB}
-#define HAVE_UNVEIL ${HAVE_UNVEIL}
 #define HAVE___PROGNAME ${HAVE___PROGNAME}
 
 __HEREDOC__
@@ -780,13 +765,9 @@ __HEREDOC__
 # Our function declarations are standalone, so specify them here.
 
 if [ ${HAVE_MEMMEM} -eq 0 -o \
-     ${HAVE_MEMRCHR} -eq 0 -o \
-     ${HAVE_REALLOCARRAY} -eq 0 -o \
      ${HAVE_RECALLOCARRAY} -eq 0 -o \
      ${HAVE_STRLCAT} -eq 0 -o \
-     ${HAVE_STRLCPY} -eq 0 -o \
-     ${HAVE_STRNDUP} -eq 0 -o \
-     ${HAVE_STRNLEN} -eq 0 ]
+     ${HAVE_STRLCPY} -eq 0 ]
 then
 	echo "#include <sys/types.h> /* size_t, mode_t, dev_t */ "
 	echo
@@ -855,30 +836,12 @@ void *memmem(const void *, size_t, const void *, size_t);
 
 __HEREDOC__
 
-[ ${HAVE_MEMRCHR} -eq 0 ] && \
-	cat << __HEREDOC__
-/*
- * Compatibility for memrchr(3).
- */
-void *memrchr(const void *b, int, size_t);
-
-__HEREDOC__
-
 [ ${HAVE_GETPROGNAME} -eq 0 ] && \
 	cat << __HEREDOC__
 /*
  * Compatibility for getprogname(3).
  */
 extern const char *getprogname(void);
-
-__HEREDOC__
-
-[ ${HAVE_REALLOCARRAY} -eq 0 ] && \
-	cat << __HEREDOC__
-/*
- * Compatibility for reallocarray(3).
- */
-extern void *reallocarray(void *, size_t, size_t);
 
 __HEREDOC__
 
@@ -918,24 +881,6 @@ extern size_t strlcpy(char *, const char *, size_t);
 
 __HEREDOC__
 
-[ ${HAVE_STRNDUP} -eq 0 ] && \
-	cat << __HEREDOC__
-/*
- * Compatibility for strndup(3).
- */
-extern char *strndup(const char *, size_t);
-
-__HEREDOC__
-
-[ ${HAVE_STRNLEN} -eq 0 ] && \
-	cat << __HEREDOC__
-/*
- * Compatibility for strnlen(3).
- */
-extern size_t strnlen(const char *, size_t);
-
-__HEREDOC__
-
 [ ${HAVE_STRTONUM} -eq 0 ] && \
 	cat << __HEREDOC__
 /*
@@ -952,33 +897,6 @@ cat << __HEREDOC__
 
 #if !HAVE_SIO_FLUSH
 #define sio_flush(hdl) (sio_stop(hdl))
-#endif
-
-#if !HAVE_GETDTABLECOUNT
-/* XXX: on linux it should be possible to inspect /proc/self/fd/ */
-#define getdtablecount() (0)
-#endif
-
-#if !HAVE_GETDTABLESIZE
-int	 getdtablesize(void);
-#endif
-
-#if !HAVE_OPTRESET
-/* replace host' getopt with OpenBSD' one */
-#define opterr		BSDopterr
-#define optind		BSDoptind
-#define optopt		BSDoptopt
-#define optreset	BSDoptreset
-#define optarg		BSDoptarg
-#define getopt		BSDgetopt
-
-extern int BSDopterr, BSDoptind, BSDoptopt, BSDoptreset;
-extern char *BSDoptarg;
-#endif
-
-#if !HAVE_TIMESPECSUB
-struct timespec;
-void timespecsub(struct timespec *, struct timespec *, struct timespec *);
 #endif
 
 #endif /*!OCONFIGURE_CONFIG_H*/
@@ -1014,6 +932,7 @@ CC		 = ${CC}
 CFLAGS		 = ${CFLAGS}
 CXXFLAGS	 = ${CXXFLAGS}
 CPPFLAGS	 = ${CPPFLAGS}
+COBJS		 = ${cobj}
 LDADD		 = ${LDADD}
 LDADD_LIB_IMSG	 = ${LDADD_LIB_IMSG}
 LDADD_DECODERS	 = ${LDADD_LIB_FLAC} ${LDADD_LIB_MPG123} ${LDADD_LIB_OPUSFILE} \

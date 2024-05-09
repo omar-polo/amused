@@ -3,9 +3,9 @@
 PROG =		amused-web
 
 SOURCES =	web.c bufio.c http.c ws.c \
-		../compats.c ../ev.c ../log.c ../playlist.c ../xmalloc.c
+		../ev.c ../log.c ../playlist.c ../xmalloc.c
 
-OBJS =		${SOURCES:.c=.o}
+OBJS =		${SOURCES:.c=.o} ${COBJS:=../compat/%}
 
 DISTFILES =	Makefile amused-web.1 bufio.c bufio.h http.c http.h \
 		web.c ws.c ws.h
@@ -44,7 +44,7 @@ uninstall:
 	rm ${DESTDIR}${MANDIR}/man1/${PROG}.1
 
 .c.o:
-	${CC} -I../ ${CFLAGS} -DBUFIO_WITHOUT_TLS -c $< -o $@
+	${CC} -I.. -I../compat ${CFLAGS} -DBUFIO_WITHOUT_TLS -c $< -o $@
 
 # --- maintainer targets ---
 

@@ -23,8 +23,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "config.h"
-
 #include <sys/time.h>
 
 #include <errno.h>
