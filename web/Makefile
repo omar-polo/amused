@@ -10,6 +10,8 @@ OBJS =		${SOURCES:.c=.o} ${COBJS:%=../compat/%}
 DISTFILES =	Makefile amused-web.1 bufio.c bufio.h http.c http.h \
 		web.c ws.c ws.h
 
+TOPDIR =	..
+
 all: ${PROG}
 
 ../Makefile.configure ../config.h: ../configure ../tests.c

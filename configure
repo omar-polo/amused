@@ -588,11 +588,11 @@ runtest timespecsub	TIMESPECSUB	|| cobj="$cobj timespecsub.o"
 runtest __progname	__PROGNAME			  || true
 
 if [ $HAVE_LIB_IMSG = 0 ]; then
-	CFLAGS="${CFLAGS} -Icompat/imsg/"
+	CFLAGS="${CFLAGS} -I\${TOPDIR}/compat/imsg"
 fi
 
 if [ $HAVE_SYS_QUEUE -eq 0 ]; then
-	CFLAGS="${CFLAGS} -Icompat/queue"
+	CFLAGS="${CFLAGS} -I\${TOPDIR}/compat/queue"
 fi
 
 if [ $BACKEND = auto -o $BACKEND = sndio ]; then

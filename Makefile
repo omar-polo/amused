@@ -44,6 +44,8 @@ DISTFILES =	CHANGES \
 		audio_oboe.cpp \
 		audio_sndio.c
 
+TOPDIR =	.
+
 all: ${PROG}
 
 Makefile.configure config.h: configure tests.c

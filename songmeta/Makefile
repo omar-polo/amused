@@ -9,6 +9,8 @@ OBJS =		${SRCS:.c=.o} ${COBJS:%=../compat/%}
 DISTFILES =	Makefile songmeta.c flac.c id3v1.c id3v2.c ogg.c opus.c \
 		text.c vorbis.c
 
+TOPDIR =	..
+
 all: ${PROG}
 
 ../Makefile.configure ../config.h: ../configure ../tests.c
