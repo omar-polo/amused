@@ -17,7 +17,7 @@ SOURCES =	amused.c \
 		playlist.c \
 		xmalloc.c
 
-OBJS =		${SOURCES:.c=.o} audio_${BACKEND}.o ${COBJS:=compat/%}
+OBJS =		${SOURCES:.c=.o} audio_${BACKEND}.o ${COBJS:%=compat/%}
 
 HEADERS =	amused.h \
 		control.h \
