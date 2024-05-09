@@ -21,6 +21,7 @@
 #include <poll.h>
 #include <pthread.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "audio.h"
 #include "log.h"
