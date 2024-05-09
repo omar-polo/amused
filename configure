@@ -545,7 +545,7 @@ runtest capsicum	CAPSICUM			  || true
 runtest endian_h	ENDIAN_H			  || true
 
 runtest explicit_bzero	EXPLICIT_BZERO	|| cobj="$cojb explicit_bzero.o"
-runtest flock		FLOCK		|| cobj="$cobj floc.o"
+runtest flock		FLOCK		|| cobj="$cobj flock.o"
 runtest freezero	FREEZERO	|| cobj="$cobj freezero.o"
 runtest getdtablecount	GETDTABLECOUNT			  || true
 runtest getdtablesize	GETDTABLESIZE			  || true
