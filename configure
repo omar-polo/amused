@@ -558,7 +558,10 @@ runtest lib_imsg	LIB_IMSG "" "" "-lutil" || {
 	cobj="$cobj imsg-buffer.o imsg.o"
 }
 
-runtest lib_md		LIB_MD "" "" "-lmd" "libmd"	  || true
+runtest lib_md		LIB_MD "" "" "-lmd" "libmd" || {
+	cobj="$cobj sha1.o"
+}
+
 runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
 
 runtest lib_flac	LIB_FLAC "" "" "-lFLAC" "flac"	  || true
@@ -589,6 +592,10 @@ runtest __progname	__PROGNAME			  || true
 
 if [ $HAVE_LIB_IMSG = 0 ]; then
 	CFLAGS="${CFLAGS} -I\${TOPDIR}/compat/imsg"
+fi
+
+if [ $HAVE_LIB_MD -eq 0 ]; then
+	CFLAGS="${CFLAGS} -I\${TOPDIR}/compat/sha1"
 fi
 
 if [ $HAVE_SYS_QUEUE -eq 0 ]; then
