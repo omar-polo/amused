@@ -273,31 +273,31 @@ while [ $# -gt 0 ]; do
 	key=${1%%=*}
 	val=${1#*=}
 
-	if [ "$key" == "--with-Werror" ]; then
+	if [ "$key" = "--with-Werror" ]; then
 		WITH_WERROR=1
 		shift
 		continue
 	fi
 
-	if [ "$key" == "--with-web" ]; then
+	if [ "$key" = "--with-web" ]; then
 		WITH_WEB=1
 		shift
 		continue
 	fi
 
-	if [ "$key" == "--without-web" ]; then
+	if [ "$key" = "--without-web" ]; then
 		WITH_WEB=0
 		shift
 		continue
 	fi
 
-	if [ "$key" == "--with-songmeta" ]; then
+	if [ "$key" = "--with-songmeta" ]; then
 		WITH_SONGMETA=1
 		shift
 		continue
 	fi
 
-	if [ "$key" == "--without-songmeta" ]; then
+	if [ "$key" = "--without-songmeta" ]; then
 		WITH_SONGMETA=0
 		shift
 		continue
