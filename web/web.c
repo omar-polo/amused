@@ -1028,7 +1028,7 @@ main(int argc, char **argv)
 {
 	struct addrinfo	 hints, *res, *res0;
 	const char	*cause = NULL;
-	const char	*host = NULL;
+	const char	*host = "localhost";
 	const char	*port = "9090";
 	char		*sock = NULL;
 	size_t		 nsock, error, save_errno;
@@ -1066,6 +1066,9 @@ main(int argc, char **argv)
 	}
 	if (argc > 2)
 		usage();
+
+	if (!strcmp(host, "*"))
+		host = NULL;
 
 	log_setverbose(verbose);
 
@@ -1134,7 +1137,7 @@ main(int argc, char **argv)
 	if (pledge("stdio inet", NULL) == -1)
 		fatal("pledge");
 
-	log_info("listening on port %s", port);
+	log_info("listening on %s:%s", host ? host : "*", port);
 	ev_loop();
 	return (1);
 }

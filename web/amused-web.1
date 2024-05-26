@@ -1,4 +1,4 @@
-.\" Copyright (c) 2023 Omar Polo <op@omarpolo.com>
+.\" Copyright (c) 2023, 2024 Omar Polo <op@omarpolo.com>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd December 10, 2023
+.Dd May 26, 2024
 .Dt AMUSED-WEB 1
 .Os
 .Sh NAME
@@ -31,8 +31,14 @@ music player.
 It exposes a web server that listen on
 .Ar host
 at the given
-.Ar port .
-By default all IPv4 and IPv6 address at port 9090.
+.Ar port ,
+by default localhost on port 9090.
+If
+.Ar host
+is
+.Sq * ,
+which has to be escaped for the shell,
+then it will listen on all IPv4 and IPv6 addresses.
 .Pp
 The following options are available:
 .Bl -tag -width tenletters
