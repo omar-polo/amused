@@ -50,17 +50,17 @@ Usage: $0 [-h] [--prefix=path] [VAR=VALUE]...
 
 The options are as follows:
 
-    -h, --help     print this help message
+    --backend=name  equivalent to specify the BACKEND variable, can be either
+                    "sndio" or "alsa".
 
-    --prefix=path  equivalent to specify the PREFIX variable, supported
-                   for compatibility with other common "configure" scripts.
+    -h, --help      print this help message
 
-    --without-web  disable the building of amused-web
+    --prefix=path   equivalent to specify the PREFIX variable, supported
+                    for compatibility with other common "configure" scripts.
 
-    --with-songmeta enable building the songmeta(1) cli
+    --with-songmeta enable building the songmeta cli
 
-    --backend=name equivalent to specify the BACKEND variable, can be either
-                   "sndio" or "alsa".
+    --without-web   disable the building of amused-web
 
 Variables available:
 
