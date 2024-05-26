@@ -58,6 +58,8 @@ The options are as follows:
     --prefix=path   equivalent to specify the PREFIX variable, supported
                     for compatibility with other common "configure" scripts.
 
+    --with-Werror   build with -Werror
+
     --with-songmeta enable building the songmeta cli
 
     --without-web   disable the building of amused-web
@@ -178,6 +180,7 @@ INSTALL_MAN=
 INSTALL_DATA=
 PKG_CONFIG=
 WITH_WEB=1
+WITH_WERROR=0
 WITH_SONGMETA=0
 
 # SunOS sets "cc", but this doesn't exist.
@@ -265,6 +268,12 @@ HAVE___PROGNAME=
 while [ $# -gt 0 ]; do
 	key=${1%%=*}
 	val=${1#*=}
+
+	if [ "$key" == "--with-Werror" ]; then
+		WITH_WERROR=1
+		shift
+		continue
+	fi
 
 	if [ "$key" == "--with-web" ]; then
 		WITH_WEB=1
@@ -954,6 +963,8 @@ exec > config.mk
 PROGS="amused"
 [ "$WITH_SONGMETA" = 1	] && PROGS="$PROGS songmeta"
 [ "$WITH_WEB" = 1	] && PROGS="$PROGS web"
+
+[ "$WITH_WERROR" = 1    ] && CFLAGS="${CFLAGS} -Werror"
 
 [ -z "${BINDIR}"     ] && BINDIR="${PREFIX}/bin"
 [ -z "${SBINDIR}"    ] && SBINDIR="${PREFIX}/sbin"
