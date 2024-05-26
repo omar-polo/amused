@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2014, 2015, 2016 Ingo Schwarze <schwarze@openbsd.org>
 # Copyright (c) 2017, 2018 Kristaps Dzonsons <kristaps@bsd.lv>
-# Copyright (c) 2022, 2023 Omar Polo <op@omarpolo.com>
+# Copyright (c) 2022, 2023, 2024 Omar Polo <op@omarpolo.com>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -54,6 +54,10 @@ The options are as follows:
 
     --prefix=path  equivalent to specify the PREFIX variable, supported
                    for compatibility with other common "configure" scripts.
+
+    --without-web  disable the building of amused-web
+
+    --with-songmeta enable building the songmeta(1) cli
 
     --backend=name equivalent to specify the BACKEND variable, can be either
                    "sndio" or "alsa".
@@ -173,6 +177,8 @@ INSTALL_LIB=
 INSTALL_MAN=
 INSTALL_DATA=
 PKG_CONFIG=
+WITH_WEB=1
+WITH_SONGMETA=0
 
 # SunOS sets "cc", but this doesn't exist.
 # It does have gcc, so try that instead.
@@ -259,6 +265,30 @@ HAVE___PROGNAME=
 while [ $# -gt 0 ]; do
 	key=${1%%=*}
 	val=${1#*=}
+
+	if [ "$key" == "--with-web" ]; then
+		WITH_WEB=1
+		shift
+		continue
+	fi
+
+	if [ "$key" == "--without-web" ]; then
+		WITH_WEB=0
+		shift
+		continue
+	fi
+
+	if [ "$key" == "--with-songmeta" ]; then
+		WITH_SONGMETA=1
+		shift
+		continue
+	fi
+
+	if [ "$key" == "--without-songmeta" ]; then
+		WITH_SONGMETA=0
+		shift
+		continue
+	fi
 
 	if [ "$key" = "--prefix" ]; then
 		key=PREFIX
@@ -921,6 +951,10 @@ echo "config.h: written" 1>&3
 
 exec > Makefile.configure
 
+PROGS="amused"
+[ "$WITH_WEB" = 1	] && PROGS="$PROGS web"
+[ "$WITH_SONGMETA" = 1	] && PROGS="$PROGS songmeta"
+
 [ -z "${BINDIR}"     ] && BINDIR="${PREFIX}/bin"
 [ -z "${SBINDIR}"    ] && SBINDIR="${PREFIX}/sbin"
 [ -z "${INCLUDEDIR}" ] && INCLUDEDIR="${PREFIX}/include"
@@ -934,6 +968,7 @@ exec > Makefile.configure
 [ -z "${INSTALL_DATA}"    ] && INSTALL_DATA="${INSTALL} -m 0444"
 
 cat << __HEREDOC__
+PROGS		 = ${PROGS}
 BACKEND		 = ${BACKEND}
 CC		 = ${CC}
 CFLAGS		 = ${CFLAGS}

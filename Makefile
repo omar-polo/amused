@@ -1,4 +1,4 @@
-.PHONY: all songmeta web clean distclean install install-songmeta install-web
+.PHONY: all songmeta web clean distclean install install-amused install-songmeta install-web
 
 VERSION =	0.15
 PROG =		amused
@@ -46,13 +46,13 @@ DISTFILES =	CHANGES \
 
 TOPDIR =	.
 
-all: ${PROG}
+include Makefile.configure
+
+all: ${PROGS}
 
 Makefile.configure config.h: configure tests.c
 	@echo "$@ is out of date; please run ./configure"
 	@exit 1
-
-include Makefile.configure
 
 # -- targets --
 
@@ -75,6 +75,9 @@ distclean: clean
 	rm -f Makefile.configure config.h config.h.old config.log config.log.old
 
 install:
+	${MAKE} ${PROGS:%=install-%}
+
+install-amused:
 	mkdir -p ${DESTDIR}${BINDIR}
 	mkdir -p ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} ${PROG} ${DESTDIR}${BINDIR}
