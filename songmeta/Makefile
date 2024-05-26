@@ -66,5 +66,4 @@ dist:
 -include songmeta.d
 -include text.d
 -include vorbis.d
--include ../compats.d
 -include ../log.d

@@ -63,7 +63,6 @@ dist:
 -include http.d
 -include web.d
 -include ws.d
--include ../compats.d
 -include ../ev.d
 -include ../log.d
 -include ../playlist.d

@@ -131,7 +131,6 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 -include audio_ao.d
 -include audio_oboe.d
 -include audio_sndio.d
--include compats.d
 -include control.d
 -include ctl.d
 -include ev.d
