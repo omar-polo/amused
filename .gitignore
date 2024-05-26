@@ -1,9 +1,9 @@
-Makefile.configure
 amused
 config.h
 config.h.old
 config.log
 config.log.old
+config.mk
 songmeta/songmeta
 web/amused-web
 **/*.d
