@@ -13,11 +13,11 @@ TOPDIR =	..
 
 all: ${PROG}
 
-../Makefile.configure ../config.h: ../configure ../tests.c
+../config.mk ../config.h: ../configure ../tests.c
 	@echo "$@ is out of date; please run ../configure"
 	@exit 1
 
-include ../Makefile.configure
+include ../config.mk
 
 # --- targets ---
 

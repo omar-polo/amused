@@ -47,11 +47,11 @@ DISTFILES =	CHANGES \
 
 TOPDIR =	.
 
-include Makefile.configure
+include config.mk
 
 all: ${PROGS}
 
-Makefile.configure config.h: configure tests.c
+config.mk config.h: configure tests.c
 	@echo "$@ is out of date; please run ./configure"
 	@exit 1
 
@@ -73,7 +73,7 @@ clean:
 	-${MAKE} -C web clean
 
 distclean: clean
-	rm -f Makefile.configure config.h config.h.old config.log config.log.old
+	rm -f config.mk config.h config.h.old config.log config.log.old
 
 install:
 	${MAKE} ${PROGS:%=install-%}
