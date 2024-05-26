@@ -1,4 +1,5 @@
-.PHONY: all songmeta web clean distclean install install-amused install-songmeta install-web
+.PHONY: all songmeta web clean distclean \
+	install install-amused install-songmeta install-web
 
 VERSION =	0.15
 PROG =		amused
