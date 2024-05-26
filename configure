@@ -117,6 +117,10 @@ esac
 exec 3> config.log
 echo "config.log: writing..."
 
+echo "running as ./configure $@" >&3
+echo "on $(uname -a)" >&3
+echo "" >&3
+
 # GNU submake prints different output if invoked recursively, which
 # messes up CC and CFLAGS detection.  Pass --no-print-directory if
 # we have a MAKELEVEL (GNU and FreeBSD make) and the argument is
