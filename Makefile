@@ -1,7 +1,7 @@
 .PHONY: all songmeta web clean distclean \
 	install install-amused install-songmeta install-web
 
-VERSION =	0.15
+VERSION =	0.16
 PROG =		amused
 DISTNAME =	${PROG}-${VERSION}
 
