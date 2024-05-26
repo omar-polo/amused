@@ -89,9 +89,10 @@ install-songmeta:
 install-web:
 	${MAKE} -C web install
 
-install-local:
+install-local: amused songmeta web
 	mkdir -p ${HOME}/bin
 	${INSTALL_PROGRAM} ${PROG} ${HOME}/bin
+	${MAKE} -C songmeta install-local
 	${MAKE} -C web install-local
 
 uninstall:
