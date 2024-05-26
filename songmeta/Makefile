@@ -6,8 +6,8 @@ SRCS =		songmeta.c flac.c id3v1.c id3v2.c ogg.c opus.c text.c \
 
 OBJS =		${SRCS:.c=.o} ${COBJS:%=../compat/%}
 
-DISTFILES =	Makefile songmeta.c flac.c id3v1.c id3v2.c ogg.c opus.c \
-		text.c vorbis.c
+DISTFILES =	Makefile songmeta.1 songmeta.c flac.c id3v1.c id3v2.c \
+		ogg.c opus.c text.c vorbis.c
 
 TOPDIR =	..
 
@@ -34,7 +34,7 @@ install:
 	mkdir -p ${DESTDIR}${BINDIR}
 	mkdir -p ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} ${PROG} ${DESTDIR}${BINDIR}
-#	${INSTALL_MAN} songmeta.1 ${DESTDIR}${MANDIR}/man1/${PROG}.1
+	${INSTALL_MAN} songmeta.1 ${DESTDIR}${MANDIR}/man1/${PROG}.1
 
 install-local:
 	mkdir -p ${HOME}/bin

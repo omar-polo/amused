@@ -1,0 +1,48 @@
+.\" This is free and unencumbered software released into the public domain.
+.\"
+.\" Anyone is free to copy, modify, publish, use, compile, sell, or
+.\" distribute this software, either in source code form or as a compiled
+.\" binary, for any purpose, commercial or non-commercial, and by any
+.\" means.
+.\"
+.Dd May 26, 2024
+.Dt SONGMETA 1
+.Os
+.Sh NAME
+.Nm songmeta
+.Nd song metadata extractor
+.Sh SYNOPSIS
+.Nm
+.Op Fl r
+.\" not there yet
+.\" .Op Fl g Ar field
+.Ar
+.Sh DESCRIPTION
+.Nm
+extracts and prints to standard output the metadata for the music files
+given as argument.
+.Pp
+.Nm
+supports Ogg Opus, Ogg Vorbis, Flac, ID3v1 and ID3v2 metadata.
+Not all combinations may work.
+.Pp
+The following options are available:
+.Bl -tag -width Ds
+.It Fl r
+Show non-printable character as-is instead of replacing them with
+.Sq \&? .
+This option might mess up the terminal.
+.El
+.Sh AUTHORS
+.An -nosplit
+The
+.Nm
+program was written by
+.An Omar Polo Aq Mt op@omarpolo.com .
+.Sh CAVEATS
+.Nm
+attempts to convert ISO 8859-1
+.Pq Dq Latin 1
+to the current locale, but it's just a
+.Dq best effort
+stratey, as for some metadata format the original encoding is not known.
