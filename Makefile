@@ -21,9 +21,11 @@ SOURCES =	amused.c \
 OBJS =		${SOURCES:.c=.o} audio_${BACKEND}.o ${COBJS:%=compat/%}
 
 HEADERS =	amused.h \
+		audio.h \
 		control.h \
 		ev.h \
 		log.h \
+		player.h \
 		playlist.h \
 		xmalloc.h
 
@@ -34,9 +36,6 @@ DISTFILES =	CHANGES \
 		amused.1 \
 		configure \
 		configure.local.example \
-		endian.h \
-		imsg.h \
-		queue.h \
 		tests.c \
 		${HEADERS} \
 		${SOURCES} \
@@ -116,6 +115,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 	cd .dist/${DISTNAME} && chmod 755 configure
 	cd .dist/${DISTNAME} && cp -R ../../contrib . && \
 		chmod 755 contrib/amused-monitor
+	${MAKE} -C compat DESTDIR=${PWD}/.dist/${DISTNAME}/compat dist
 	${MAKE} -C songmeta DESTDIR=${PWD}/.dist/${DISTNAME}/songmeta dist
 	${MAKE} -C web DESTDIR=${PWD}/.dist/${DISTNAME}/web dist
 	cd .dist && tar zcf ../$@ ${DISTNAME}

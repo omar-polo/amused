@@ -6,8 +6,8 @@ SRCS =		songmeta.c flac.c id3v1.c id3v2.c ogg.c opus.c text.c \
 
 OBJS =		${SRCS:.c=.o} ${COBJS:%=../compat/%}
 
-DISTFILES =	Makefile songmeta.1 songmeta.c flac.c id3v1.c id3v2.c \
-		ogg.c opus.c text.c vorbis.c
+DISTFILES =	Makefile flac.c id3v1.c id3v2.c ogg.c ogg.h opus.c \
+		songmeta.1 songmeta.c songmeta.h text.c vorbis.c
 
 TOPDIR =	..
 
