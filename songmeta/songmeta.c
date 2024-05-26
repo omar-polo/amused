@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include "log.h"
@@ -183,6 +184,8 @@ main(int argc, char **argv)
 
 	if (pledge("stdio rpath", NULL) == -1)
 		fatal("pledge");
+
+	log_init(1, LOG_USER);
 
 	while ((ch = getopt(argc, argv, "g:r")) != -1) {
 		switch (ch) {
