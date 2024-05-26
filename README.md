@@ -20,7 +20,7 @@ The dependencies are:
  - libvorbis
  - opusfile
  - libsndio or libasound (ALSA) or libao
- - libmd (optional; needed by amused-web on linux and Mac)
+ - libmd (optional; needed for amused-web on linux and Mac)
 
 Then, to build:
 
@@ -28,15 +28,13 @@ Then, to build:
 	$ make
 	# make install # eventually
 
-To compile the metadata extractor utility, songmeta, run:
+To include the metadata extractor utility, songmeta, use:
 
-	$ make songmeta
-	# make install-songmeta
+	$ ./configure --with-songmeta
 
-To compile the web control interface, amused-web, run:
+To disable amused-web:
 
-	$ make web
-	# make install-web # eventually
+	$ ./configure --without-web
 
 The build can be customized by passing arguments to the configure
 script or by using a `configure.local` file; see `./configure -h`
@@ -88,6 +86,11 @@ Non-music files found in the playlist are automatically skipped and
 removed, so there's no harm in loading everything under a certain
 directory.
 
+amused-web is a simple web interface to control the player.  It opens an
+HTTP server on localhost:
+
+	$ amused-web
+
 I wrote a bit more about the background of amused [in a blog
 post](https://www.omarpolo.com/post/amused.html).
 
@@ -109,11 +112,11 @@ tip: use `termux-setup-storage` to access the android storage in
 
 amused-web works and can be used to control the playback, but as amused
 doesn't respond to the events (calls, headsets buttons, other apps
-playing music, etc...) it's not particularly handy to be used.
+playing music, etc...) it's not particularly pleasing to use.
 
 contrib/amused-termux-notification shows a persistent notification with
 the song file name and buttons to control the playback, making slightly
-more nicer to use amused on android.
+more nicer to use it.
 
 [oboe]: https://github.com/google/oboe/
 [termux]: https://termux.dev/en/
