@@ -615,7 +615,7 @@ runtest lib_vorbisfile	LIB_VORBISFILE "" "" "-lvorbisfile" "vorbisfile" || true
 
 runtest memmem		MEMMEM		|| cobj="$cobj memmem.o"
 runtest memset_s	MEMSET_S			  || true
-runtest optreset	OPTRESET	|| cobj="$cobj getprogname.o"
+runtest optreset	OPTRESET	|| cobj="$cobj getopt.o"
 runtest PATH_MAX	PATH_MAX			  || true
 runtest pledge		PLEDGE				  || true
 runtest program_invocation_short_name	PROGRAM_INVOCATION_SHORT_NAME || true
