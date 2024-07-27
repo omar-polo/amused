@@ -1006,3 +1006,23 @@ main(void)
 	return 0;
 }
 #endif /* TEST_LIB_MD */
+#if TEST_OSS
+#include <sys/ioctl.h>
+#include <sys/soundcard.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int
+main(void)
+{
+	int fd;
+	int fmt = AFMT_S8;
+
+	if ((fd = open("/dev/dsp", O_WRONLY)) == -1)
+		return 1;
+	if (ioctl(fd, SNDCTL_DSP_SETFMT, &fmt) == -1)
+		return 1;
+	close(fd);
+	return 0;
+}
+#endif /* TEST_OSS */
