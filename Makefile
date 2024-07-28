@@ -1,4 +1,4 @@
-.PHONY: all songmeta web clean distclean \
+.PHONY: all mpris2 songmeta web clean distclean \
 	install install-amused install-songmeta install-web
 
 VERSION =	0.16
@@ -61,6 +61,9 @@ ${PROG}: ${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_LIB_IMSG} \
 		${LDADD_DECODERS} ${LDADD_LIB_SOCKET} ${LDADD_BACKEND}
 
+mpris2:
+	${MAKE} -C mpris2
+
 songmeta:
 	${MAKE} -C songmeta
 
@@ -69,6 +72,7 @@ web:
 
 clean:
 	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}
+	-${MAKE} -C mpris2 clean
 	-${MAKE} -C songmeta clean
 	-${MAKE} -C web clean
 
@@ -84,6 +88,9 @@ install-amused:
 	${INSTALL_PROGRAM} ${PROG} ${DESTDIR}${BINDIR}
 	${INSTALL_MAN} amused.1 ${DESTDIR}${MANDIR}/man1/${PROG}.1
 
+install-mpris2:
+	${MAKE} -C mpris2 install
+
 install-songmeta:
 	${MAKE} -C songmeta install
 
@@ -93,6 +100,7 @@ install-web:
 install-local: amused songmeta web
 	mkdir -p ${HOME}/bin
 	${INSTALL_PROGRAM} ${PROG} ${HOME}/bin
+	${MAKE} -C mpris2 install-local
 	${MAKE} -C songmeta install-local
 	${MAKE} -C web install-local
 
@@ -117,6 +125,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 	cd .dist/${DISTNAME} && cp -R ../../contrib . && \
 		chmod 755 contrib/amused-monitor
 	${MAKE} -C compat DESTDIR=${PWD}/.dist/${DISTNAME}/compat dist
+	${MAKE} -C mpris2 DESTDIR=${PWD}/.dist/${DISTNAME}/mpris2 dist
 	${MAKE} -C songmeta DESTDIR=${PWD}/.dist/${DISTNAME}/songmeta dist
 	${MAKE} -C web DESTDIR=${PWD}/.dist/${DISTNAME}/web dist
 	cd .dist && tar zcf ../$@ ${DISTNAME}

@@ -880,6 +880,19 @@ main(void)
 	return waitpid(WAIT_ANY, &st, WNOHANG) != -1;
 }
 #endif /* TEST_WAIT_ANY */
+#if TEST_LIB_GLIB
+#include <gio/gio.h>
+
+int
+main(void)
+{
+	guint owner_id;
+
+	owner_id = g_bus_own_name(G_BUS_TYPE_SESSION, "foobar", 0,
+	    NULL, NULL, NULL, NULL, NULL);
+	return (owner_id);
+}
+#endif /* TEST_LIB_GLIB */
 #if TEST_LIB_FLAC
 #include <FLAC/stream_decoder.h>
 

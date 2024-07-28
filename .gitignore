@@ -4,6 +4,7 @@ config.h.old
 config.log
 config.log.old
 config.mk
+mpris2/amused-mpris2
 songmeta/songmeta
 web/amused-web
 **/*.d
