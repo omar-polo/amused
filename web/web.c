@@ -574,6 +574,8 @@ imsg_dispatch(int fd, int ev, void *d)
 			dispatch_event_status();
 			break;
 		}
+
+		imsg_free(&imsg);
 	}
 
 	ev = EV_READ;
