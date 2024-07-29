@@ -680,18 +680,6 @@ else
 	HAVE_SIO_FLUSH=0
 fi
 
-if [ $BACKEND = auto -o $BACKEND = oss ]; then
-	if ! runtest oss OSS "" "" "" ""; then
-		if [ $BACKEND = oss ]; then
-			echo "Fatal: oss unavailable" 1>&2
-			echo "Fatal: oss unavailable" 1>&3
-			exit 1
-		fi
-	else
-		BACKEND=oss
-	fi
-fi
-
 if [ $BACKEND = auto -o $BACKEND = alsa ]; then
 	runtest lib_asound LIB_ASOUND "" "" "-lasound" "alsa" || true
 	if [ "${HAVE_LIB_ASOUND}" -eq 0 ]; then
@@ -702,6 +690,18 @@ if [ $BACKEND = auto -o $BACKEND = alsa ]; then
 		fi
 	fi
 	BACKEND=alsa
+fi
+
+if [ $BACKEND = auto -o $BACKEND = oss ]; then
+	if ! runtest oss OSS "" "" "" ""; then
+		if [ $BACKEND = oss ]; then
+			echo "Fatal: oss unavailable" 1>&2
+			echo "Fatal: oss unavailable" 1>&3
+			exit 1
+		fi
+	else
+		BACKEND=oss
+	fi
 fi
 
 if [ $BACKEND = auto -o $BACKEND = ao ]; then
