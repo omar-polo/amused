@@ -1020,7 +1020,7 @@ web_accept(int psock, int ev, void *d)
 void __dead
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-v] [-s sock] [[host] port]\n",
+	fprintf(stderr, "usage: %s [-dv] [-s sock] [[host] port]\n",
 	    getprogname());
 	exit(1);
 }
@@ -1035,7 +1035,7 @@ main(int argc, char **argv)
 	char		*sock = NULL;
 	size_t		 nsock, error, save_errno;
 	int		 ch, v, amused_sock, fd;
-	int		 verbose = 0;
+	int		 debug = 0, verbose = 0;
 
 	TAILQ_INIT(&clients);
 	setlocale(LC_ALL, NULL);
@@ -1045,8 +1045,11 @@ main(int argc, char **argv)
 	if (pledge("stdio rpath unix inet dns", NULL) == -1)
 		fatal("pledge");
 
-	while ((ch = getopt(argc, argv, "s:v")) != -1) {
+	while ((ch = getopt(argc, argv, "ds:v")) != -1) {
 		switch (ch) {
+		case 'd':
+			debug = 1;
+			break;
 		case 's':
 			sock = optarg;
 			break;
@@ -1072,7 +1075,12 @@ main(int argc, char **argv)
 	if (!strcmp(host, "*"))
 		host = NULL;
 
+	if (!debug && daemon(1, 0) == -1)
+		fatal("daemon");
+
+	log_init(debug, LOG_DAEMON);
 	log_setverbose(verbose);
+	log_procinit("web");
 
 	if (sock == NULL) {
 		const char *tmpdir;

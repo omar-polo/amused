@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 26, 2024
+.Dd July 30, 2024
 .Dt AMUSED-WEB 1
 .Os
 .Sh NAME
@@ -20,7 +20,7 @@
 .Nd web interface for the amused music player
 .Sh SYNOPSIS
 .Nm
-.Op Fl v
+.Op Fl dv
 .Op Fl s Ar socket
 .Op Oo Ar host Oc Ar port
 .Sh DESCRIPTION
@@ -42,6 +42,10 @@ then it will listen on all IPv4 and IPv6 addresses.
 .Pp
 The following options are available:
 .Bl -tag -width tenletters
+.It Fl d
+Do not daemonize.
+.Nm
+will run in the foreground and log to standard error.
 .It Fl s Ar socket
 Path to the
 .Xr amused 1
