@@ -1042,7 +1042,7 @@ main(int argc, char **argv)
 
 	log_init(1, LOG_DAEMON);
 
-	if (pledge("stdio rpath unix inet dns", NULL) == -1)
+	if (pledge("stdio rpath unix inet dns proc", NULL) == -1)
 		fatal("pledge");
 
 	while ((ch = getopt(argc, argv, "ds:v")) != -1) {
@@ -1077,6 +1077,10 @@ main(int argc, char **argv)
 
 	if (!debug && daemon(1, 0) == -1)
 		fatal("daemon");
+
+	/* drop "proc" */
+	if (pledge("stdio rpath unix inet dns", NULL) == -1)
+		fatal("pledge");
 
 	log_init(debug, LOG_DAEMON);
 	log_setverbose(verbose);
