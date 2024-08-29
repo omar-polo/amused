@@ -1,3 +1,16 @@
+/*
+ * Copyright © 2006-2012 the VideoLAN team
+ *   (Mirsal Ennaime, Rafaël Carré, Jean-Paul Saman)
+ * Copyright © 2005-2008 Milosz Derezynski
+ * Copyright © 2008 Nick Welch
+ * Copyright © 2010-2012 Alex Merry
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * as published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ */
+
 /* from https://gitlab.freedesktop.org/mpris/mpris-spec/-/tree/master/spec */
 
 const char *mpris_xml =
