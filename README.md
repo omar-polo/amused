@@ -97,7 +97,7 @@ post](https://www.omarpolo.com/post/amused.html).
 
 ## Building on Android (termux) -- Experimental
 
-amused can be built on android using the oboe [oboe][oboe] backend,
+amused can be built on android using the [oboe][oboe] backend,
 although this has only been tested so far under [termux][termux].
 First, oboe needs to be built locally.  Then build amused with:
 
@@ -114,9 +114,9 @@ amused-web works and can be used to control the playback, but as amused
 doesn't respond to the events (calls, headsets buttons, other apps
 playing music, etc...) it's not particularly pleasing to use.
 
-contrib/amused-termux-notification shows a persistent notification with
-the song file name and buttons to control the playback, making slightly
-more nicer to use it.
+`contrib/amused-termux-notification` shows a persistent notification
+with the song file name and buttons to control the playback, making
+slightly more nicer to use it.
 
 [oboe]: https://github.com/google/oboe/
 [termux]: https://termux.dev/en/
