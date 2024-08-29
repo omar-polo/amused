@@ -120,3 +120,12 @@ more nicer to use it.
 
 [oboe]: https://github.com/google/oboe/
 [termux]: https://termux.dev/en/
+
+
+## License
+
+Amused is free software.  All the code is distributed under a
+BSD-style license or is Public Domain, with the only exception of a
+part of amused-mpris2 which is under the GPLv2 or later.  Since
+amused-mpris2 is an optional, separate executable, it's the only one
+with the GPL restrictions.
