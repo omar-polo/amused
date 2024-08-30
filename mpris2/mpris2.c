@@ -190,30 +190,35 @@ mpris_player_method_call(GDBusConnection *conn, const gchar *sender,
 	if (!strcmp(method_name, "Next")) {
 		imsg_compose(imsgbuf, IMSG_CTL_NEXT, 0, 0, -1, NULL, 0);
 		imsg_flush(imsgbuf);
+		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "Pause")) {
 		imsg_compose(imsgbuf, IMSG_CTL_PAUSE, 0, 0, -1, NULL, 0);
 		imsg_flush(imsgbuf);
+		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "Play")) {
 		imsg_compose(imsgbuf, IMSG_CTL_PLAY, 0, 0, -1, NULL, 0);
 		imsg_flush(imsgbuf);
+		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "PlayPause")) {
 		imsg_compose(imsgbuf, IMSG_CTL_TOGGLE_PLAY, 0, 0, -1, NULL, 0);
 		imsg_flush(imsgbuf);
+		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "Previous")) {
 		imsg_compose(imsgbuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
 		imsg_flush(imsgbuf);
+		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
