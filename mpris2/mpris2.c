@@ -175,7 +175,8 @@ mpris_set_prop(GDBusConnection *conn, const gchar *sender,
     const gchar *prop_name, GVariant *value, GError **err, void *data)
 {
 	log_warnx("trying to set property %s from %s", prop_name, sender);
-	
+	g_set_error(err, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS,
+	    "Property %s not supported.", prop_name);
 	return FALSE;
 }
 
@@ -331,7 +332,9 @@ mpris_player_set_prop(GDBusConnection *conn, const gchar *sender,
 		imsg_flush(imsgbuf);
 		return TRUE;
 	}
-	
+
+	g_set_error(err, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS,
+	    "Property %s not supported.", prop_name);
 	return FALSE;
 }
 
