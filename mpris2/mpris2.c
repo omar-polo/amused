@@ -30,6 +30,7 @@
 #include <imsg.h>
 #include <limits.h>
 #include <locale.h>
+#include <sha1.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
@@ -42,6 +43,8 @@
 #include "playlist.h"
 #include "spec.h"
 #include "xmalloc.h"
+
+#define NOTRACK "/org/mpris/MediaPlayer2/TrackList/NoTrack"
 
 static void mpris_method_call(GDBusConnection *, const gchar *, const gchar *,
     const gchar *, const gchar *, GVariant *, GDBusMethodInvocation *, void *);
@@ -61,6 +64,7 @@ static gboolean mpris_player_set_prop(GDBusConnection *, const gchar *,
 static gboolean imsg_dispatch(GIOChannel *, GIOCondition, gpointer);
 
 static struct player_status	 status;
+static char			 trackid[128] = NOTRACK;
 struct imsgbuf			*imsgbuf;
 static GDBusConnection		*global_conn;
 static GDBusNodeInfo		*mpris_data, *mpris_player_data;
@@ -272,8 +276,8 @@ mpris_player_get_prop(GDBusConnection *conn, const gchar *sender,
 		GVariantBuilder builder;
 
 		g_variant_builder_init(&builder, G_VARIANT_TYPE("a{sv}"));
-//		g_variant_builder_add(&builder, "{so}", "mpris:trackid",
-//		    g_variant_new_object_path(status.path));
+		g_variant_builder_add(&builder, "{sv}", "mpris:trackid",
+		    g_variant_new_object_path(trackid));
 		g_variant_builder_add(&builder, "{sv}", "mpris:length",
 		    g_variant_new_int64(status.duration * 1000000L));
 		g_variant_builder_add(&builder, "{sv}", "xesam:title",
@@ -436,6 +440,7 @@ imsg_dispatch(GIOChannel *chan, GIOCondition cond, gpointer data)
 	ssize_t			 n;
 	size_t			 datalen;
 	const char		*msg;
+	char			 sha1buf[SHA1_DIGEST_STRING_LENGTH];
 
 	if ((n = imsg_read(imsgbuf)) == -1) {
 		if (errno == EAGAIN)
@@ -502,6 +507,14 @@ imsg_dispatch(GIOChannel *chan, GIOCondition cond, gpointer data)
 			if (status.path[sizeof(status.path)-1]
 			    != '\0')
 				fatalx("corrupted IMSG_CTL_STATUS path");
+			if (status.path[0] == '\0')
+				strlcpy(trackid, NOTRACK, sizeof(trackid));
+			else {
+				SHA1Data(status.path, strlen(status.path),
+				    sha1buf);
+				snprintf(trackid, sizeof(trackid),
+				    "/com/omarpolo/Amused/Track/%s", sha1buf);
+			}
 			// XXX notify the change in at least the play
 			// status (paused, play, ...)
 			property_invalidated("Metadata");
