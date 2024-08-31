@@ -191,7 +191,8 @@ mpris_player_method_call(GDBusConnection *conn, const gchar *sender,
     GDBusMethodInvocation *invocation, void *data)
 {
 	struct player_seek	 seek;
-	GVariant		*offset;
+	GVariant		*tid, *offset;
+	const char		*tids;
 
 	log_warnx("called method %s from %s", method_name, sender);
 
@@ -243,7 +244,25 @@ mpris_player_method_call(GDBusConnection *conn, const gchar *sender,
 		return;
 	}
 
-	/* TODO: implement SetPosition */
+	if (!strcmp(method_name, "SetPosition")) {
+		tid = g_variant_get_child_value(params, 0);
+		offset = g_variant_get_child_value(params, 1);
+
+		tids = g_variant_get_string(tid, NULL);
+		if (!strcmp(tids, NOTRACK) || strcmp(tids, trackid) != 0) {
+			g_dbus_method_invocation_return_value(invocation, NULL);
+			return;
+		}
+
+		memset(&seek, 0, sizeof(seek));
+		seek.offset = g_variant_get_int64(offset) / 1000000L;
+		imsg_compose(imsgbuf, IMSG_CTL_SEEK, 0, 0, -1,
+		    &seek, sizeof(seek));
+		imsg_flush(imsgbuf);
+
+		g_dbus_method_invocation_return_value(invocation, NULL);
+		return;
+	}
 
 	/* OpenUri could be implemented but it's not atm */
 
