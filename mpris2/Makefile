@@ -22,7 +22,7 @@ include ../config.mk
 
 ${PROG}: ${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${LDADD} ${LDADD_LIB_IMSG} \
-		${LDADD_LIB_GLIB} ${LDADD_LIB_SOCKET}
+		${LDADD_LIB_GLIB} ${LDADD_LIB_SOCKET} ${LDADD_LIB_MD}
 
 clean:
 	rm -f ${OBJS} ${OBJS:.o=.d} ${PROG}
