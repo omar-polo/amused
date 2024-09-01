@@ -6,7 +6,7 @@ SOURCES =	mpris2.c ../log.c ../xmalloc.c
 
 OBJS =		${SOURCES:.c=.o} ${COBJS:%=../compat/%}
 
-DISTFILES =	Makefile amused-mpris2.1 mpris2.c
+DISTFILES =	Makefile amused-mpris2.1 mpris2.c spec.h
 
 TOPDIR =	..
 
