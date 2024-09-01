@@ -271,7 +271,7 @@ HAVE_TIMESPECSUB=
 HAVE___PROGNAME=
 
 #----------------------------------------------------------------------
-# Allow certain variables to be overriden on the command line.
+# Allow certain variables to be overridden on the command line.
 #----------------------------------------------------------------------
 
 while [ $# -gt 0 ]; do
@@ -846,7 +846,7 @@ __HEREDOC__
 
 # This is just for size_t, mode_t, and dev_t.
 # Most of these functions, in the real world, pull in <string.h> or
-# someting that pulls in support for size_t.
+# something that pulls in support for size_t.
 # Our function declarations are standalone, so specify them here.
 
 if [ ${HAVE_MEMMEM} -eq 0 -o \

@@ -69,7 +69,7 @@
 - try to recover from mp3 decoding errors
 - plug a memory leak in player_dispatch
 - don't use realpath(3) in `amused add'
-- use a strictier pledge for `amused add'
+- use a stricter pledge for `amused add'
 - use canonpath (from kern_pledge.c) for paths handling
 - non-blocking usage of sndio: avoids artificial gaps between tracks
 - use sio_flush to stop the playback
