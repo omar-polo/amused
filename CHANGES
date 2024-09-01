@@ -1,3 +1,11 @@
+* amused 0.16; 2024-09-01
+- unbreak the build on various OSes
+- add an oss audio backend
+- plug a memory leak in amused-web
+- add MPRIS2 support via a separate executable amused-mpris2
+- amused-web now daemonizes by default; added -d to stay in the foreground
+- fixed a bug in ao and oss backends that made amused advance at the wrong rate
+
 * amused 0.15; 2024-05-26
 - fixed build of amused-web on linux
 - add songmeta: a song metadata extractor; not build by default
