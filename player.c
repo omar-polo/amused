@@ -40,7 +40,7 @@ int			 player_nfds;
 static struct imsgbuf	*imsgbuf;
 
 static int nextfd = -1;
-static int64_t samples;
+static int64_t frames;
 static int64_t duration;
 static unsigned int current_rate;
 
@@ -79,10 +79,10 @@ player_onmove(void *arg, int delta)
 	static int64_t reported;
 	int64_t sec;
 
-	samples += delta;
-	if (llabs(samples - reported) >= current_rate) {
-		reported = samples;
-		sec = samples / current_rate;
+	frames += delta;
+	if (llabs(frames - reported) >= current_rate) {
+		reported = frames;
+		sec = frames / current_rate;
 
 		imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &sec, sizeof(sec));
 		imsg_flush(imsgbuf);
@@ -92,7 +92,7 @@ player_onmove(void *arg, int delta)
 void
 player_setpos(int64_t pos)
 {
-	samples = pos;
+	frames = pos;
 	player_onmove(NULL, 0);
 }
 
@@ -151,7 +151,7 @@ again:
 		else
 			*s = seek.offset * current_rate;
 		if (seek.relative)
-			*s += samples;
+			*s += frames;
 		if (*s < 0)
 			*s = 0;
 		break;
@@ -192,9 +192,9 @@ player_playnext(const char **errstr)
 	assert(nextfd != -1);
 	nextfd = -1;
 
-	/* reset samples and set position to zero */
-	samples = 0;
-	imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &samples, sizeof(samples));
+	/* reset frames and set position to zero */
+	frames = 0;
+	imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &frames, sizeof(frames));
 	imsg_flush(imsgbuf);
 
 	r = read(fd, buf, sizeof(buf));
