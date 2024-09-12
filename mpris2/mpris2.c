@@ -286,7 +286,7 @@ mpris_player_get_prop(GDBusConnection *conn, const gchar *sender,
 	if (!strcmp(prop_name, "LoopStatus"))
 		return g_variant_new_string(loop_mode());
 
-	/* no idea... */
+	/* we don't support different rates */
 	if (!strcmp(prop_name, "MaximumRate") ||
 	    !strcmp(prop_name, "MinimumRate"))
 		return g_variant_new_double(1.0);
