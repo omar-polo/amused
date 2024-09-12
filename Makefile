@@ -140,6 +140,7 @@ ${DISTNAME}.tar.gz: ${DISTFILES}
 -include audio_alsa.d
 -include audio_ao.d
 -include audio_oboe.d
+-include audio_oss.d
 -include audio_sndio.d
 -include control.d
 -include ctl.d
