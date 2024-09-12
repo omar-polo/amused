@@ -279,7 +279,7 @@ control_dispatch_imsg(int fd, int event, void *bula)
 	struct player_mode	 mode;
 	struct player_seek	 seek;
 	ssize_t		 	 n, off;
-	int			 type;
+	int			 type, all;
 
 	if ((c = control_connbyfd(fd)) == NULL) {
 		log_warnx("%s: fd %d: not found", __func__, fd);
@@ -437,6 +437,19 @@ control_dispatch_imsg(int fd, int event, void *bula)
 				break;
 			}
 			main_seek(&seek);
+			break;
+		case IMSG_CTL_SHUFFLE:
+			if (control_state.tx != -1 &&
+			    control_state.tx != imsgbuf->fd) {
+				main_senderr(&c->iev, "locked");
+				break;
+			}
+			if (imsg_get_data(&imsg, &all, sizeof(all)) == -1) {
+				main_senderr(&c->iev, "wrong size");
+				break;
+			}
+			playlist_shuffle(all);
+			control_notify(IMSG_CTL_COMMIT);
 			break;
 		default:
 			log_debug("%s: error handling imsg %d", __func__,

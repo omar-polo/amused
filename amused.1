@@ -1,4 +1,4 @@
-.\" Copyright (c) 2022, 2023 Omar Polo <op@omarpolo.com>
+.\" Copyright (c) 2022, 2023, 2024 Omar Polo <op@omarpolo.com>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd December 10, 2023
+.Dd September 12, 2024
 .Dt AMUSED 1
 .Os
 .Sh NAME
@@ -152,6 +152,12 @@ it prints a
 .Dq pretty
 list with the current playing song prefixed by
 .Sq > \& .
+.It Cm shuffle Op Fl a
+Shuffle the playing queue after the currently playing track.
+If
+.Fl a
+is given, all the tracks in the playing queue are shuffled, with
+the currently playing one moved as the first one.
 .It Cm status Op Fl f Ar format
 Print playback status and current song.
 The

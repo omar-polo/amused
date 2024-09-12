@@ -48,6 +48,7 @@ static int	ctl_repeat(struct parse_result *, int, char **);
 static int	ctl_consume(struct parse_result *, int, char **);
 static int	ctl_monitor(struct parse_result *, int, char **);
 static int	ctl_seek(struct parse_result *, int, char **);
+static int	ctl_shuffle(struct parse_result *, int, char **);
 static int	ctl_status(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
@@ -65,6 +66,7 @@ struct ctl_command ctl_commands[] = {
 	{ "restart",	RESTART,	ctl_noarg,	""},
 	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]"},
 	{ "show",	SHOW,		ctl_show,	"[-p]"},
+	{ "shuffle",	SHUFFLE,	ctl_shuffle,	"[-a]" },
 	{ "status",	STATUS,		ctl_status,	"[-f fmt]"},
 	{ "stop",	STOP,		ctl_noarg,	""},
 	{ "toggle",	TOGGLE,		ctl_noarg,	""},
@@ -252,6 +254,8 @@ event_name(int type)
 		return "mode";
 	case IMSG_CTL_SEEK:
 		return "seek";
+	case IMSG_CTL_SHUFFLE:
+		return "shuffle";
 	default:
 		return "unknown";
 	}
@@ -466,6 +470,10 @@ ctlaction(struct parse_result *res)
 	case SEEK:
 		imsg_compose(imsgbuf, IMSG_CTL_SEEK, 0, 0, -1, &res->seek,
 		    sizeof(res->seek));
+		break;
+	case SHUFFLE:
+		imsg_compose(imsgbuf, IMSG_CTL_SHUFFLE, 0, 0, -1, &res->all,
+		    sizeof(res->all));
 		break;
 	case NONE:
 		/* action not expected */
@@ -848,6 +856,29 @@ ctl_seek(struct parse_result *res, int argc, char **argv)
 
 done:
 	res->seek.offset = sign * (hours * 3600 + minutes * 60 + seconds);
+	return ctlaction(res);
+}
+
+static int
+ctl_shuffle(struct parse_result *res, int argc, char **argv)
+{
+	int ch;
+
+	while ((ch = getopt(argc, argv, "a")) != -1) {
+		switch (ch) {
+		case 'a':
+			res->all = 1;
+			break;
+		default:
+			ctl_usage(res->ctl);
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if (argc > 0)
+		ctl_usage(res->ctl);
+
 	return ctlaction(res);
 }
 

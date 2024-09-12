@@ -220,3 +220,36 @@ playlist_jump(const char *arg)
 	setsong(play_off);
 	return playlist.songs[i];
 }
+
+static inline void
+swap(size_t a, size_t b)
+{
+	char		*tmp;
+
+	tmp = playlist.songs[a];
+	playlist.songs[a] = playlist.songs[b];
+	playlist.songs[b] = tmp;
+}
+
+void
+playlist_shuffle(int all)
+{
+	size_t		 i, j, start = 0;
+
+	if (playlist.len == 0)
+		return;
+
+	if (play_off >= 0 && !all)
+		start = play_off;
+
+	if (play_off >= 0) {
+		swap(play_off, start);
+		play_off = start;
+		start++;
+	}
+
+	for (i = playlist.len - 1; i > start; i--) {
+		j = start + arc4random_uniform(i - start);
+		swap(i, j);
+	}
+}

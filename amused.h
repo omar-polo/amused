@@ -47,6 +47,7 @@ enum imsg_type {
 	IMSG_CTL_JUMP,
 	IMSG_CTL_MODE,		/* struct player_mode */
 	IMSG_CTL_SEEK,		/* struct player_seek */
+	IMSG_CTL_SHUFFLE,	/* int all */
 
 	IMSG_CTL_BEGIN,
 	IMSG_CTL_ADD,		/* path to a file */
@@ -82,6 +83,7 @@ enum actions {
 	MODE,
 	MONITOR,
 	SEEK,
+	SHUFFLE,
 };
 
 struct player_seek {
@@ -121,6 +123,7 @@ struct parse_result {
 	enum actions		 action;
 	char			**files;
 	FILE			*fp;
+	int			 all;
 	int			 pretty;
 	int			 monitor[IMSG__LAST];
 	struct player_mode	 mode;
