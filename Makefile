@@ -97,7 +97,7 @@ install-songmeta:
 install-web:
 	${MAKE} -C web install
 
-install-local: amused songmeta web
+install-local: amused mpris2 songmeta web
 	mkdir -p ${HOME}/bin
 	${INSTALL_PROGRAM} ${PROG} ${HOME}/bin
 	${MAKE} -C mpris2 install-local
