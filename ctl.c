@@ -36,6 +36,10 @@
 #include "playlist.h"
 #include "xmalloc.h"
 
+#ifndef nitems
+#define nitems(x) (sizeof(x)/sizeof(x[0]))
+#endif
+
 static struct imsgbuf	*imsgbuf;
 char			 cwd[PATH_MAX];
 
@@ -70,7 +74,6 @@ struct ctl_command ctl_commands[] = {
 	{ "status",	STATUS,		ctl_status,	"[-f fmt]"},
 	{ "stop",	STOP,		ctl_noarg,	""},
 	{ "toggle",	TOGGLE,		ctl_noarg,	""},
-	{ NULL, 0, NULL, NULL},
 };
 
 __dead void
@@ -145,7 +148,7 @@ parse(struct parse_result *res, int argc, char **argv)
 	if ((argv0 = argv[0]) == NULL)
 		argv0 = "status";
 
-	for (i = 0; ctl_commands[i].name != NULL; ++i) {
+	for (i = 0; i < nitems(ctl_commands); ++i) {
 		if (strncmp(ctl_commands[i].name, argv0, strlen(argv0))
 		    == 0) {
 			if (ctl != NULL) {
