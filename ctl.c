@@ -61,7 +61,7 @@ struct ctl_command ctl_commands[] = {
 	{ "next",	NEXT,		ctl_noarg,	""},
 	{ "pause",	PAUSE,		ctl_noarg,	""},
 	{ "play",	PLAY,		ctl_noarg,	""},
-	{ "prev",	PREV,		ctl_noarg,	""},
+	{ "previous",	PREV,		ctl_noarg,	""},
 	{ "repeat",	MODE,		ctl_repeat,	"one|all on|off"},
 	{ "restart",	RESTART,	ctl_noarg,	""},
 	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]"},
