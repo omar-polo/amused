@@ -32,6 +32,12 @@ To include the metadata extractor utility, songmeta, use:
 
 	$ ./configure --with-songmeta
 
+To include the DBus control interface for amused for MPRIS2 support, use:
+
+	$ ./configure --with-mpris2
+
+`amused-mpris2` requires glib2.
+
 To disable amused-web:
 
 	$ ./configure --without-web
@@ -70,7 +76,7 @@ The fine man page has all nitty gritty details, but the TL;DR is
 
 amused tries to be usable in composition with other more familiar tools
 instead of providing everything itself.  For instance, there isn't a
-command to remove an item from the playlist, or shuffle it; instead,
+command to remove an item from the playlist, or sort it; instead,
 standard UNIX tools can be used:
 
 	$ amused show | grep -vi kobayashi | amused load
