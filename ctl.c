@@ -52,8 +52,8 @@ static int	ctl_shuffle(struct parse_result *, int, char **);
 static int	ctl_status(struct parse_result *, int, char **);
 
 struct ctl_command ctl_commands[] = {
-	{ "add",	ADD,		ctl_add,	"files..."},
-	{ "consume",	MODE,		ctl_consume,	"one|all"},
+	{ "add",	ADD,		ctl_add,	"file ..."},
+	{ "consume",	MODE,		ctl_consume,	"[one|all]"},
 	{ "flush",	FLUSH,		ctl_noarg,	""},
 	{ "jump",	JUMP,		ctl_jump,	"pattern"},
 	{ "load",	LOAD,		ctl_load,	"[file]"},
@@ -62,7 +62,7 @@ struct ctl_command ctl_commands[] = {
 	{ "pause",	PAUSE,		ctl_noarg,	""},
 	{ "play",	PLAY,		ctl_noarg,	""},
 	{ "previous",	PREV,		ctl_noarg,	""},
-	{ "repeat",	MODE,		ctl_repeat,	"one|all on|off"},
+	{ "repeat",	MODE,		ctl_repeat,	"one|all [on|off]"},
 	{ "restart",	RESTART,	ctl_noarg,	""},
 	{ "seek",	SEEK,		ctl_seek,	"[+-]time[%]"},
 	{ "show",	SHOW,		ctl_show,	"[-p]"},
