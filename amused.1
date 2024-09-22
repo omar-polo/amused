@@ -137,13 +137,29 @@ It's a shorthand for
 .Nm
 .Cm seek
 .Ar 0 .
-.It Cm seek Oo Oo Ar hours : Oc Ns Ar minutes : Oc Ns Ar seconds | Ar percentage Ns %
-Seek by the specified amount of time into the current song.
+.It Cm seek Oo +- Oc Ns Ar time Ns Op %
+Seek by the specified amount of
+.Ar time
+into the current song.
 If the argument is prefixed by either
 .Sq +
 or
 .Sq -
-then the seek is relative to the current position.
+then the seek is relative to the current position, otherwise is
+absolute.
+With a trailing
+.Sq %
+the
+.Ar time
+is interpreted as a percentage of the length of the track.
+.Pp
+The
+.Ar time
+can also be expressed as
+.Oo Oo Ar hours : Oc Ns Ar minutes : Oc Ns Ar seconds ,
+but in this case no trailing
+.Sq %
+is allowed.
 .It Cm show Op Fl p
 Show the playlist.
 With
