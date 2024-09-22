@@ -246,7 +246,7 @@ event_name(int type)
 	case IMSG_CTL_NEXT:
 		return "next";
 	case IMSG_CTL_PREV:
-		return "prev";
+		return "previous";
 	case IMSG_CTL_JUMP:
 		return "jump";
 	case IMSG_CTL_ADD:
@@ -760,7 +760,7 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 	if (argc > 1)
 		ctl_usage(res->ctl);
 
-	events = "play,pause,stop,next,prev,jump,mode,add,load,seek";
+	events = "play,pause,stop,next,previous,jump,mode,add,load,seek";
 	if (argc == 1)
 		events = *argv;
 
@@ -778,7 +778,7 @@ ctl_monitor(struct parse_result *res, int argc, char **argv)
 			res->monitor[IMSG_CTL_STOP] = 1;
 		else if (!strcmp(tok, "next"))
 			res->monitor[IMSG_CTL_NEXT] = 1;
-		else if (!strcmp(tok, "prev"))
+		else if (!strcmp(tok, "previous"))
 			res->monitor[IMSG_CTL_PREV] = 1;
 		else if (!strcmp(tok, "jump"))
 			res->monitor[IMSG_CTL_JUMP] = 1;

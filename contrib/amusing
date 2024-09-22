@@ -198,7 +198,7 @@ proc handle_event {fd} {
 	"play"		{
 		set toggle_btn "⏸"
 	}
-	"prev"		{getsongs}	# may be optimized
+	"previous"	{getsongs}	# may be optimized
 	"seek *"	{setpos $ev}
 	"stop"		{
 		set toggle_btn "⏸"
@@ -258,7 +258,7 @@ ttk::style configure ctrl.TButton -font {sans-serif 16}
 
 grid [ttk::frame .c.cntl -padding "0 5 0 5"] -column 0 -row 2
 ttk::button .c.cntl.prev -style ctrl.TButton -width 3 \
-	-text "⏮" -command "amused prev"
+	-text "⏮" -command "amused previous"
 ttk::button .c.cntl.togg -style ctrl.TButton -width 3 \
 	-textvariable toggle_btn -command "amused toggle"
 ttk::button .c.cntl.stop -style ctrl.TButton -width 3 \
@@ -300,7 +300,7 @@ grid rowconfigure .c.bottom 0 -weight 1
 
 bind . <space> {amused toggle}
 bind . <n> {amused next}
-bind . <p> {amused prev}
+bind . <p> {amused previous}
 bind . <s> {amused stop}
 bind . <comma> {exec amused seek -1}
 bind . <less> {exec amused seek -5}

@@ -261,8 +261,8 @@ sub hevent {
 
 	$mode = $1 if $l =~ m/^mode (.*)/;
 
-	getnums if $l =~ m/load|jump|next|prev/;
-	getsongs if $l =~ m/load|jump|next|prev/;
+	getnums if $l =~ m/load|jump|next|previous/;
+	getsongs if $l =~ m/load|jump|next|previous/;
 }
 
 sub hinput {
@@ -275,7 +275,7 @@ sub hinput {
 		if ($ch eq " ") {
 			system "amused", "toggle";
 		} elsif ($ch eq "<" or $ch eq "p") {
-			system "amused", "prev";
+			system "amused", "previous";
 		} elsif ($ch eq ">" or $ch eq "n") {
 			system "amused", "next";
 		} elsif ($ch eq ",") {

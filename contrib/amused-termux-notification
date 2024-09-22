@@ -12,10 +12,10 @@ notify() {
 		--media-next     "$amused next" \
 		--media-pause    "$amused pause" \
 		--media-play     "$amused play" \
-		--media-previous "$amused prev"
+		--media-previous "$amused previous"
 }
 
 notify
-$amused monitor jump,next,pause,play,prev,stop | while read line; do
+$amused monitor jump,next,pause,play,previous,stop | while read line; do
 	notify
 done
