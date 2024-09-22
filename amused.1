@@ -31,6 +31,10 @@
 is a music player daemon and command-line utility to play music.
 The server is started automatically in the background on demand.
 .Pp
+.Nm
+automatically skips and removes from the playlist non-regular files
+or ones with a non-recognized audio format.
+.Pp
 The following options are available:
 .Bl -tag -width Ds
 .It Fl d
@@ -52,6 +56,10 @@ Specify the command to run.
 If no commands are specified,
 .Ic status
 is assumed.
+Commands may be abbreviated to a unique prefix, for example
+.Sq rep
+can be given instead of
+.Ic repeat .
 .El
 .Pp
 The following commands are available:
@@ -173,7 +181,7 @@ Shuffle the playing queue after the currently playing track.
 If
 .Fl a
 is given, all the tracks in the playing queue are shuffled, with
-the currently playing one moved as the first one.
+the currently playing one moved at the top.
 .It Cm status Op Fl f Ar format
 Print playback status and current song.
 The
@@ -210,15 +218,6 @@ Stop the playback.
 .It Cm toggle
 Play/pause the playback.
 .El
-.Pp
-Commands can be abbreviated to a unique prefix, for example
-.Sq rep
-can be given instead of
-.Sq repeat .
-.Pp
-.Nm
-automatically skips and removes from the playlist non-regular files
-or ones with a non-recognized audio format.
 .Sh ENVIRONMENT
 .Bl -tag -width AMUSED_STATUS_FORMAT
 .It Ev AMUSED_STATUS_FORMAT
@@ -261,11 +260,6 @@ $ amused show -p > amused.dump
 Load a previous state:
 .Bd -literal -offset indent
 $ amused load < amused.dump
-.Ed
-.Pp
-Shuffle the playlist:
-.Bd -literal -offset indent
-$ amused show | sort -R | amused load
 .Ed
 .Pp
 Remove duplicates:
