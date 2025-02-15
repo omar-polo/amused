@@ -1,3 +1,10 @@
+* amused 0.17; 2025-02-15
+- sync'ed subcommand usages with the manpage
+- renamed the `prev' subcommand to `previous' for consistency
+- renamed the `prev' event to `previous' as well
+- improvements to the manpage
+- add `shuffle' subcommand
+
 * amused 0.16; 2024-09-01
 - unbreak the build on various OSes
 - add an oss audio backend
