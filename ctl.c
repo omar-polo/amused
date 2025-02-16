@@ -213,7 +213,7 @@ load_files(struct parse_result *res, int *ret)
 
 	imsg_compose(imsgbuf, IMSG_CTL_COMMIT, 0, 0, -1,
 	    &curr, sizeof(curr));
-	imsg_flush(imsgbuf);
+	imsgbuf_flush(imsgbuf);
 	return 0;
 }
 
@@ -487,11 +487,11 @@ ctlaction(struct parse_result *res)
 	if (ret != 0)
 		goto end;
 
-	imsg_flush(imsgbuf);
+	imsgbuf_flush(imsgbuf);
 
 	i = 0;
 	while (!done) {
-		if ((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN)
+		if ((n = imsgbuf_read(imsgbuf)) == -1)
 			fatalx("imsg_read error");
 		if (n == 0)
 			fatalx("pipe closed");
@@ -1036,7 +1036,8 @@ ctl(int argc, char **argv)
 		fatal("can't connect");
 
 	imsgbuf = xmalloc(sizeof(*imsgbuf));
-	imsg_init(imsgbuf, ctl_sock);
+	if (imsgbuf_init(imsgbuf, ctl_sock) == -1)
+		fatal("imsgbuf_init");
 
 	optreset = 1;
 	optind = 1;

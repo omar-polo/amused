@@ -172,7 +172,8 @@ control_accept(int listenfd, int event, void *bula)
 		return;
 	}
 
-	imsg_init(&c->iev.imsgbuf, connfd);
+	if (imsgbuf_init(&c->iev.imsgbuf, connfd) == -1)
+		fatal("imsgbuf_init");
 	c->iev.handler = control_dispatch_imsg;
 	c->iev.events = EV_READ;
 	ev_add(c->iev.imsgbuf.fd, c->iev.events, c->iev.handler, &c->iev);
@@ -222,7 +223,7 @@ control_close(int fd)
 		control_state.tx = -1;
 	}
 
-	msgbuf_clear(&c->iev.imsgbuf.w);
+	imsgbuf_clear(&c->iev.imsgbuf);
 	TAILQ_REMOVE(&ctl_conns, c, entry);
 
 	ev_del(c->iev.imsgbuf.fd);
@@ -289,14 +290,14 @@ control_dispatch_imsg(int fd, int event, void *bula)
 	imsgbuf = &c->iev.imsgbuf;
 
 	if (event & EV_READ) {
-		if (((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN) ||
+		if (((n = imsgbuf_read(imsgbuf)) == -1) ||
 		    n == 0) {
 			control_close(fd);
 			return;
 		}
 	}
 	if (event & EV_WRITE) {
-		if (msgbuf_write(&imsgbuf->w) <= 0 && errno != EAGAIN) {
+		if (imsgbuf_write(imsgbuf) == -1) {
 			control_close(fd);
 			return;
 		}

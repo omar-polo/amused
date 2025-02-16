@@ -70,7 +70,7 @@ player_setduration(int64_t d)
 	duration = d;
 	seconds = duration / current_rate;
 	imsg_compose(imsgbuf, IMSG_LEN, 0, 0, -1, &seconds, sizeof(seconds));
-	imsg_flush(imsgbuf);
+	imsgbuf_flush(imsgbuf);
 }
 
 static void
@@ -85,7 +85,7 @@ player_onmove(void *arg, int delta)
 		sec = frames / current_rate;
 
 		imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &sec, sizeof(sec));
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 	}
 }
 
@@ -120,7 +120,7 @@ again:
 		pfd.events = POLLIN;
 		if (poll(&pfd, 1, INFTIM) == -1)
 			fatal("poll");
-		if ((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN)
+		if ((n = imsgbuf_read(imsgbuf)) == -1)
 			fatal("imsg_read");
 		if (n == 0)
 			fatalx("pipe closed");
@@ -172,14 +172,14 @@ player_senderr(const char *errstr)
 		len = strlen(errstr) + 1;
 
 	imsg_compose(imsgbuf, IMSG_ERR, 0, 0, -1, errstr, len);
-	imsg_flush(imsgbuf);
+	imsgbuf_flush(imsgbuf);
 }
 
 static void
 player_sendeof(void)
 {
 	imsg_compose(imsgbuf, IMSG_EOF, 0, 0, -1, NULL, 0);
-	imsg_flush(imsgbuf);
+	imsgbuf_flush(imsgbuf);
 }
 
 static int
@@ -195,7 +195,7 @@ player_playnext(const char **errstr)
 	/* reset frames and set position to zero */
 	frames = 0;
 	imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &frames, sizeof(frames));
-	imsg_flush(imsgbuf);
+	imsgbuf_flush(imsgbuf);
 
 	r = read(fd, buf, sizeof(buf));
 
@@ -321,7 +321,9 @@ player(int debug, int verbose)
 	player_pfds[0].fd = 3;
 
 	imsgbuf = xmalloc(sizeof(*imsgbuf));
-	imsg_init(imsgbuf, 3);
+	if (imsgbuf_init(imsgbuf, 3) == -1)
+		fatal("imsgbuf_init");
+	imsgbuf_allow_fdpass(imsgbuf);
 
 	signal(SIGINT, player_signal_handler);
 	signal(SIGTERM, player_signal_handler);

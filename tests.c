@@ -256,9 +256,8 @@ main(void)
 	struct imsgbuf imsgbuf;
 	struct imsg imsg;
 
-	imsg_init(&imsgbuf, 3);
-	imsg_clear(&imsgbuf);
-	imsg_get_fd(&imsg);
+	imsgbuf_init(&imsgbuf, 3);
+	imsgbuf_clear(&imsgbuf);
 	return 0;
 }
 #endif /* TEST_LIB_IMSG */

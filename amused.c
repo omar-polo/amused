@@ -59,8 +59,8 @@ main_shutdown(void)
 	int	status;
 
 	/* close pipes. */
-	msgbuf_clear(&iev_player->imsgbuf.w);
 	close(iev_player->imsgbuf.fd);
+	imsgbuf_clear(&iev_player->imsgbuf);
 	free(iev_player);
 
 	log_debug("waiting for children to terminate");
@@ -109,16 +109,14 @@ main_dispatch_player(int sig, int event, void *d)
 	int		 shut = 0;
 
 	if (event & EV_READ) {
-		if ((n = imsg_read(imsgbuf)) == -1 && errno != EAGAIN)
+		if ((n = imsgbuf_read(imsgbuf)) == -1)
 			fatal("imsg_read error");
 		if (n == 0)	/* Connection closed */
 			shut = 1;
 	}
 	if (event & EV_WRITE) {
-		if ((n = msgbuf_write(&imsgbuf->w)) == -1 && errno != EAGAIN)
-			fatal("msgbuf_write");
-		if (n == 0)	/* Connection closed */
-			shut = 1;
+		if (imsgbuf_write(imsgbuf) == -1)
+			fatal("imsgbuf_write");
 	}
 
 	for (;;) {
@@ -275,7 +273,9 @@ amused_main(void)
 	ev_signal(SIGTERM, main_sig_handler, NULL);
 
 	iev_player = xmalloc(sizeof(*iev_player));
-	imsg_init(&iev_player->imsgbuf, pipe_main2player[0]);
+	if (imsgbuf_init(&iev_player->imsgbuf, pipe_main2player[0]) == -1)
+		fatal("imsgbuf_init");
+	imsgbuf_allow_fdpass(&iev_player->imsgbuf);
 	iev_player->handler = main_dispatch_player;
 	iev_player->events = EV_READ;
 	ev_add(iev_player->imsgbuf.fd, iev_player->events,
@@ -366,7 +366,7 @@ void
 imsg_event_add(struct imsgev *iev)
 {
 	iev->events = EV_READ;
-	if (iev->imsgbuf.w.queued)
+	if (imsgbuf_queuelen(&iev->imsgbuf))
 		iev->events |= EV_WRITE;
 
 	ev_add(iev->imsgbuf.fd, iev->events, iev->handler, iev);

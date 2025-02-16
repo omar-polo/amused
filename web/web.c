@@ -459,16 +459,14 @@ imsg_dispatch(int fd, int ev, void *d)
 	int			 r;
 
 	if (ev & EV_READ) {
-		if ((n = imsg_read(&imsgbuf)) == -1 && errno != EAGAIN)
-			fatal("imsg_read");
+		if ((n = imsgbuf_read(&imsgbuf)) == -1)
+			fatal("imsgbuf_read");
 		if (n == 0)
 			fatalx("pipe closed");
 	}
 	if (ev & EV_WRITE) {
-		if ((n = msgbuf_write(&imsgbuf.w)) == -1 && errno != EAGAIN)
+		if (imsgbuf_write(&imsgbuf) == -1)
 			fatal("msgbuf_write");
-		if (n == 0)
-			fatalx("pipe closed");
 	}
 
 	for (;;) {
@@ -579,7 +577,7 @@ imsg_dispatch(int fd, int ev, void *d)
 	}
 
 	ev = EV_READ;
-	if (imsgbuf.w.queued)
+	if (imsgbuf_queuelen(&imsgbuf))
 		ev |= EV_WRITE;
 	ev_add(fd, ev, imsg_dispatch, NULL);
 }
@@ -706,7 +704,7 @@ route_jump(struct client *clt)
 
 		imsg_compose(&imsgbuf, IMSG_CTL_JUMP, 0, 0, -1,
 		    path, sizeof(path));
-		ev_add(imsgbuf.w.fd, EV_READ|EV_WRITE, imsg_dispatch, NULL);
+		ev_add(imsgbuf.fd, EV_READ|EV_WRITE, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -752,7 +750,7 @@ route_controls(struct client *clt)
 			goto badreq;
 
 		imsg_compose(&imsgbuf, cmd, 0, 0, -1, NULL, 0);
-		imsg_flush(&imsgbuf);
+		imsgbuf_flush(&imsgbuf);
 		break;
 	}
 
@@ -798,7 +796,7 @@ route_mode(struct client *clt)
 
 		imsg_compose(&imsgbuf, IMSG_CTL_MODE, 0, 0, -1,
 		    &pm, sizeof(pm));
-		ev_add(imsgbuf.w.fd, EV_READ|EV_WRITE, imsg_dispatch, NULL);
+		ev_add(imsgbuf.fd, EV_READ|EV_WRITE, imsg_dispatch, NULL);
 		break;
 	}
 
@@ -1101,7 +1099,8 @@ main(int argc, char **argv)
 		fatal("ev_init");
 
 	amused_sock = dial(sock);
-	imsg_init(&imsgbuf, amused_sock);
+	if (imsgbuf_init(&imsgbuf, amused_sock) == -1)
+		fatal("imsgbuf_init");
 	imsg_compose(&imsgbuf, IMSG_CTL_SHOW, 0, 0, -1, NULL, 0);
 	imsg_compose(&imsgbuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 	imsg_compose(&imsgbuf, IMSG_CTL_MONITOR, 0, 0, -1, NULL, 0);

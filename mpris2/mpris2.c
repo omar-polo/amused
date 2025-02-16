@@ -198,35 +198,35 @@ mpris_player_method_call(GDBusConnection *conn, const gchar *sender,
 
 	if (!strcmp(method_name, "Next")) {
 		imsg_compose(imsgbuf, IMSG_CTL_NEXT, 0, 0, -1, NULL, 0);
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "Pause")) {
 		imsg_compose(imsgbuf, IMSG_CTL_PAUSE, 0, 0, -1, NULL, 0);
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "Play")) {
 		imsg_compose(imsgbuf, IMSG_CTL_PLAY, 0, 0, -1, NULL, 0);
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "PlayPause")) {
 		imsg_compose(imsgbuf, IMSG_CTL_TOGGLE_PLAY, 0, 0, -1, NULL, 0);
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
 
 	if (!strcmp(method_name, "Previous")) {
 		imsg_compose(imsgbuf, IMSG_CTL_PREV, 0, 0, -1, NULL, 0);
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
@@ -239,7 +239,7 @@ mpris_player_method_call(GDBusConnection *conn, const gchar *sender,
 		seek.relative = 1;
 		imsg_compose(imsgbuf, IMSG_CTL_SEEK, 0, 0, -1,
 		    &seek, sizeof(seek));
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
@@ -258,7 +258,7 @@ mpris_player_method_call(GDBusConnection *conn, const gchar *sender,
 		seek.offset = g_variant_get_int64(offset) / 1000000L;
 		imsg_compose(imsgbuf, IMSG_CTL_SEEK, 0, 0, -1,
 		    &seek, sizeof(seek));
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
@@ -352,7 +352,7 @@ mpris_player_set_prop(GDBusConnection *conn, const gchar *sender,
 
 		imsg_compose(imsgbuf, IMSG_CTL_MODE, 0, 0, -1,
 		    &mode, sizeof(mode));
-		imsg_flush(imsgbuf);
+		imsgbuf_flush(imsgbuf);
 		return TRUE;
 	}
 
@@ -383,7 +383,7 @@ on_bus_acquired(GDBusConnection *conn, const gchar *name,
 
 	imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0, -1, NULL, 0);
 	imsg_compose(imsgbuf, IMSG_CTL_MONITOR, 0, 0, -1, NULL, 0);
-	imsg_flush(imsgbuf);
+	imsgbuf_flush(imsgbuf);
 }
 
 static void
@@ -461,11 +461,10 @@ imsg_dispatch(GIOChannel *chan, GIOCondition cond, gpointer data)
 	const char		*msg;
 	char			 sha1buf[SHA1_DIGEST_STRING_LENGTH];
 
-	if ((n = imsg_read(imsgbuf)) == -1) {
-		if (errno == EAGAIN)
-			return TRUE;
+	if ((n = imsgbuf_read(imsgbuf)) == -1)
 		fatal("imsg_read");
-	}
+	if (n == 0)
+		fatalx("pipe closed");
 
 	for (;;) {
 		if ((n = imsg_get(imsgbuf, &imsg)) == -1)
@@ -495,7 +494,7 @@ imsg_dispatch(GIOChannel *chan, GIOCondition cond, gpointer data)
 			case IMSG_CTL_JUMP:
 				imsg_compose(imsgbuf, IMSG_CTL_STATUS, 0, 0,
 				    -1, NULL, 0);
-				imsg_flush(imsgbuf);
+				imsgbuf_flush(imsgbuf);
 				break;
 
 			case IMSG_CTL_MODE:
@@ -642,7 +641,8 @@ main(int argc, char **argv)
 		fatal("g_io_channel_unix_new");
 
 	imsgbuf = xmalloc(sizeof(*imsgbuf));
-	imsg_init(imsgbuf, fd);
+	if (imsgbuf_init(imsgbuf, fd) == -1)
+		fatal("imsgbuf_init");
 
 	g_io_add_watch(sock_chan, G_IO_IN, imsg_dispatch, NULL);
 
