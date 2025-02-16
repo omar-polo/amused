@@ -621,7 +621,6 @@ runtest lib_md		LIB_MD "" "" "-lmd" "libmd" || {
 	cobj="$cobj sha1.o"
 }
 
-runtest lib_imsg	LIB_IMSG "" "" "-lutil"		  || true
 runtest lib_glib	LIB_GLIB "" "" "-lgio-2.0 -lgobject-2.0 -lglib-2.0" "gio-2.0" || true
 runtest lib_socket	LIB_SOCKET "" "" "-lsocket -lnsl" || true
 
