@@ -23,6 +23,7 @@
 #define _IMSG_H_
 
 #include <sys/types.h>
+#include <stdint.h>
 
 #define IBUF_READ_SIZE		65535
 #define IMSG_HEADER_SIZE	sizeof(struct imsg_hdr)
