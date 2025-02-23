@@ -1,4 +1,4 @@
-.\" Copyright (c) 2022, 2023, 2024 Omar Polo <op@omarpolo.com>
+.\" Copyright (c) 2022, 2023, 2024, 2025 Omar Polo <op@omarpolo.com>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd September 22, 2024
+.Dd February 23, 2025
 .Dt AMUSED 1
 .Os
 .Sh NAME
@@ -28,13 +28,12 @@
 .Oc
 .Sh DESCRIPTION
 .Nm
-is a music player.
-It manages a playing queue of music files.
-When it finishes to play a track,
+is a simple music player.
+It manages a single queue of music files.
+At the end of every track,
 .Nm
-proceeds to the next file in the queue, or with the first one if
-the currently playing track is not in the playing queue.
-When it reaces the end, by default, it wraps back to the first track.
+proceeds to the next one in the queue, or with the first one if
+it was the last one or if the track wasn't part of the queue.
 .Pp
 .Nm
 automatically skips and removes from the playing queue non-regular files,
