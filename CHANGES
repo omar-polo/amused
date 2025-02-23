@@ -1,3 +1,8 @@
+* amused 0.18; 2025-02-23
+- convert to new imsg APIs and updated bundled imsg
+- small tweak to amused.1
+- amused-web: add a dark theme
+
 * amused 0.17; 2025-02-15
 - sync'ed subcommand usages with the manpage
 - renamed the `prev' subcommand to `previous' for consistency
