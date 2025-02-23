@@ -1,7 +1,7 @@
 .PHONY: all mpris2 songmeta web clean distclean \
 	install install-amused install-songmeta install-web
 
-VERSION =	0.18
+VERSION =	0.19
 PROG =		amused
 DISTNAME =	${PROG}-${VERSION}
 
