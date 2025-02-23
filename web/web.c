@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Omar Polo <op@omarpolo.com>
+ * Copyright (c) 2023-2025 Omar Polo <op@omarpolo.com>
  * Copyright (c) 2014 Reyk Floeter <reyk@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
