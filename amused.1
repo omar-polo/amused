@@ -77,10 +77,10 @@ once played completely.
 Without arguments toggle the current status.
 .It Cm flush
 Erase the playlist.
-.It Cm jump Ar pattern
-Play the first song in the playing queue that matches
-.Ar pattern ,
-a basic case-insensitive regexp.
+.It Cm jump Ar substring
+Play the first song in the playing queue that contains the given
+case-insensitive
+.Ar substring .
 .It Cm load Op Ar file
 Load a playlist from
 .Ar file
