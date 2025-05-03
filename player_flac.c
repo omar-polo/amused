@@ -50,7 +50,7 @@ writecb(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame,
     const int32_t * const *src, void *data)
 {
 	struct write_args *wa = data;
-	static uint8_t buf[BUFSIZ];
+	static uint8_t buf[AMUSED_BUFSIZ];
 	int64_t seek;
 	int c, i, bps, chans;
 	size_t len;

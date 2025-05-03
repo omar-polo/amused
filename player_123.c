@@ -46,7 +46,7 @@ setup(mpg123_handle *mh)
 int
 play_mp3(int fd, const char **errstr)
 {
-	static char	 buf[4096];
+	static char	 buf[AMUSED_BUFSIZ];
 	size_t		 len;
 	mpg123_handle	*mh;
 	int64_t		 seek = -1;

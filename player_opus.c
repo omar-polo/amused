@@ -34,8 +34,8 @@
 int
 play_opus(int fd, const char **errstr)
 {
-	static int16_t pcm[BUFSIZ];
-	static uint8_t out[BUFSIZ * 2];
+	static int16_t pcm[AMUSED_BUFSIZ / 2];
+	static uint8_t out[AMUSED_BUFSIZ];
 	OggOpusFile *of;
 	void *f;
 	int64_t seek = -1;

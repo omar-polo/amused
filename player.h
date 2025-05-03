@@ -14,6 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef AMUSED_BUFSIZ
+#define AMUSED_BUFSIZ (16 * 1024)
+#endif
+
 int	player_setup(unsigned int, unsigned int, unsigned int);
 void	player_setduration(int64_t);
 void	player_setpos(int64_t);
