@@ -9,6 +9,10 @@ void		 freezero(void *, size_t);
 const char	*getprogname(void);
 #endif
 
+#if !HAVE_REALLOCARRAY
+void		*reallocarray(void *, size_t, size_t);
+#endif
+
 #if !HAVE_RECALLOCARRAY
 void		*recallocarray(void *, size_t, size_t, size_t);
 #endif

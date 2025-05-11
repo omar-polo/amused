@@ -636,6 +636,7 @@ runtest PATH_MAX	PATH_MAX			  || true
 runtest pledge		PLEDGE				  || true
 runtest program_invocation_short_name	PROGRAM_INVOCATION_SHORT_NAME || true
 runtest PR_SET_NAME	PR_SET_NAME			  || true
+runtest reallocarray	REALLOCARRAY	|| cobj="$cobj reallocarray.o"
 runtest recallocarray	RECALLOCARRAY	|| cobj="$cobj recallocarray.o"
 runtest sandbox_init	SANDBOX_INIT	"-Wno-deprecated" || true
 runtest setproctitle	SETPROCTITLE	|| cobj="$cobj setproctitle.o"
