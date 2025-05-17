@@ -1,3 +1,8 @@
+* amused 0.19; 2025-05-17
+- add compat for reallocarray; should fix build on macOS
+- sync all the decoders internal buffer size, and bump it
+- use substrings instead of regexp for `amused jump'
+
 * amused 0.18; 2025-02-23
 - convert to new imsg APIs and updated bundled imsg
 - small tweak to amused.1
