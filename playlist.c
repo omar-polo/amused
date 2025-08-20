@@ -202,7 +202,7 @@ playlist_jump(const char *arg)
 	size_t i;
 
 	for (i = 0; i < playlist.len; ++i) {
-		if (strcasestr(playlist.songs[i], arg) == 0)
+		if (strcasestr(playlist.songs[i], arg) != NULL)
 			break;
 	}
 
