@@ -169,7 +169,6 @@ play_flac(int fd, const char **errstr)
 
 	s = FLAC__stream_decoder_get_state(decoder);
 	FLAC__stream_decoder_delete(decoder);
-	fclose(f);
 
 	if (s == FLAC__STREAM_DECODER_ABORTED && !wa.seek_failed)
 		return 1;
