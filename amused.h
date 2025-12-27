@@ -119,26 +119,6 @@ struct player_event {
 	struct player_mode	 mode;
 };
 
-struct parse_result {
-	enum actions		 action;
-	char			**files;
-	FILE			*fp;
-	int			 all;
-	int			 pretty;
-	int			 monitor[IMSG__LAST];
-	struct player_mode	 mode;
-	struct player_seek	 seek;
-	const char		*status_format;
-	struct ctl_command	*ctl;
-};
-
-struct ctl_command {
-	const char		*name;
-	enum actions		 action;
-	int			(*main)(struct parse_result *, int, char **);
-	const char		*usage;
-};
-
 struct playlist;
 struct pollfd;
 
