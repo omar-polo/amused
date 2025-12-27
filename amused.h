@@ -120,7 +120,6 @@ struct player_event {
 };
 
 struct playlist;
-struct pollfd;
 
 /* amused.c */
 void		spawn_daemon(void);
