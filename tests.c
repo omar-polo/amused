@@ -1008,13 +1008,9 @@ main(void)
 int
 main(void)
 {
-	SHA1_CTX ctx;
 	char result[SHA1_DIGEST_STRING_LENGTH];
 
-	SHA1Init(&ctx);
-	SHA1Update(&ctx, (const unsigned char *)"abcd", 4);
-	SHA1End(&ctx, result);
-
+	SHA1Data("foo", 3, result);
 	return 0;
 }
 #endif /* TEST_LIB_MD */
