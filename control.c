@@ -246,8 +246,8 @@ control_notify(int type)
 
 	memset(&ev, 0, sizeof(ev));
 	ev.event = type;
-	ev.position = current_position;
-	ev.duration = current_duration;
+	ev.position = current_status.position;
+	ev.duration = current_status.duration;
 	ev.mode.repeat_one = repeat_one;
 	ev.mode.repeat_all = repeat_all;
 	ev.mode.consume = consume;

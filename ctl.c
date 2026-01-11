@@ -304,6 +304,29 @@ print_time(const char *label, int64_t seconds, const char *suffx)
 	printf("%02d:%02lld%s", minutes, (long long)seconds, suffx);
 }
 
+static const char *
+scale_rate(double rate)
+{
+	static char buf[16];
+	char unit[] = { 'G', 'M', 'K', '\0' };
+	double scale[] = { 1e9, 1e6, 1e3, 1 };
+	int i, ret;
+
+	for (i = 0; i < 4; i++) {
+		if (scale[i] >= rate)
+			continue;
+
+		ret = snprintf(buf, sizeof(buf), "%.0f%c",
+		    rate / scale[i], unit[i]);
+		if (ret < 0 || (size_t)ret >= sizeof(buf))
+			return "NaN";
+
+		return (buf);
+	}
+
+	return "0";
+}
+
 static void
 print_status(struct player_status *ps, const char *spec)
 {
@@ -329,6 +352,10 @@ print_status(struct player_status *ps, const char *spec)
 
 		if (!strcmp(tok, "path")) {
 			puts(ps->path);
+		} else if (!strcmp(tok, "info")) {
+			printf("info %dbits %sHz %d channel%s\n",
+			    ps->info.bits, scale_rate(ps->info.rate),
+			    ps->info.chan, ps->info.chan == 1 ? "" : "s");
 		} else if (!strcmp(tok, "mode:oneline")) {
 			printf("repeat one:%s ",
 			    ps->mode.repeat_one ? "on" : "off");
@@ -1039,7 +1066,7 @@ ctl(int argc, char **argv)
 
 	memset(&res, 0, sizeof(res));
 	if ((fmt = getenv("AMUSED_STATUS_FORMAT")) == NULL)
-		fmt = "status,time:oneline,mode:oneline";
+		fmt = "status,time:oneline,info,mode:oneline";
 	res.status_format = fmt;
 
 	res.mode.consume = MODE_UNDEF;

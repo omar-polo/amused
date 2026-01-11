@@ -47,6 +47,8 @@ struct imsgev	*iev_player;
 const char	*argv0;
 pid_t		 player_pid;
 
+struct player_status current_status;
+
 enum amused_process {
 	PROC_MAIN,
 	PROC_PLAYER,
@@ -104,6 +106,7 @@ main_dispatch_player(int sig, int event, void *d)
 	struct imsgbuf	*imsgbuf = &iev->imsgbuf;
 	struct imsg	 imsg;
 	struct ibuf	 ibuf;
+	struct player_status ps;
 	size_t		 datalen;
 	ssize_t		 n;
 	int		 shut = 0;
@@ -126,20 +129,20 @@ main_dispatch_player(int sig, int event, void *d)
 			break;
 
 		switch (imsg_get_type(&imsg)) {
-		case IMSG_POS:
-			if (imsg_get_data(&imsg, &current_position,
-			    sizeof(current_position)) == -1)
-				fatalx("IMSG_POS: got wrong size");
-			if (current_position < 0)
-				current_position = -1;
-			control_notify(IMSG_CTL_SEEK);
-			break;
-		case IMSG_LEN:
-			if (imsg_get_data(&imsg, &current_duration,
-			    sizeof(current_duration)) == -1)
-				fatalx("IMSG_LEN: got wrong size");
-			if (current_duration < 0)
-				current_duration = -1;
+		case IMSG_META:
+			if (imsg_get_data(&imsg, &ps, sizeof(ps)) == -1)
+				fatalx("IMSG_META: got wrong size");
+			if (current_status.position != ps.position)
+				control_notify(IMSG_CTL_SEEK);
+			current_status.duration = ps.duration;
+			current_status.position = ps.position;
+			if (current_status.duration < 0)
+				current_status.duration = -1;
+			if (current_status.position < 0)
+				current_status.position = -1;
+			current_status.info.bits = ps.info.bits;
+			current_status.info.rate = ps.info.rate;
+			current_status.info.chan = ps.info.chan;
 			break;
 		case IMSG_ERR:
 			if (imsg_get_ibuf(&imsg, &ibuf) == -1 ||
@@ -565,11 +568,14 @@ main_send_status(struct imsgev *iev)
 	if (current_song != NULL)
 		strlcpy(s.path, current_song, sizeof(s.path));
 	s.status = play_state;
-	s.position = current_position;
-	s.duration = current_duration;
+	s.position = current_status.position;
+	s.duration = current_status.duration;
 	s.mode.repeat_all = repeat_all;
 	s.mode.repeat_one = repeat_one;
 	s.mode.consume = consume;
+	s.info.bits = current_status.info.bits;
+	s.info.rate = current_status.info.rate;
+	s.info.chan = current_status.info.chan;
 
 	imsg_compose_event(iev, IMSG_CTL_STATUS, 0, 0, -1, &s, sizeof(s));
 }

@@ -42,7 +42,7 @@ static struct imsgbuf	*imsgbuf;
 static int nextfd = -1;
 static int64_t frames;
 static int64_t duration;
-static unsigned int current_rate;
+static struct player_info info;
 
 volatile sig_atomic_t halted;
 
@@ -58,34 +58,43 @@ player_setup(unsigned int bits, unsigned int rate, unsigned int channels)
 	log_debug("%s: bits=%u, rate=%u, channels=%u", __func__,
 	    bits, rate, channels);
 
-	current_rate = rate;
+	info.bits = bits;
+	info.rate = rate;
+	info.chan = channels;
+
 	return audio_setup(bits, rate, channels, player_pfds + 1, player_nfds);
+}
+
+static void
+send_status(void)
+{
+	struct player_status s;
+
+	memset(&s, 0, sizeof(s));
+	s.duration = duration / info.rate;
+	s.position = frames / info.rate;
+	memcpy(&s.info, &info, sizeof(info));
+
+	imsg_compose(imsgbuf, IMSG_META, 0, 0, -1, &s, sizeof(s));
+	imsgbuf_flush(imsgbuf);
 }
 
 void
 player_setduration(int64_t d)
 {
-	int64_t seconds;
-
 	duration = d;
-	seconds = duration / current_rate;
-	imsg_compose(imsgbuf, IMSG_LEN, 0, 0, -1, &seconds, sizeof(seconds));
-	imsgbuf_flush(imsgbuf);
+	send_status();
 }
 
 static void
 player_onmove(void *arg, int delta)
 {
 	static int64_t reported;
-	int64_t sec;
 
 	frames += delta;
-	if (llabs(frames - reported) >= current_rate) {
+	if (llabs(frames - reported) >= info.rate) {
 		reported = frames;
-		sec = frames / current_rate;
-
-		imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &sec, sizeof(sec));
-		imsgbuf_flush(imsgbuf);
+		send_status();
 	}
 }
 
@@ -149,7 +158,7 @@ again:
 		if (seek.percent)
 			*s = (double)seek.offset * (double)duration / 100.0;
 		else
-			*s = seek.offset * current_rate;
+			*s = seek.offset * info.rate;
 		if (seek.relative)
 			*s += frames;
 		if (*s < 0)
@@ -194,8 +203,7 @@ player_playnext(const char **errstr)
 
 	/* reset frames and set position to zero */
 	frames = 0;
-	imsg_compose(imsgbuf, IMSG_POS, 0, 0, -1, &frames, sizeof(frames));
-	imsgbuf_flush(imsgbuf);
+	player_setduration(0);
 
 	r = read(fd, buf, sizeof(buf));
 

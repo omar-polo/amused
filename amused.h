@@ -30,8 +30,7 @@ enum imsg_type {
 	IMSG_RESUME,
 	IMSG_PAUSE,
 	IMSG_STOP,
-	IMSG_POS,
-	IMSG_LEN,
+	IMSG_META,
 	IMSG_EOF,
 	IMSG_ERR,		/* error string */
 
@@ -104,12 +103,19 @@ struct player_mode {
 	int	consume;
 };
 
+struct player_info {
+	unsigned int	bits;
+	unsigned int	rate;
+	unsigned int	chan;
+};
+
 struct player_status {
 	char			path[PATH_MAX];
 	int			status;
 	int64_t			position;
 	int64_t			duration;
 	struct player_mode	mode;
+	struct player_info	info;
 };
 
 struct player_event {
@@ -122,6 +128,8 @@ struct player_event {
 struct playlist;
 
 /* amused.c */
+extern struct player_status current_status;
+
 void		spawn_daemon(void);
 void		imsg_event_add(struct imsgev *iev);
 int		imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
