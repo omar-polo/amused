@@ -207,16 +207,11 @@ player_playnext(const char **errstr)
 	frames = 0;
 	player_setduration(0);
 
-	r = read(fd, buf, sizeof(buf));
+	r = pread(fd, buf, sizeof(buf), 0);
 
 	/* 8 byte is the larger magic number */
 	if (r < 8) {
 		*errstr = "read failed";
-		goto err;
-	}
-
-	if (lseek(fd, 0, SEEK_SET) == -1) {
-		*errstr = "lseek failed";
 		goto err;
 	}
 
