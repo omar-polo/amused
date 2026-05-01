@@ -71,8 +71,10 @@ send_status(void)
 	struct player_status s;
 
 	memset(&s, 0, sizeof(s));
-	s.duration = duration / info.rate;
-	s.position = frames / info.rate;
+	if (info.rate != 0) {
+		s.duration = duration / info.rate;
+		s.position = frames / info.rate;
+	}
 	memcpy(&s.info, &info, sizeof(info));
 
 	imsg_compose(imsgbuf, IMSG_META, 0, 0, -1, &s, sizeof(s));
