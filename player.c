@@ -223,7 +223,8 @@ player_playnext(const char **errstr)
 	if (memcmp(buf, "fLaC", 4) == 0)
 		return play_flac(fd, errstr);
 	if (memcmp(buf, "ID3", 3) == 0 ||
-	    memcmp(buf, "\xFF\xFB", 2) == 0)
+	    memcmp(buf, "\xFF\xFB", 2) == 0 ||
+	    memcmp(buf, "\xFF\xFA", 2) == 0)
 		return play_mp3(fd, errstr);
 	if (memmem(buf, r, "OpusHead", 8) != NULL)
 		return play_opus(fd, errstr);
