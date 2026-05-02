@@ -221,6 +221,8 @@ player_playnext(const char **errstr)
 	    memcmp(buf, "\xFF\xFB", 2) == 0 ||
 	    memcmp(buf, "\xFF\xFA", 2) == 0)
 		return play_mp3(fd, errstr);
+	if (memcmp(buf, "RIFF", 4) == 0)
+		return play_wav(fd, errstr);
 	if (memmem(buf, r, "OpusHead", 8) != NULL)
 		return play_opus(fd, errstr);
 	if (memmem(buf, r, "OggS", 4) != NULL)

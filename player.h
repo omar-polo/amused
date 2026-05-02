@@ -28,3 +28,4 @@ int	play_oggvorbis(int, const char **);
 int	play_mp3(int, const char **);
 int	play_flac(int, const char **);
 int	play_opus(int, const char **);
+int	play_wav(int, const char **);

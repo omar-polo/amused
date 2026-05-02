@@ -15,6 +15,7 @@ SOURCES =	amused.c \
 		player_flac.c \
 		player_oggvorbis.c \
 		player_opus.c \
+		player_wav.c \
 		playlist.c \
 		xmalloc.c
 
