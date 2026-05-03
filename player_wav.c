@@ -96,6 +96,12 @@ play_wav(int fd, const char **errstr)
 	}
 
 	frame = nchan * (bps / 8);
+	if (tot < frame) {
+		*errstr = "data section too small!";
+		close(fd);
+		return -1;
+	}
+
 	player_setduration(tot / frame);
 
 	if ((start = lseek(fd, 0, SEEK_CUR)) == -1) {
@@ -107,7 +113,13 @@ play_wav(int fd, const char **errstr)
 	pos = 0;
 	while (pos < tot) {
 		if (seek != -1) {
-			if (lseek(fd, start + (seek * frame), SEEK_SET) == -1) {
+			ssize_t dest = seek * frame;
+			if (dest >= tot) {
+				dest = tot - frame;
+				seek = dest / frame;
+			}
+
+			if (lseek(fd, start + dest, SEEK_SET) == -1) {
 				*errstr = "seeking failed";
 				close(fd);
 				return -1;
@@ -141,4 +153,3 @@ play_wav(int fd, const char **errstr)
 	close(fd);
 	return 0;
 }
-
