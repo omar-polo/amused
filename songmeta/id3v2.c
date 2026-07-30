@@ -246,7 +246,7 @@ id3v2_dump(int fd, const char *name, const char *filter)
 		}
 
 		/* XXX skip encoding for now */
-		lseek(fd, SEEK_CUR, 1);
+		lseek(fd, 1, SEEK_CUR);
 		fsize--; /* XXX */
 
 		if (readprintfield(f->name, filter, f->pretty,
