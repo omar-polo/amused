@@ -418,7 +418,7 @@ http_htmlescape(struct client *clt, const char *str)
 			r = http_writes(clt, "&gt;");
 			break;
 		case '&':
-			r = http_writes(clt, "&gt;");
+			r = http_writes(clt, "&amp;");
 			break;
 		case '"':
 			r = http_writes(clt, "&quot;");
