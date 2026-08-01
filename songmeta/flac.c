@@ -91,6 +91,10 @@ flac_dump(FILE *fp, const char *name, const char *filter)
 				return (-1);
 			blen = (len[3] << 24)|(len[2] << 16)|(len[1] << 8)|len[0];
 
+			/* nonsensical; would overflow on 32 bit arches */
+			if (blen == 0xFFFFFFFF)
+				return (-1);
+
 			if ((m = malloc(blen + 1)) == NULL)
 				fatal("malloc");
 
