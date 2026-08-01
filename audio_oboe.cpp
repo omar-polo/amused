@@ -112,6 +112,8 @@ aworker(void *d)
 ext int
 audio_open(void (*cb)(void *, int))
 {
+	int err;
+
 	onmove_cb = cb;
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sp) == -1) {
@@ -119,8 +121,8 @@ audio_open(void (*cb)(void *, int))
 		return (-1);
 	}
 
-	if (pthread_create(&at, NULL, aworker, NULL) == -1) {
-		log_warn("pthread_create");
+	if ((err = pthread_create(&at, NULL, aworker, NULL)) != 0) {
+		log_warnx("pthread_create: %s", strerror(err));
 		return (-1);
 	}
 

@@ -105,6 +105,8 @@ aworker(void *d)
 int
 audio_open(void (*cb)(void *, int))
 {
+	int err;
+
 	ao_initialize();
 	onmove_cb = cb;
 
@@ -113,8 +115,8 @@ audio_open(void (*cb)(void *, int))
 		return (-1);
 	}
 
-	if (pthread_create(&at, NULL, aworker, NULL) == -1) {
-		log_warn("pthread_create");
+	if ((err = pthread_create(&at, NULL, aworker, NULL)) != 0) {
+		log_warnx("pthread_create: %s", strerror(err));
 		return (-1);
 	}
 
