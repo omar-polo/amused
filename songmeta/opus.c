@@ -88,7 +88,7 @@ opus_dump(struct ogg *ogg, const char *name, const char *filter)
 
 		l = len;
 		if (l >= sizeof(buf))
-			l = len - 1;
+			l = sizeof(buf);
 		len -= l;
 
 		if (ogg_read(ogg, buf, l) != l ||
