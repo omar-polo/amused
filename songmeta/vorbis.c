@@ -93,7 +93,7 @@ vorbis_dump(struct ogg *ogg, const char *name, const char *filter)
 
 		l = len;
 		if (l >= sizeof(buf))
-			l = len - 1;
+			l = sizeof(buf) - 1;
 		len -= l;
 
 		if (ogg_read(ogg, buf, l) != l ||
