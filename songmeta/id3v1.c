@@ -37,6 +37,15 @@
 #include "log.h"
 #include "songmeta.h"
 
+/*
+ * "TAG"	 3 bytes +
+ * title	30 bytes +
+ * artist	30 bytes +
+ * album	30 bytes +
+ * year		 4 bytes +
+ * comment	30 bytes +   // actually 28 + NUL + track number (1b)
+ * genre	 1 byte
+ */
 #define ID3v1_SIZE	128
 
 int
@@ -113,9 +122,10 @@ id3v1_dump(int fd, const char *name, const char *filter)
 
 	/* ID3v1.1: track number is inside the comment space */
 
-	if (s[28] == '\0' && s[29] != '\0') {
-		snprintf(buf, sizeof(buf), "%d", (unsigned int)s[29]);
-		printfield("track", filter, "Track #", 0, s);
+	if (id3[sizeof(id3)-3] == '\0' && id3[sizeof(id3)-2] != '\0') {
+		snprintf(buf, sizeof(buf), "%d",
+		    (unsigned int)id3[sizeof(id3)-2]);
+		printfield("track", filter, "Track #", 0, buf);
 	} else if (filter != NULL && matchfield("track", filter))
 		return (-1);
 
