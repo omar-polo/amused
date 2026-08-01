@@ -555,8 +555,7 @@ imsg_dispatch(int fd, int ev, void *d)
 				if (playlist_tmp.len == 0) {
 					dispatch_event("x:");
 					off = -1;
-				} else if (playlist_tmp.len == off)
-					off = -1;
+				}
 				dispatch_event("X:");
 				playlist_swap(&playlist_tmp, off);
 				memset(&playlist_tmp, 0, sizeof(playlist_tmp));

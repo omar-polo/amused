@@ -49,7 +49,7 @@ playlist_swap(struct playlist *p, ssize_t off)
 {
 	ssize_t i = -1;
 
-	if (off > p->len)
+	if (off < 0 || (size_t)off >= p->len)
 		off = -1;
 
 	if (current_song != NULL && off < 0) {
