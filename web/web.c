@@ -726,7 +726,7 @@ route_jump(struct client *clt)
 	if (!found)
 		goto badreq;
 
-	if (!strncmp(clt->req.path, "/a/", 2))
+	if (!strncmp(clt->req.path, "/a/", 3))
 		http_reply(clt, 200, "OK", "text/plain");
 	else
 		http_reply(clt, 302, "See Other", "/");
