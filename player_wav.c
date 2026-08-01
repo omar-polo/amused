@@ -66,11 +66,27 @@ play_wav(int fd, const char **errstr)
 	}
 
 	nchan = (hdr[23] << 8) | hdr[22];
+	if (nchan == 0) {
+		*errstr = "zero channels?";
+		close(fd);
+		return -1;
+	}
 
+	/* what's the frequency, kenneth? */
 	memcpy(&freq, &hdr[24], 4);
 	freq = le32toh(freq);
+	if (freq == 0) {
+		*errstr = "zero frequency?";
+		close(fd);
+		return -1;
+	}
 
 	bps = ((hdr[35] << 8) | hdr[34]);
+	if (bps == 0) {
+		*errstr = "zero bits per sample?";
+		close(fd);
+		return -1;
+	}
 
 	if (player_setup(bps, freq, nchan) == -1)
 		fatal("player_setup");
