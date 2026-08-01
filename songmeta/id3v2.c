@@ -192,7 +192,7 @@ id3v2_dump(int fd, const char *name, const char *filter)
 		goto bad;
 	s += 3;
 
-	if (s[0] != 0x04 && s[1] != 0x00)
+	if (s[0] != 0x04 || s[1] != 0x00)
 		goto bad;
 	s += 2;
 
