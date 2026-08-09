@@ -455,7 +455,11 @@ ev_step(void)
 
 	for (i = 0; i < base->ntimers && !ev_stop; /* nop */) {
 		timersub(&base->timers[i].tv, &tv, &sub);
-		if (sub.tv_sec <= 0) {
+		/*
+		 * tv_sec always carries the sign, while tv_usec is
+		 * pure magnitude.
+		 */
+		if (sub.tv_sec < 0 || !timerisset(&sub)) {
 			/*
 			 * delete the timer before calling its
 			 * callback; protects from timer that
