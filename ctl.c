@@ -353,7 +353,7 @@ print_status(struct player_status *ps, const char *spec)
 		if (!strcmp(tok, "path")) {
 			puts(ps->path);
 		} else if (!strcmp(tok, "info")) {
-			printf("info %dbits %sHz %d channel%s\n",
+			printf("info %d bits %sHz %d channel%s\n",
 			    ps->info.bits, scale_rate(ps->info.rate),
 			    ps->info.chan, ps->info.chan == 1 ? "" : "s");
 		} else if (!strcmp(tok, "mode:oneline")) {
