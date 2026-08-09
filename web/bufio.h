@@ -27,7 +27,7 @@
 struct tls;
 #endif
 
-#define BIO_CHUNK	128
+#define BIO_CHUNK	4096
 struct buf {
 	uint8_t		*buf;
 	size_t		 len;
