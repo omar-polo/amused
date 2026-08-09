@@ -3,7 +3,7 @@
 - amused-web: fix escaping of `&' (was rendered as `>' instead)
 - add support for WAV files
 - improve mp3 file detection (from continue at honk.any-key.press, thanks!)
-- print bits, rate and channels for channels
+- print bits, rate and channels for tracks
 - fix spelling of TMPDIR in man pages
 - improve SHA1*() compat
 - fix double fclose(3) in flac the decoder
