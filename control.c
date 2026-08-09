@@ -231,7 +231,7 @@ control_close(int fd)
 
 	/* Some file descriptors are available again. */
 	if (ev_timer_pending(control_state.tout)) {
-		ev_timer(NULL, NULL, NULL);
+		ev_timer_cancel(control_state.tout);
 		ev_add(control_state.fd, EV_READ, control_accept, NULL);
 	}
 
