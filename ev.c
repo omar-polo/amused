@@ -411,7 +411,7 @@ poll2ev(int ev)
 {
 	int r = 0;
 
-	if (ev & (POLLIN|POLLHUP))
+	if (ev & (POLLIN|POLLHUP|POLLERR|POLLNVAL))
 		r |= EV_READ;
 	if (ev & (POLLOUT|POLLWRNORM|POLLWRBAND))
 		r |= EV_WRITE;
