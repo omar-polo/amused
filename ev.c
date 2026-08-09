@@ -425,7 +425,7 @@ ev_step(void)
 	struct timespec	 elapsed, beg, end;
 	struct timeval	 tv, sub, *min;
 	struct evcb	 cb;
-	int		 n, msec;
+	int		 n, msec, mask;
 	size_t		 i;
 
 	timerheapify();
@@ -478,7 +478,8 @@ ev_step(void)
 	for (i = 0; i < base->len && n > 0 && !ev_stop; ++i) {
 		if (base->pfds[i].fd == -1)
 			continue;
-		if (base->pfds[i].revents & (POLLIN|POLLOUT|POLLHUP)) {
+		mask = POLLIN|POLLOUT|POLLHUP|POLLERR|POLLNVAL;
+		if (base->pfds[i].revents & mask) {
 			n--;
 			base->cbs[i].cb(base->pfds[i].fd,
 			    poll2ev(base->pfds[i].revents),
