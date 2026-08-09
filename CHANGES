@@ -1,3 +1,14 @@
+* amused 0.20; 2026-08-09
+
+- amused-web: fix escaping of `&' (was rendered as `>' instead)
+- add support for WAV files
+- improve mp3 file detection (from continue at honk.any-key.press, thanks!)
+- print bits, rate and channels for channels
+- fix spelling of TMPDIR in man pages
+- improve SHA1*() compat
+- fix double fclose(3) in flac the decoder
+- fix `amused jump'
+
 * amused 0.19; 2025-05-17
 - add compat for reallocarray; should fix build on macOS
 - sync all the decoders internal buffer size, and bump it
