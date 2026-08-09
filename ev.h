@@ -39,6 +39,5 @@ int		ev_timer_pending(unsigned int);
 int		ev_timer_cancel(unsigned int);
 int		ev_del(int);
 int		ev_step(void);
-int		ev_step(void);
 int		ev_loop(void);
 void		ev_break(void);
