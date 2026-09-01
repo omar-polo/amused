@@ -44,6 +44,7 @@ DISTFILES =	CHANGES \
 		audio_ao.c \
 		audio_oboe.cpp \
 		audio_oss.c \
+		audio_pipewire.c \
 		audio_sndio.c
 
 TOPDIR =	.

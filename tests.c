@@ -975,6 +975,16 @@ main(void)
 	return (0);
 }
 #endif /* TEST_LIB_AO */
+#if TEST_LIB_PIPEWIRE
+#include <pipewire/pipewire.h>
+
+int
+main(void)
+{
+	pw_init(NULL, NULL);
+	return (0);
+}
+#endif /* TEST_LIB_PIPEWIRE */
 #if TEST_LIB_ASOUND
 #include <alsa/asoundlib.h>
 
